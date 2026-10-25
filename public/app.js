@@ -1,5 +1,5 @@
-import { QipiAuth } from "./auth.js?v=storage-uploads-20261025";
-import { copy } from "./i18n.js?v=storage-uploads-20261025";
+import { QipiAuth } from "./auth.js?v=profile-loading-20261025";
+import { copy } from "./i18n.js?v=profile-loading-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
 
@@ -17,7 +17,8 @@ const auth = new QipiAuth();
 const state = {
   lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
   routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
-  likeActorId: getLikeActorId(), profile: null, profileReturnView: "feed",
+  likeActorId: getLikeActorId(), profile: null, profileId: "", profileReturnView: "feed",
+  profileRequestId: 0, routeRequestId: 0, tripRequestId: 0,
   feedRequestActive: false,
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   theme: window.qipiTheme?.getPreference() || "system",
@@ -250,6 +251,14 @@ function showDialog(id, html) {
   enhanceSelects(dialog);
   dialog.showModal();
 }
+function showDialogLoading(id, titleId) {
+  showDialog(id, `<h2 class="visually-hidden" id="${esc(titleId)}">${esc(t("loading"))}</h2><div class="skeleton-dialog" aria-hidden="true"><span class="skeleton-dialog-line wide"></span><span class="skeleton-dialog-line"></span><span class="skeleton-dialog-block"></span><span class="skeleton-dialog-line wide"></span><span class="skeleton-dialog-line short"></span></div>`);
+}
+function renderDialogError(id, action, targetId = "") {
+  const content = $(`#${id} [id$='-content']`);
+  if (!content) return;
+  content.innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="${esc(action)}" ${targetId ? `data-id="${esc(targetId)}"` : ""}>${esc(t("retry"))}</button></div>`;
+}
 function setLink(param, id) {
   const url = new URL(location.href);
   url.search = "";
@@ -288,7 +297,7 @@ function storagePublicUrl(path) {
 }
 function avatarContents(name, path = "") {
   const url = storagePublicUrl(path);
-  return url ? `<img class="avatar-image" src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name));
+  return url ? `<img class="avatar-image" src="${esc(url)}" alt="" loading="lazy" decoding="async" />` : esc(initials(name));
 }
 async function uploadImage(file, area) {
   if (!auth.user) throw new Error(t("imageSignInRequired"));
@@ -334,7 +343,19 @@ function submitSearch(value) {
   closeDesktopSearch();
   closeMobileSearch({ save: false });
   setPageView("search-results");
-  renderTrips();
+  renderTripListLoading("#trip-list", 2);
+  loadSearchResults();
+}
+
+async function loadSearchResults() {
+  try {
+    const { trips } = await api("/api/trips");
+    state.trips = trips;
+    renderTrips();
+  } catch (error) {
+    renderLoadingError("#trip-list", "retry-search");
+    toast(error.message || t("failed"));
+  }
 }
 
 function saveRecentSearch(value) {
@@ -388,6 +409,7 @@ function closeMobileSearch({ save = true } = {}) {
 function renderSettings() {
   const content = $("#settings-account-content");
   if (!content) return;
+  content.setAttribute("aria-busy", "false");
   const name = displayName();
   const metadata = auth.user?.user_metadata || {};
   const travelStyles = Array.isArray(metadata.travel_styles) ? metadata.travel_styles : [];
@@ -448,9 +470,21 @@ function setPageView(view) {
 
 function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
 
-function openSettings() {
+function renderSettingsAccountLoading() {
+  const content = $("#settings-account-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", "true");
+  content.innerHTML = `<div class="skeleton-settings" aria-hidden="true"><i></i><span><b></b><b></b></span></div><div class="skeleton-field"></div>`;
+}
+
+async function openSettings() {
   closeDialogs();
   setSettingsView(true);
+  if (auth.user) {
+    renderSettingsAccountLoading();
+    await refreshMe();
+    renderSettings();
+  }
 }
 
 async function refreshMe() {
@@ -527,11 +561,76 @@ async function loadTrips() {
   renderTrips();
 }
 
+function skeletonPostsMarkup(count = 2) {
+  return `<div class="skeleton-posts" aria-hidden="true">${Array.from({ length: count }, () => `<article class="skeleton-post"><span class="skeleton-post-head"><i></i><b></b></span><span class="skeleton-media"></span><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></article>`).join("")}</div>`;
+}
+
+function renderTripListLoading(selector = "#trip-list", count = 2) {
+  const list = $(selector);
+  if (!list) return;
+  list.setAttribute("aria-busy", "true");
+  list.innerHTML = skeletonPostsMarkup(count);
+}
+
+function renderRoutesLoading() {
+  const grid = $("#route-grid");
+  grid.setAttribute("aria-busy", "true");
+  grid.innerHTML = `<div class="skeleton-routes" aria-hidden="true">${Array.from({ length: 3 }, () => `<span class="skeleton-story"><i></i><b></b></span>`).join("")}</div>`;
+}
+
+function renderLoadingError(selector, action, id = "") {
+  const target = $(selector);
+  if (!target) return;
+  target.setAttribute("aria-busy", "false");
+  target.innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="${esc(action)}" ${id ? `data-id="${esc(id)}"` : ""}>${esc(t("retry"))}</button></div>`;
+}
+
+async function openFeedPage() {
+  setPageView("feed");
+  renderFeedLoading();
+  await loadFeedData();
+}
+
+async function openExplorePage() {
+  setPageView("explore");
+  renderRoutesLoading();
+  try {
+    const { routes } = await api("/api/routes");
+    state.routes = routes;
+    renderFilter();
+    renderRoutes();
+  } catch (error) {
+    renderLoadingError("#route-grid", "retry-explore");
+    toast(error.message || t("failed"));
+  }
+}
+
+async function openTripsPage() {
+  setPageView("trips");
+  renderTripListLoading("#trip-list", 2);
+  try { await loadTrips(); }
+  catch (error) { renderLoadingError("#trip-list", "retry-trips"); toast(error.message || t("failed")); }
+}
+
+async function navigateToView(view) {
+  if (view === "feed") return openFeedPage();
+  if (view === "explore") return openExplorePage();
+  if (view === "trips") return openTripsPage();
+  if (view === "saved") return openSavedTrips();
+  if (view === "settings") return openSettings();
+  if (view === "search-results") {
+    setPageView(view);
+    renderTripListLoading("#trip-list", 2);
+    return loadSearchResults();
+  }
+  setPageView(view);
+}
+
 function renderFeedLoading() {
   $("#route-grid").setAttribute("aria-busy", "true");
   $("#trip-list").setAttribute("aria-busy", "true");
-  $("#route-grid").innerHTML = `<div class="skeleton-routes" aria-hidden="true">${Array.from({ length: 3 }, () => `<span class="skeleton-story"><i></i><b></b></span>`).join("")}</div>`;
-  $("#trip-list").innerHTML = `<div class="skeleton-posts" aria-hidden="true">${Array.from({ length: 2 }, () => `<article class="skeleton-post"><span class="skeleton-post-head"><i></i><b></b></span><span class="skeleton-media"></span><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></article>`).join("")}</div>`;
+  renderRoutesLoading();
+  renderTripListLoading("#trip-list", 2);
 }
 
 function renderFeedError() {
@@ -560,8 +659,11 @@ async function loadFeedData() {
 
 // Route and trip actions.
 async function openRoute(id, deepLink = true) {
+  const requestId = ++state.routeRequestId;
+  showDialogLoading("route-dialog", "route-dialog-title");
   try {
     const { route, updates } = await api(`/api/routes/${encodeURIComponent(id)}`);
+    if (requestId !== state.routeRequestId) return;
     if (deepLink) setLink("route", id);
     event("route_viewed", id);
     showDialog("route-dialog", `
@@ -574,12 +676,15 @@ async function openRoute(id, deepLink = true) {
       <div class="dialog-actions"><a class="button button-ghost" href="${esc(route.mapUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("openMap"))} ${icon("arrow-up-right")}</a><button class="button button-primary" type="button" data-action="show-route-trips" data-id="${esc(id)}">${esc(t("findTripsHere"))} ${icon("arrow-right")}</button></div>
       <div class="dialog-section"><h3>${esc(t("recentNotes"))}</h3><div class="updates-list">${updates.length ? updates.map((update) => `<div class="update-item"><strong>${esc(update.nickname)}</strong><small>${esc(dateLabel(update.visitedOn))} · ${esc(t(update.condition === "mixed" ? "mixedCondition" : update.condition))}</small><p>${esc(update.note)}</p></div>`).join("") : `<p class="small-copy">${esc(t("noNotes"))}</p>`}</div><div class="dialog-actions"><button class="plain-button" type="button" data-action="open-update" data-id="${esc(id)}">${esc(t("addRouteNote"))} ${icon("arrow-up-right")}</button><button class="plain-button danger-link" type="button" data-action="open-report" data-type="route" data-id="${esc(id)}">${esc(t("reportRoute"))}</button></div></div>
       <p class="small-copy">${esc(t("routeNotLive"))}</p>`);
-  } catch (error) { toast(error.message || t("failed")); }
+  } catch (error) { if (requestId === state.routeRequestId) { renderDialogError("route-dialog", "retry-route", id); toast(error.message || t("failed")); } }
 }
 
 async function openTrip(id, deepLink = true) {
+  const requestId = ++state.tripRequestId;
+  showDialogLoading("trip-dialog", "trip-dialog-title");
   try {
     const { trip } = await api(`/api/trips/${encodeURIComponent(id)}`);
+    if (requestId !== state.tripRequestId) return;
     if (deepLink) setLink("trip", id);
     event("trip_viewed", id);
     let requestStatus = state.me?.requests.find((request) => request.trip.id === id)?.status || "";
@@ -590,6 +695,7 @@ async function openTrip(id, deepLink = true) {
         requestStatus = result.request.status;
       } catch { requestStatus = ""; }
     }
+    if (requestId !== state.tripRequestId) return;
     const isHost = Boolean(state.hostKeys[id] || state.me?.trips.some((owned) => owned.id === id));
     const statusText = requestStatus ? t(requestStatus === "approved" ? "requestApproved" : requestStatus === "declined" ? "requestDeclined" : "requestPending") : "";
     const primary = isHost
@@ -610,17 +716,28 @@ async function openTrip(id, deepLink = true) {
       <div class="dialog-actions">${primary}<button class="button button-ghost" type="button" data-action="share-trip" data-id="${esc(id)}">${esc(t("shareTrip"))} ${icon("arrow-up-right")}</button></div>
       <div id="requests-panel"></div>
       <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">${esc(t("reportTrip"))}</button></div></div>`);
-  } catch (error) { toast(error.message || t("failed")); }
+  } catch (error) { if (requestId === state.tripRequestId) { renderDialogError("trip-dialog", "retry-trip", id); toast(error.message || t("failed")); } }
 }
 
 async function openProfile(id, deepLink = true) {
+  const requestId = ++state.profileRequestId;
+  if (state.view !== "profile") state.profileReturnView = state.view === "entry" ? "feed" : state.view;
+  state.profile = null;
+  state.profileId = id;
+  if (deepLink) setLink("profile", id);
+  renderProfileLoading();
+  setPageView("profile");
   try {
     const { profile, trips } = await api(`/api/profiles/${encodeURIComponent(id)}`);
-    if (state.view !== "profile") state.profileReturnView = state.view === "entry" ? "feed" : state.view;
+    if (requestId !== state.profileRequestId) return;
     state.profile = { ...profile, trips };
-    if (deepLink) setLink("profile", id);
-    setPageView("profile");
-  } catch (error) { toast(error.message || t("failed")); }
+    renderProfile();
+  } catch (error) {
+    if (requestId === state.profileRequestId) {
+      renderLoadingError("#profile-content", "retry-profile", id);
+      toast(error.message || t("failed"));
+    }
+  }
 }
 
 function tripCardMarkup(trip) {
@@ -639,20 +756,34 @@ function tripCardMarkup(trip) {
   const author = `<span class="post-avatar">${avatarContents(trip.hostName, trip.hostAvatarPath || "")}</span><span class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></span>`;
   return `<article class="trip-card">
     <div class="post-head">${trip.profileId ? `<button class="post-profile-link" type="button" data-action="open-profile" data-id="${esc(trip.profileId)}">${author}</button>` : `<span class="post-profile-static">${author}</span>`}<button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
-    <div class="post-media ${esc(route?.accent || "weekend")} ${trip.mediaPath ? "has-upload" : ""}" aria-hidden="true">${trip.mediaPath ? `<img class="post-media-image" src="${esc(storagePublicUrl(trip.mediaPath))}" alt="" loading="lazy" />` : `<span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span>`}</div>
+    <div class="post-media ${esc(route?.accent || "weekend")} ${trip.mediaPath ? "has-upload" : ""}" aria-hidden="true">${trip.mediaPath ? `<img class="post-media-image" src="${esc(storagePublicUrl(trip.mediaPath))}" alt="" loading="lazy" decoding="async" />` : `<span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span>`}</div>
     <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
     <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
     <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
   </article>`;
 }
 
+function renderProfileLoading() {
+  const content = $("#profile-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", "true");
+  content.innerHTML = `<div class="skeleton-profile" aria-hidden="true"><div class="skeleton-profile-cover"></div><div class="skeleton-profile-card"><i class="skeleton-profile-avatar"></i><div class="skeleton-profile-title"><b></b><span></span></div><div class="skeleton-profile-stats"><i></i><i></i><i></i></div><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></div><div class="skeleton-profile-posts">${skeletonPostsMarkup(2)}</div></div>`;
+}
+
 function renderProfile() {
   const content = $("#profile-content");
-  if (!content || !state.profile) return;
+  if (!content) return;
+  if (!state.profile) return;
   const { profile, trips } = { profile: state.profile, trips: state.profile.trips || [] };
+  const routeCount = Number(profile.routeCount) || new Set(trips.map((trip) => trip.routeId)).size;
+  const location = [profile.homeBase, ...(profile.languages || [])].filter(Boolean).join(" · ");
+  const styles = profile.interests || [];
+  content.setAttribute("aria-busy", "false");
   content.innerHTML = `<section class="profile-card settings-card">
-    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${esc(initials(profile.displayName))}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t("demoProfile"))}</span><h2>${esc(profile.displayName)}</h2><small>${esc(profile.homeBase || "")} · ${esc((profile.languages || []).join(" · "))}</small></div><strong class="profile-post-count">${Number(profile.postCount) || 0} ${esc(t("posts"))}</strong></div>
-    <p class="profile-bio">${esc(profile.bio || "")}</p><div class="profile-interests">${(profile.interests || []).map((interest) => `<span>${esc(interest)}</span>`).join("")}</div>
+    <div class="profile-cover ${profile.isDemo ? "is-demo" : "is-member"}"><span class="profile-cover-mark">Qipi</span></div>
+    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t(profile.isDemo ? "demoProfile" : "profileMember"))}</span><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${location ? `<small>${esc(location)}</small>` : ""}</div><button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}">${icon("share")}<span>${esc(t("shareProfile"))}</span></button></div>
+    <div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${routeCount}</strong><span>${esc(t("profileRoutes"))}</span></div><div><strong>${trips.filter((trip) => trip.date >= dateToday()).length}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>
+    ${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interest)}</span>`).join("")}</div>` : ""}
   </section><section class="profile-posts"><div class="feed-section-head"><h2>${esc(t("profilePosts"))}</h2></div><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>`;
 }
 
@@ -686,8 +817,9 @@ async function manageTrip(id) {
 }
 
 async function openMyTrips() {
+  if (auth.enabled && !auth.user) { openAuth("signin"); return; }
+  showDialogLoading("my-dialog", "my-dialog-title");
   try {
-    if (auth.enabled && !auth.user) { openAuth("signin"); return; }
     if (auth.user) await refreshMe();
     const { trips } = await api("/api/trips?includeClosed=true");
     const hosted = [...(state.me?.trips || []), ...trips.filter((trip) => state.hostKeys[trip.id])]
@@ -703,18 +835,20 @@ async function openMyTrips() {
     }));
     const requests = [...(state.me?.requests || []).map(({ trip, status }) => ({ trip, status })), ...legacyRequests.filter(Boolean)]
       .filter((item, index, all) => all.findIndex((entry) => entry.trip.id === item.trip.id) === index);
-    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("myTrips"))}</p><h2 id="my-dialog-title">${esc(t("myTitle"))}</h2><p class="dialog-intro">${esc(t("myIntro"))}</p>
+    $("#my-dialog-content").innerHTML = `<p class="dialog-kicker">QIPI / ${esc(t("myTrips"))}</p><h2 id="my-dialog-title">${esc(t("myTitle"))}</h2><p class="dialog-intro">${esc(t("myIntro"))}</p>
       <div class="dialog-section"><h3>${esc(t("hosting"))}</h3><div class="my-list">${hosted.length ? hosted.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(t(trip.status))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noHosted"))}</p>`}</div></div>
-      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
-  } catch (error) { toast(error.message || t("failed")); }
+      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`;
+  } catch (error) { renderDialogError("my-dialog", "retry-my-trips"); toast(error.message || t("failed")); }
 }
 
 async function openSavedTrips() {
+  setPageView("saved");
+  renderTripListLoading("#saved-trip-list", 2);
   try {
     const { trips } = await api("/api/trips?includeClosed=true");
     state.savedTripRecords = trips.filter((trip) => state.savedTrips.includes(trip.id));
-    setPageView("saved");
-  } catch (error) { toast(error.message || t("failed")); }
+    renderTrips();
+  } catch (error) { renderLoadingError("#saved-trip-list", "retry-saved"); toast(error.message || t("failed")); }
 }
 
 function openUpdate(id) {
@@ -728,6 +862,12 @@ async function shareTrip(id) {
   url.searchParams.set("trip", id);
   try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
   catch { window.prompt(t("shareTrip"), url.toString()); }
+}
+async function shareProfile(id) {
+  const url = new URL(location.origin + "/");
+  url.searchParams.set("profile", id);
+  try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
+  catch { window.prompt(t("shareProfile"), url.toString()); }
 }
 
 // Sign-up and authentication flows.
@@ -871,20 +1011,30 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
   if (action === "signup-previous") { setSignupStep(1); return; }
   if (action === "signup-exit") {
-    setPageView(signupReturnTarget.view);
+    await navigateToView(signupReturnTarget.view);
     if (signupReturnTarget.dialog === "signin") openAuth("signin");
     return;
   }
   if (action === "signup-sign-in") { openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
+  if (action === "retry-explore") { await openExplorePage(); return; }
+  if (action === "retry-trips") { await openTripsPage(); return; }
+  if (action === "retry-search") { await loadSearchResults(); return; }
+  if (action === "retry-saved") { await openSavedTrips(); return; }
+  if (action === "retry-profile") { await openProfile(id); return; }
+  if (action === "retry-route") { await openRoute(id); return; }
+  if (action === "retry-trip") { await openTrip(id); return; }
+  if (action === "retry-my-trips") { await openMyTrips(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
   if (action === "open-profile") { await openProfile(id); return; }
   if (action === "profile-back") {
     const returnView = state.profileReturnView || "feed";
     state.profile = null;
+    state.profileId = "";
+    state.profileRequestId += 1;
     setLink();
-    setPageView(returnView);
+    await navigateToView(returnView);
     return;
   }
   if (action === "open-trip") openTrip(id);
@@ -893,7 +1043,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "my-trips") openMyTrips();
   if (action === "saved-trips") openSavedTrips();
   if (action === "open-settings") openSettings();
-  if (action === "back-to-feed") setSettingsView(false);
+  if (action === "back-to-feed") { await openFeedPage(); }
   if (action === "settings-sign-in") openAuth("signin");
   if (action === "account") { pendingAction = null; openAuth(auth.user ? "profile" : "signin"); }
   if (action === "auth-mode") openAuth(mode);
@@ -922,6 +1072,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "open-update") requireSignIn(() => openUpdate(id));
   if (action === "open-report") openReport(type, id);
   if (action === "share-trip") shareTrip(id);
+  if (action === "share-profile") shareProfile(id);
   if (action === "show-route-trips") {
     state.filter = id; renderFilter(); renderTrips(); closeDialogs(); setLink(); $("#trips").scrollIntoView({ behavior: "smooth" });
   }
@@ -1132,11 +1283,11 @@ $("#settings-safety-reminders").addEventListener("change", (eventTarget) => {
 });
 document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
   const target = anchor.getAttribute("href");
-  if (target === "#routes") { eventTarget.preventDefault(); setPageView("explore"); }
-  else if (target === "#feed") { eventTarget.preventDefault(); setPageView("feed"); }
+  if (target === "#routes") { eventTarget.preventDefault(); openExplorePage(); }
+  else if (target === "#feed") { eventTarget.preventDefault(); openFeedPage(); }
   else if (target === "#trips") {
     eventTarget.preventDefault();
-    setPageView("trips");
+    openTripsPage();
     requestAnimationFrame(() => $("#trips").scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 }));

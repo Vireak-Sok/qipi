@@ -282,21 +282,21 @@ const signupCopy = {
 Object.keys(signupCopy).forEach((lang) => Object.assign(copy[lang], signupCopy[lang]));
 
 Object.assign(copy.en, {
-  profilePageTitle: "Profile", profilePosts: "Posts", demoProfile: "Demo traveler",
+  profilePageTitle: "Profile", profilePosts: "Posts", demoProfile: "Demo traveler", profileMember: "Qipi member", shareProfile: "Share profile", profileRoutes: "Routes", profileUpcoming: "Upcoming",
   posts: "posts", like: "Like", unlike: "Unlike", noPosts: "No posts yet.",
   changeProfilePhoto: "Change photo", uploadingImage: "Uploading…", profilePhotoSaved: "Profile photo updated.",
   tripPhotoLabel: "Trip photo (optional)", imageUploadHint: "JPG, PNG or WebP · up to 5 MB", imageTypeError: "Choose a JPG, PNG or WebP image.",
   imageSizeError: "Choose an image smaller than 5 MB.", imageUploadError: "Could not upload this image. Try again.", imageSignInRequired: "Sign in to upload an image."
 });
 Object.assign(copy.km, {
-  profilePageTitle: "ប្រវត្តិរូប", profilePosts: "ការបង្ហោះ", demoProfile: "អ្នកធ្វើដំណើរសាកល្បង",
+  profilePageTitle: "ប្រវត្តិរូប", profilePosts: "ការបង្ហោះ", demoProfile: "អ្នកធ្វើដំណើរសាកល្បង", profileMember: "សមាជិក Qipi", shareProfile: "ចែករំលែកប្រវត្តិរូប", profileRoutes: "ផ្លូវ", profileUpcoming: "ខាងមុខ",
   posts: "ការបង្ហោះ", like: "ចូលចិត្ត", unlike: "មិនចូលចិត្ត", noPosts: "មិនទាន់មានការបង្ហោះទេ។",
   changeProfilePhoto: "ប្ដូររូបថត", uploadingImage: "កំពុងបង្ហោះ…", profilePhotoSaved: "បានប្ដូររូបប្រវត្តិរូប។",
   tripPhotoLabel: "រូបថតដំណើរ (មិនបាច់បំពេញ)", imageUploadHint: "JPG, PNG ឬ WebP · រហូតដល់ 5 MB", imageTypeError: "សូមជ្រើសរើសរូប JPG, PNG ឬ WebP។",
   imageSizeError: "សូមជ្រើសរើសរូបដែលតូចជាង 5 MB។", imageUploadError: "មិនអាចបង្ហោះរូបនេះបានទេ។ សូមសាកម្ដងទៀត។", imageSignInRequired: "សូមចូលគណនីដើម្បីបង្ហោះរូប។"
 });
 Object.assign(copy.zh, {
-  profilePageTitle: "个人资料", profilePosts: "动态", demoProfile: "示范旅行者",
+  profilePageTitle: "个人资料", profilePosts: "动态", demoProfile: "示范旅行者", profileMember: "Qipi 成员", shareProfile: "分享个人资料", profileRoutes: "路线", profileUpcoming: "即将出发",
   posts: "条动态", like: "点赞", unlike: "取消点赞", noPosts: "暂无动态。",
   changeProfilePhoto: "更换头像", uploadingImage: "正在上传…", profilePhotoSaved: "头像已更新。",
   tripPhotoLabel: "行程照片（选填）", imageUploadHint: "JPG、PNG 或 WebP · 最大 5 MB", imageTypeError: "请选择 JPG、PNG 或 WebP 图片。",

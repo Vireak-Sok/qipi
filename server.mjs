@@ -144,7 +144,7 @@ function publicTrip(trip, data, actorId = "") {
     hostName: trip.hostName,
     hostAvatarPath: trip.hostAvatarPath || "",
     mediaPath: trip.mediaPath || "",
-    profileId: trip.demoUserId || null,
+    profileId: trip.demoUserId || trip.hostUserId || null,
     hostVerified: Boolean(trip.hostUserId),
     likesCount: likes.length,
     likedByViewer: Boolean(actorId && likes.some((like) => like.actorId === actorId)),
@@ -283,26 +283,41 @@ export function createQipiHandler({
       }
       if (path === "/api/routes" && method === "GET") return json(res, 200, { routes });
 
-      const profileMatch = /^\/api\/profiles\/(demo-user-\d{3})$/.exec(path);
+      const profileMatch = /^\/api\/profiles\/([a-z0-9-]{1,64})$/i.exec(path);
       if (profileMatch && method === "GET") {
         const data = await store.read();
-        const profile = (data.demoUsers || []).find((item) => item.id === profileMatch[1]);
-        if (!profile) throw new HttpError(404, "Profile not found");
         const actorId = req.headers["x-qipi-actor"] || "";
-        const trips = data.trips
-          .filter((trip) => trip.demoUserId === profile.id && !trip.hidden)
+        const id = profileMatch[1];
+        const demoProfile = (data.demoUsers || []).find((item) => item.id === id);
+        const memberTrips = demoProfile ? [] : data.trips
+          .filter((trip) => trip.hostUserId === id && !trip.hidden)
           .sort((a, b) => b.date.localeCompare(a.date))
           .map((trip) => publicTrip(trip, data, actorId));
+        const profile = demoProfile || (memberTrips.length ? {
+          id,
+          displayName: memberTrips[0].hostName,
+          avatarPath: memberTrips[0].hostAvatarPath || "",
+          isDemo: false
+        } : null);
+        if (!profile) throw new HttpError(404, "Profile not found");
+        const trips = demoProfile
+          ? data.trips
+            .filter((trip) => trip.demoUserId === id && !trip.hidden)
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .map((trip) => publicTrip(trip, data, actorId))
+          : memberTrips;
         return json(res, 200, {
           profile: {
             id: profile.id,
             displayName: profile.displayName,
-            homeBase: profile.homeBase,
-            languages: profile.languages,
-            interests: profile.interests,
-            bio: profile.bio,
-            isDemo: true,
-            postCount: trips.length
+            avatarPath: profile.avatarPath || "",
+            homeBase: profile.homeBase || "",
+            languages: profile.languages || [],
+            interests: profile.interests || [],
+            bio: profile.bio || "",
+            isDemo: Boolean(demoProfile),
+            postCount: trips.length,
+            routeCount: new Set(trips.map((trip) => trip.routeId)).size
           },
           trips
         });

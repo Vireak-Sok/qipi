@@ -7,7 +7,7 @@ import { JsonStore, SupabaseStore } from "./src/store.mjs";
 import { SupabaseAuthVerifier } from "./src/auth.mjs";
 import { routeById, routes } from "./src/routes.mjs";
 
-const root = fileURLToPath(new URL(".", import.meta.url));
+const root = resolve(process.cwd());
 const defaultDataFile = join(root, "data", "store.json");
 const defaultPublicDir = join(root, "public");
 const staticFiles = new Map([

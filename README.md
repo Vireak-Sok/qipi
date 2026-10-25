@@ -6,33 +6,33 @@ This repository is an MVP demo for Cambodia travelers. It starts with the Kampot
 
 ## Run locally
 
-Requires Node.js 20 or newer. There are no package dependencies.
+Requires Node.js 20.9 or newer. Install dependencies, then start the Next.js development server:
 
 ```bash
-cd /home/vireak/Documents/start-up/qipi
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-Open [http://127.0.0.1:4173](http://127.0.0.1:4173). If `npm` is unavailable, run `node server.mjs` from this directory. In this Codex workspace, Node is bundled at `/home/vireak/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node`, so that full path can replace `node`. Set `PORT` and `HOST` to change the listening address.
+Open [http://127.0.0.1:4173](http://127.0.0.1:4173). `npm install` and `npm run dev` work as well. The Next.js API route uses local JSON storage unless the Supabase environment variables are configured.
 
 Local development uses `data/store.json` unless both `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set. Without Auth settings, local development keeps the original browser-token demo flow. To test real sign-in locally, set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` without the secret key; the app then uses Supabase Auth and local JSON data. Add the local URL to Supabase Auth's redirect allowlist if you want email confirmation links to return to localhost.
 
 To enable the moderation page, start the server with a private admin token:
 
 ```bash
-QIPI_ADMIN_TOKEN='choose-a-long-random-secret' npm run dev
+QIPI_ADMIN_TOKEN='choose-a-long-random-secret' pnpm dev
 ```
 
 Then open [http://127.0.0.1:4173/admin.html](http://127.0.0.1:4173/admin.html) and enter that token. Do not expose a token in a public repository or share it with travelers.
 
-Run the API tests with `npm test` (or `node --test`).
+Run the API tests with `pnpm test` (or `node --test`).
 
 ## Supabase and Vercel
 
 1. Create a Supabase project. Run [0001_qipi_state.sql](supabase/migrations/0001_qipi_state.sql) in its SQL Editor. It creates one private, versioned JSONB row for the pilot data.
 2. In Storage, create a **public** bucket named `qipi-images`, set the maximum file size to **5 MiB**, and allow only `image/jpeg`, `image/png`, and `image/webp`. Then run [0002_qipi_images.sql](supabase/migrations/0002_qipi_images.sql) in the SQL Editor. The policy lets signed-in users upload only to their own profile or trip folder. Public bucket URLs can be viewed by anyone who has them.
 3. In Supabase, copy the **Project URL**, **publishable API key** (`sb_publishable_...`), and create a **secret API key** (`sb_secret_...`). The publishable key is returned to the browser for Supabase Auth and Storage uploads; the secret key must stay on the server.
-4. Import this GitHub repository into Vercel with the **Other** framework preset and the repository root as the Root Directory. The `public` folder is the static output and `api/index.mjs` is the server function; `vercel.json` routes `/api/*` to it.
+4. Import this GitHub repository into Vercel with the **Next.js** framework preset and the repository root as the Root Directory. Vercel builds the Next.js App Router pages and API route handlers.
 5. In Vercel project settings, set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_PUBLISHABLE_KEY` for Production and Preview. Set `QIPI_ADMIN_TOKEN` if you want the moderation page. Redeploy after adding variables.
 6. In Supabase Authentication → URL Configuration, set the Site URL and an allowed redirect URL to `https://qipi.vercel.app/`. Keep email confirmation enabled. New users must follow their confirmation email before signing in.
 7. Open the Vercel URL and check `/api/health` for `"storage":"supabase"`, then create an account, confirm its email, post a test trip, and submit a join request from a second account. Check `/admin.html` with your admin token if configured.
@@ -51,7 +51,7 @@ Use [.env.example](.env.example) as a list of environment variable names. Never 
 - Reporting and a small moderation dashboard for route notes, reports, and trip hiding.
 - Local file-backed demo data in `data/store.json`, created automatically on first run. On Vercel, the same API uses the Supabase row instead of the local file.
 
-The app uses a Node.js HTTP server and plain HTML, CSS, and JavaScript. There is no build step or framework. Supabase is the shared database for deployed instances; the local file remains the default for development. Route guides are planning ideas, not live road, weather, price, or safety information. Travelers should check current conditions before departure.
+The app uses Next.js App Router with JavaScript, React, Tailwind CSS, and a Node.js API runtime. The current screens still use the existing browser-side JavaScript and design stylesheet as a compatibility layer while UI components move into React and Tailwind. The API route adapts the existing server handlers, so Supabase remains the shared store in deployed instances and the local JSON file remains the default for development. Route guides are planning ideas, not live road, weather, price, or safety information. Travelers should check current conditions before departure.
 
 ## Demo limits and next step
 

@@ -48,6 +48,46 @@
 @media(max-width:700px){.app-layout{display:block;padding-top:12px;padding-bottom:88px}.feed-column{gap:13px}.stories-section{padding:12px 12px 8px}.story-avatar{width:59px;height:59px}.route-story{flex-basis:68px}.post-media{height:240px}.trip-list{gap:13px}.settings-page{padding-bottom:16px}.settings-card{padding:18px 16px}.settings-open .app-layout{display:block}.settings-header h1{font-size:21px}.top-actions .lang-button{min-width:40px;height:34px}.mobile-nav{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:410px){.post-media{height:205px}.story-avatar{width:55px;height:55px}.route-story{flex-basis:64px}.settings-card-heading h2{font-size:14px}}
 .feed-column > [hidden]{display:none!important}
+
+/* Fixed desktop side columns and a wider social feed */
+:root,.social-app{scrollbar-width:none;-ms-overflow-style:none}
+*{scrollbar-width:none}
+*::-webkit-scrollbar{width:0;height:0;display:none}
+.shell{width:min(1480px,calc(100% - 48px))}
+.top-actions{margin-left:auto}
+.top-post{display:none}
+.notification-wrap{position:relative}
+.icon-button{display:grid;place-items:center;width:42px;height:42px;border:1px solid #e4ebe1;border-radius:50%;background:#f7f9f5;color:#315c4b;transition:background .16s,transform .16s}
+.icon-button:hover{background:#edf4e8;transform:translateY(-1px)}
+.icon-button .heroicon{width:21px;height:21px}
+.notification-panel{position:absolute;top:calc(100% + 12px);right:-58px;z-index:60;width:min(340px,calc(100vw - 28px));padding:17px;border:1px solid #e1e8df;border-radius:17px;background:#fff;box-shadow:0 18px 48px #183d3824;color:#20352b}
+.notification-panel[hidden]{display:none}
+.notification-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:13px;border-bottom:1px solid #edf0eb}
+.notification-head h2{margin:0;font-size:15px;letter-spacing:-.02em}
+.notification-close{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:50%;background:#f2f6ef;color:#526e5c}
+.notification-close .heroicon{width:16px;height:16px}
+.notification-empty{display:grid;justify-items:center;gap:7px;padding:24px 10px 16px;text-align:center}
+.notification-empty-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#edf4e8;color:#38694e}
+.notification-empty-icon .heroicon{width:23px;height:23px}
+.notification-empty strong{font-size:13px}
+.notification-empty p{margin:0;color:#748278;font-size:11px}
+.right-fab{display:none}
+@media(min-width:961px){
+  .app-layout,.settings-open.app-layout{grid-template-columns:190px minmax(0,1fr) 230px;gap:30px;max-width:1480px;justify-content:stretch}
+  .left-rail{grid-column:1;position:fixed;left:max(24px,calc((100vw - 1480px)/2));top:96px;width:190px;max-height:calc(100vh - 112px);overflow-y:auto}
+  .feed-column{grid-column:2}
+  .right-rail,.settings-open .right-rail{grid-column:3;position:fixed;right:max(24px,calc((100vw - 1480px)/2));top:96px;bottom:24px;width:230px;display:flex;flex-direction:column;gap:12px;overflow:visible}
+  .right-rail>.right-card{flex:none}
+  .right-fab{position:fixed;right:max(30px,calc((100vw - 1480px)/2 + 7px));bottom:28px;z-index:28;display:grid;place-items:center;width:58px;height:58px;border:0;border-radius:50%;background:#183d38;color:#e1f3ab;box-shadow:0 9px 24px #183d3845;transition:transform .18s,background .18s}
+  .right-fab:hover{transform:translateY(-3px);background:#286052}
+  .right-fab .heroicon{width:27px;height:27px;stroke-width:2.2}
+}
+@media(max-width:960px){.right-fab{display:none}.top-actions{gap:8px}.account-button{max-width:130px}}
+@media(max-width:700px){.shell{width:min(100% - 32px,1480px)}.topbar-inner{gap:12px}.topbar-inner .brand{margin-right:0}.topbar-inner .brand-word{font-size:23px}.top-search{min-width:0}.icon-button{width:36px;height:36px}.account-button{max-width:42px;padding:3px}.account-button #account-label{display:none}.notification-panel{right:-50px}}
+:root[data-theme="dark"] .notification-panel{background:#1c2420;border-color:#303c34;color:#e8eee9}
+:root[data-theme="dark"] .notification-head{border-color:#303c34}
+:root[data-theme="dark"] .notification-empty p{color:#aab8ad}
+:root[data-theme="dark"] .icon-button{background:#222d26;border-color:#303c34;color:#d5e7ce}
 .rail-nav button.active{background:#f0f4ee;color:#1a493e}.mobile-nav button.active{color:#1a493e}
 .heroicon{display:inline-block;width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
 .top-search>.heroicon{width:18px;height:18px}

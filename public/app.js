@@ -481,7 +481,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   if (!preserveUrl && `${location.pathname}${location.search}${location.hash}` !== nextLocation) {
     history.replaceState(history.state, "", nextLocation);
   }
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
@@ -776,7 +776,7 @@ function tripCardMarkup(trip) {
     <div class="post-media ${esc(route?.accent || "weekend")} ${trip.mediaPath ? "has-upload" : ""}" aria-hidden="true">${trip.mediaPath ? `<img class="post-media-image" src="${esc(storagePublicUrl(trip.mediaPath))}" alt="" loading="lazy" decoding="async" />` : `<span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span>`}</div>
     <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
     <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
-    <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-busy="${likePending}" ${likePending ? "disabled" : ""} aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
+    <div class="post-actions"><button class="post-like post-utility-action ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-busy="${likePending}" ${likePending ? "disabled" : ""} aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span class="like-count">${Number(trip.likesCount) || 0}</span></button><button class="post-utility-action" type="button" data-action="share-trip" data-id="${esc(trip.id)}" aria-label="${esc(t("shareTrip"))}" title="${esc(t("shareTrip"))}">${icon("share")}</button><button class="post-utility-action" type="button" data-action="open-trip" data-id="${esc(trip.id)}" aria-label="${esc(t("discussTrip"))}" title="${esc(t("discussTrip"))}">${icon("chat")}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
   </article>`;
 }
 

@@ -1069,7 +1069,11 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "open-settings") openSettings();
   if (action === "back-to-feed") { await openFeedPage(); }
   if (action === "settings-sign-in") openAuth("signin");
-  if (action === "account") { pendingAction = null; openAuth(auth.user ? "profile" : "signin"); }
+  if (action === "account") {
+    pendingAction = null;
+    if (auth.user) openSettings();
+    else openAuth("signin");
+  }
   if (action === "auth-mode") openAuth(mode);
   if (action === "sign-out") { await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); closeDialogs(); }
   if (action === "toggle-save") {

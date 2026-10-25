@@ -270,7 +270,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 
 /* Give the side columns room while preserving a readable feed width. */
 @media(min-width:961px){
-  .app-layout,.settings-open.app-layout{--left-column:clamp(200px,16vw,240px);--right-column:clamp(230px,19vw,280px);--column-gap:clamp(24px,3vw,44px);grid-template-columns:var(--left-column) minmax(0,1fr) var(--right-column);gap:var(--column-gap)}
+  .app-layout,.settings-open.app-layout{--left-column:clamp(210px,16vw,240px);--right-column:clamp(250px,19vw,280px);--column-gap:clamp(32px,3.5vw,48px);grid-template-columns:var(--left-column) minmax(0,1fr) var(--right-column);gap:var(--column-gap)}
   .left-rail{left:max(24px,calc((100vw - 1480px)/2));width:var(--left-column)}
   .right-rail,.settings-open .right-rail{right:max(24px,calc((100vw - 1480px)/2));width:var(--right-column)}
   .right-fab{right:max(24px,calc((100vw - 1480px)/2));width:var(--right-column)}

@@ -505,3 +505,55 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 @media(max-width:1000px){.search-results-open.app-layout{grid-template-columns:220px minmax(380px,1fr);gap:24px}}
 @media(max-width:700px){.desktop-search-wrap{display:none}.search-results-open.app-layout{display:block;padding-top:14px}.search-results-open .left-rail{display:block;padding:0;margin-bottom:15px}.search-results-open .search-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 8px;padding:12px;border:1px solid var(--border-soft);border-radius:16px;background:var(--surface-card)}.search-results-open .search-filter-panel h1,.search-results-open .search-filter-panel h2{grid-column:1/-1}.search-results-open .search-filter-panel h1{font-size:18px}.search-results-open .search-filter-panel h2{margin-bottom:0}.search-results-open .search-filter-all{grid-column:1/-1}.search-results-open .search-filter-toggle{grid-column:1/-1}.search-results-open .search-filter-field{padding:6px 2px}.search-results-open .feed-trips{margin:0}.search-results-open .feed-section-head h2{font-size:20px}}
 .search-filter-panel[hidden]{display:none}
+
+/* Saved trips uses the same page frame as settings */
+.saved-page .settings-header{align-items:center;padding:4px 0 8px}
+.saved-page .settings-header>div{min-width:0}
+.saved-page .settings-header h1{font-size:24px}
+.saved-intro{margin:4px 0 0;color:var(--text-secondary);font-size:13px;line-height:1.5}
+@media(max-width:700px){.mobile-nav{grid-template-columns:repeat(6,minmax(0,1fr))}.mobile-nav small{font-size:9px}.saved-page .settings-header h1{font-size:21px}}
+
+/* Clearer semantic colors across light, dark, and system themes */
+:root{
+  --surface-canvas:#f3f6f2;--surface-card:#ffffff;--surface-field:#f5f7f4;--surface-selected:#e5efdf;
+  --text-primary:#18271f;--text-secondary:#52665a;--text-tertiary:#74847a;
+  --border-soft:#d8e2d8;--border-control:#c2d1c4;--focus-ring:#24694d;--focus-ring-soft:rgba(36,105,77,.18);
+  --brand-strong:#1c493a;--brand-soft:#d5ee91;--accent-warm:#b95c45;--surface-shadow:0 12px 30px rgba(23,45,31,.07);
+}
+:root[data-theme="dark"]{
+  --surface-canvas:#101713;--surface-card:#1b241e;--surface-field:#141c16;--surface-selected:#2b3d31;
+  --text-primary:#f0f5ef;--text-secondary:#bdc9c0;--text-tertiary:#93a197;
+  --border-soft:#2d3b32;--border-control:#405045;--focus-ring:#b6e77f;--focus-ring-soft:rgba(182,231,127,.2);
+  --brand-strong:#294a36;--brand-soft:#c7e987;--accent-warm:#efa082;--surface-shadow:0 14px 34px rgba(0,0,0,.25);
+}
+.social-app{background:var(--surface-canvas);color:var(--text-primary)}
+.social-topbar,.stories-section,.composer-card,.right-card,.settings-card,.social-app .trip-card{background:var(--surface-card);border-color:var(--border-soft);color:var(--text-primary)}
+.social-topbar{box-shadow:0 1px 0 rgba(20,40,26,.025)}
+.rail-profile{border-color:var(--border-soft)}
+.rail-nav a,.rail-nav button{color:var(--text-secondary)}
+.rail-nav a.active,.rail-nav button.active,.rail-nav a:hover,.rail-nav button:hover{background:var(--surface-selected);color:var(--brand-strong)}
+.feed-section-head h2,.settings-header h1,.settings-card-heading h2,.post-title,.post-byline strong,.side-card-head h2,.safety-card h2{color:var(--text-primary)}
+.settings-card-heading p,.settings-guest-copy,.post-note,.post-byline small,.post-route small,.safety-card p,.saved-intro,.small-copy{color:var(--text-secondary)}
+.top-search,.composer-prompt,.feed-filter,.select-trigger,.search-filter-field .select-trigger,.search-filter-panel .select-trigger{background:var(--surface-field);border-color:var(--border-control);color:var(--text-primary)}
+.top-search input,.composer-prompt,.feed-filter select{color:var(--text-primary)}
+.top-search input::placeholder{color:var(--text-tertiary)}
+.account-button{background:var(--surface-selected);color:var(--brand-strong)}
+.account-avatar{background:var(--brand-strong);color:#fff}
+.icon-button{background:var(--surface-field);border-color:var(--border-soft);color:var(--brand-strong)}
+.button-primary,.composer-create,.right-fab{background:var(--brand-soft);border-color:transparent;color:#213b2b}
+.right-fab:hover,.button-primary:hover,.composer-create:hover{filter:brightness(.96)}
+.post-journey,.settings-symbol,.entry-mark{background:var(--surface-selected);border-color:var(--border-soft);color:var(--brand-strong)}
+.select-options,.desktop-search-panel,.notification-panel{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary);box-shadow:var(--surface-shadow)}
+.select-option{color:var(--text-primary)}
+.select-option:hover,.select-option:focus-visible,.select-option[aria-selected="true"]{background:var(--surface-selected);color:var(--text-primary)}
+.route-story:focus-visible,.explore-route-card:focus-visible,.rail-nav a:focus-visible,.rail-nav button:focus-visible{outline-color:var(--focus-ring)}
+.empty-trips{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary)}
+.empty-trips p{color:var(--text-secondary)}
+.mobile-nav{background:var(--surface-card);border-color:var(--border-soft)}
+:root[data-theme="dark"] .mobile-nav,:root[data-theme="dark"] .social-topbar,:root[data-theme="dark"] .stories-section,:root[data-theme="dark"] .composer-card,:root[data-theme="dark"] .right-card,:root[data-theme="dark"] .settings-card,:root[data-theme="dark"] .social-app .trip-card{background:var(--surface-card);border-color:var(--border-soft);color:var(--text-primary)}
+:root[data-theme="dark"] .rail-nav a,:root[data-theme="dark"] .rail-nav button{color:var(--text-secondary)}
+:root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{background:var(--surface-selected);color:var(--brand-soft)}
+:root[data-theme="dark"] .account-button{background:var(--surface-selected);color:var(--text-primary)}
+:root[data-theme="dark"] .icon-button{background:var(--surface-field);border-color:var(--border-soft);color:var(--brand-soft)}
+:root[data-theme="dark"] .button-primary,:root[data-theme="dark"] .composer-create,:root[data-theme="dark"] .right-fab{background:var(--brand-soft);color:#1b2c20}
+:root[data-theme="dark"] .empty-trips{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary)}

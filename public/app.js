@@ -167,6 +167,28 @@ Object.assign(copy.km, {
   myIntro: "ដំណើរដែលអ្នករៀបចំ និងសំណើរបស់អ្នកបង្ហាញនៅទីនេះក្រោយចូលគណនី។"
 });
 Object.assign(copy.en, {
+  entryTitle: "Make weekends better together.", entryIntro: "Sign in to post trips and connect with travelers, or continue as a guest to explore.", entryAccount: "Sign in or create an account", entryGuest: "Continue as guest",
+  appearanceSettings: "Appearance", appearanceSettingsIntro: "Choose how Qipi looks on this device.", themeLabel: "Theme", themeSystem: "Use device setting", themeLight: "Light", themeDark: "Dark",
+  travelPreferences: "Travel preferences", travelPreferencesIntro: "Set the defaults for trips you post.", defaultTransport: "Default transport", defaultCostStyle: "Default cost preference",
+  safetySettings: "Safety and privacy", safetySettingsIntro: "Choose whether to show a reminder when you post.", safetyReminderSetting: "Trip privacy reminder", safetyReminderSettingCopy: "Remind me to keep home addresses and contact details off public posts.", safetyReminder: "Safety reminder: keep home addresses and contact details off public posts. Agree on an exact meeting point privately.",
+  weekendPlan: "YOUR WEEKEND, YOUR WAY", stickyCreateTitle: "Have a trip in mind?", stickyCreateCopy: "Share your route and invite people to join.", createPostAction: "Create a post"
+});
+Object.assign(copy.km, {
+  entryTitle: "ចុងសប្ដាហ៍កាន់តែរីករាយពេលទៅជាមួយគ្នា។", entryIntro: "ចូលគណនីដើម្បីបង្ហោះដំណើរ និង ជួបអ្នកធ្វើដំណើរ ឬ បន្តជាភ្ញៀវដើម្បីស្វែងរក។", entryAccount: "ចូលគណនី ឬ បង្កើតគណនី", entryGuest: "បន្តជាភ្ញៀវ",
+  appearanceSettings: "រូបរាង", appearanceSettingsIntro: "ជ្រើសរើសរូបរាង Qipi នៅលើឧបករណ៍នេះ។", themeLabel: "ស្បែក", themeSystem: "ប្រើតាមឧបករណ៍", themeLight: "ភ្លឺ", themeDark: "ងងឹត",
+  travelPreferences: "ចំណូលចិត្តធ្វើដំណើរ", travelPreferencesIntro: "កំណត់ជម្រើសដើមសម្រាប់ដំណើរដែលអ្នកបង្ហោះ។", defaultTransport: "មធ្យោបាយធ្វើដំណើរដើម", defaultCostStyle: "ចំណូលចិត្តចំណាយដើម",
+  safetySettings: "សុវត្ថិភាព និង ឯកជនភាព", safetySettingsIntro: "ជ្រើសរើសថាតើត្រូវបង្ហាញការរំលឹកពេលបង្ហោះឬអត់។", safetyReminderSetting: "ការរំលឹកឯកជនភាពដំណើរ", safetyReminderSettingCopy: "រំលឹកខ្ញុំកុំបង្ហោះអាសយដ្ឋានផ្ទះ និង ព័ត៌មានទំនាក់ទំនងជាសាធារណៈ។", safetyReminder: "ការរំលឹកសុវត្ថិភាព៖ កុំបង្ហោះអាសយដ្ឋានផ្ទះ ឬ ព័ត៌មានទំនាក់ទំនងជាសាធារណៈ។ ព្រមព្រៀងទីតាំងជួបជាក់លាក់ដោយឯកជន។",
+  weekendPlan: "ចុងសប្ដាហ៍តាមរបៀបអ្នក", stickyCreateTitle: "មានគម្រោងដំណើរហើយឬនៅ?", stickyCreateCopy: "ចែករំលែកផ្លូវ និងអញ្ជើញអ្នកផ្សេងចូលរួម។", createPostAction: "បង្កើតប្រកាស"
+});
+Object.assign(copy.zh, {
+  entryTitle: "一起开启更精彩的周末。", entryIntro: "登录后发布行程并认识同行者，也可以访客身份继续浏览。", entryAccount: "登录或创建账号", entryGuest: "以访客身份继续",
+  appearanceSettings: "外观", appearanceSettingsIntro: "选择此设备上的 Qipi 外观。", themeLabel: "主题", themeSystem: "跟随设备设置", themeLight: "浅色", themeDark: "深色",
+  travelPreferences: "旅行偏好", travelPreferencesIntro: "设置发布行程时的默认选项。", defaultTransport: "默认交通方式", defaultCostStyle: "默认费用偏好",
+  safetySettings: "安全与隐私", safetySettingsIntro: "选择发布行程时是否显示提醒。", safetyReminderSetting: "行程隐私提醒", safetyReminderSettingCopy: "提醒我不要在公开行程中发布家庭住址和联系方式。", safetyReminder: "安全提醒：不要在公开行程中发布家庭住址或联系方式。具体会合地点请私下商定。",
+  weekendPlan: "按你的方式过周末", stickyCreateTitle: "已经有旅行计划了吗？", stickyCreateCopy: "分享路线，邀请其他人同行。", createPostAction: "创建帖子"
+});
+
+Object.assign(copy.en, {
   explore: "Explore", seeAll: "See all", forYou: "For you", settings: "Settings",
   accountSettings: "Account and profile", profileSettingsIntro: "Manage your Qipi profile.",
   languageSettings: "Language", languageSettingsIntro: "Choose the language used across Qipi.",
@@ -231,6 +253,8 @@ const state = {
   lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
   routes: [], trips: [], filter: "", search: "", me: null, view: "feed",
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
+  theme: ["system", "light", "dark"].includes(localStorage.getItem("qipi:theme")) ? localStorage.getItem("qipi:theme") : "system",
+  preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
   hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys")
 };
 const $ = (selector) => document.querySelector(selector);
@@ -252,6 +276,16 @@ function readLocal(key) {
   try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; }
 }
 function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+const ENTRY_CHOICE_KEY = "qipi:entry-choice";
+function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
+function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
+function applyTheme() {
+  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches || false;
+  document.documentElement.dataset.theme = state.theme === "system" ? (prefersDark ? "dark" : "light") : state.theme;
+  document.documentElement.dataset.themePreference = state.theme;
+}
+applyTheme();
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (state.theme === "system") applyTheme(); });
 function routeFor(id) { return state.routes.find((route) => route.id === id); }
 function dateLabel(date) {
   const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
@@ -330,6 +364,10 @@ function renderSettings() {
       <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
+  $("#settings-theme").value = state.theme;
+  $("#settings-transport").value = state.preferences.defaultTransport;
+  $("#settings-cost-style").value = state.preferences.defaultCostStyle;
+  $("#settings-safety-reminders").checked = state.preferences.safetyReminders;
 }
 
 function setPageView(view) {
@@ -487,12 +525,12 @@ function openCreate(selectedRoute = "") {
       <div class="field span-2"><label for="trip-route">${esc(t("route"))}</label><select id="trip-route" name="routeId" required><option value="">—</option>${state.routes.map((route) => `<option value="${esc(route.id)}" ${route.id === selectedRoute ? "selected" : ""}>${esc(label(route.title))}</option>`).join("")}</select></div>
       <div class="field"><label for="trip-date">${esc(t("travelDate"))}</label><input id="trip-date" name="date" type="date" min="${dateToday()}" required /></div>
       <div class="field"><label for="trip-time">${esc(t("departureTime"))}</label><input id="trip-time" name="departureTime" type="time" value="07:00" required /></div>
-      <div class="field"><label for="trip-transport">${esc(t("transport"))}</label><select id="trip-transport" name="transport"><option value="motorbike">${esc(t("motorbike"))}</option><option value="car">${esc(t("car"))}</option><option value="mixed">${esc(t("mixed"))}</option></select></div>
+      <div class="field"><label for="trip-transport">${esc(t("transport"))}</label><select id="trip-transport" name="transport"><option value="motorbike" ${state.preferences.defaultTransport === "motorbike" ? "selected" : ""}>${esc(t("motorbike"))}</option><option value="car" ${state.preferences.defaultTransport === "car" ? "selected" : ""}>${esc(t("car"))}</option><option value="mixed" ${state.preferences.defaultTransport === "mixed" ? "selected" : ""}>${esc(t("mixed"))}</option></select></div>
       <div class="field"><label for="trip-seats">${esc(t("openPlaces"))}</label><input id="trip-seats" name="seats" type="number" min="1" max="12" value="3" required /></div>
       <div class="field span-2"><label for="trip-meeting">${esc(t("meetingAreaLabel"))}</label><input id="trip-meeting" name="meetingArea" minlength="3" maxlength="80" required /><small>${esc(t("meetingAreaHint"))}</small></div>
-      <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own">${esc(t("ownCosts"))}</option><option value="shared">${esc(t("sharedCosts"))}</option><option value="free">${esc(t("freeTrip"))}</option></select></div>
+      <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own" ${state.preferences.defaultCostStyle === "own" ? "selected" : ""}>${esc(t("ownCosts"))}</option><option value="shared" ${state.preferences.defaultCostStyle === "shared" ? "selected" : ""}>${esc(t("sharedCosts"))}</option><option value="free" ${state.preferences.defaultCostStyle === "free" ? "selected" : ""}>${esc(t("freeTrip"))}</option></select></div>
       <div class="field span-2"><label for="trip-notes">${esc(t("tripNotes"))}</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="${esc(t("tripNotesHint"))}"></textarea></div>
-    </div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
+    </div>${state.preferences.safetyReminders ? `<div class="note-box settings-safety-note">${esc(t("safetyReminder"))}</div>` : ""}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
 }
 function openJoin(id) {
   showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ${icon("arrow-up-right")}</button></form>`);
@@ -593,6 +631,8 @@ document.addEventListener("click", async (eventTarget) => {
   const button = eventTarget.target.closest("[data-action]");
   if (!button) return;
   const { action, id, type, request, decision, mode } = button.dataset;
+  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); return; }
+  if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
   if (action === "open-trip") openTrip(id);
@@ -716,6 +756,22 @@ $("#settings-language").addEventListener("change", (eventTarget) => {
   localStorage.setItem("qipi:language", state.lang);
   applyLanguage();
 });
+$("#settings-theme").addEventListener("change", (eventTarget) => {
+  state.theme = ["system", "light", "dark"].includes(eventTarget.target.value) ? eventTarget.target.value : "system";
+  localStorage.setItem("qipi:theme", state.theme); applyTheme();
+});
+$("#settings-transport").addEventListener("change", (eventTarget) => {
+  state.preferences.defaultTransport = ["motorbike", "car", "mixed"].includes(eventTarget.target.value) ? eventTarget.target.value : "motorbike";
+  saveLocal("qipi:preferences", state.preferences);
+});
+$("#settings-cost-style").addEventListener("change", (eventTarget) => {
+  state.preferences.defaultCostStyle = ["own", "shared", "free"].includes(eventTarget.target.value) ? eventTarget.target.value : "own";
+  saveLocal("qipi:preferences", state.preferences);
+});
+$("#settings-safety-reminders").addEventListener("change", (eventTarget) => {
+  state.preferences.safetyReminders = eventTarget.target.checked;
+  saveLocal("qipi:preferences", state.preferences);
+});
 document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
   const target = anchor.getAttribute("href");
   if (target === "#routes") { eventTarget.preventDefault(); setPageView("explore"); }
@@ -726,15 +782,20 @@ document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventLis
     requestAnimationFrame(() => $("#trips").scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 }));
-document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener("click", (eventTarget) => {
-  if (eventTarget.target === dialog) { dialog.close(); setLink(); }
-}));
+document.querySelectorAll("dialog").forEach((dialog) => {
+  dialog.addEventListener("click", (eventTarget) => {
+    if (eventTarget.target === dialog && dialog.id !== "entry-dialog") { dialog.close(); setLink(); }
+  });
+  if (dialog.id === "entry-dialog") dialog.addEventListener("cancel", (eventTarget) => eventTarget.preventDefault());
+});
 
 async function initialize() {
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
+  if (auth.user) saveEntryChoice("account");
+  else if (!auth.recovery && !entryChoice()) $("#entry-dialog").showModal();
   try {
     const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
     state.routes = routeResult.routes;

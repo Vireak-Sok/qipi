@@ -128,3 +128,64 @@
 .composer-create:hover{background:#286052;transform:translateY(-1px)}
 .composer-create .heroicon{width:16px;height:16px}
 @media(max-width:700px){.feed-filter{min-height:36px;padding-inline:8px}.composer-card{gap:9px;padding:10px}.composer-create{width:36px;height:36px;min-width:36px;padding:0;border-radius:50%}}
+
+/* Settings, first-visit flow, and desktop trip creation */
+:root{--control-radius:12px}
+.button,.composer-prompt,.composer-create,.rail-note button,.lang-button,.feed-filter,.field input,.field select,.field textarea,.settings-card>select,.top-search{border-radius:var(--control-radius)}
+.post-actions button:last-child{border-radius:var(--control-radius)}
+.settings-preference-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:620px}
+.settings-preference-grid .field{margin:0}
+.settings-toggle{display:flex;align-items:center;justify-content:space-between;gap:20px;max-width:620px;padding:12px 14px;border:1px solid #e7ece5;border-radius:var(--control-radius);background:#fafbf9;cursor:pointer}
+.settings-toggle>span{display:grid;gap:4px}
+.settings-toggle strong{font-size:12px}
+.settings-toggle small{max-width:420px;color:#718078;font-size:11px;line-height:1.5}
+.settings-toggle input{appearance:none;position:relative;width:42px;height:24px;flex:none;border:0;border-radius:99px;background:#d5ddd4;cursor:pointer;transition:background .18s}
+.settings-toggle input:before{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;content:"";box-shadow:0 1px 3px #0002;transition:transform .18s}
+.settings-toggle input:checked{background:#2b6650}
+.settings-toggle input:checked:before{transform:translateX(18px)}
+.settings-safety-note{margin:0 0 16px}
+.entry-dialog .dialog-frame{max-width:470px;margin:auto;padding:34px}
+.entry-mark{display:grid;place-items:center;width:48px;height:48px;margin-bottom:20px;border-radius:16px;background:#eaf2e3;color:#315e4a}
+.entry-mark .heroicon{width:26px;height:26px}
+.entry-dialog .dialog-kicker{margin-bottom:10px}
+.entry-dialog h2{max-width:350px}
+.entry-actions{display:grid;gap:10px;margin-top:20px}
+.entry-actions .button{width:100%;min-height:46px}
+.right-rail{align-self:start}
+.sticky-create-card{display:grid;gap:9px;margin-top:auto;background:#e8f0e3}
+.sticky-create-card .section-kicker{margin:0;color:#64816b;font-size:8px;letter-spacing:.12em}
+.sticky-create-card h2{margin:0;font-size:17px;letter-spacing:-.035em}
+.sticky-create-card p{margin:0;color:#66786b;font-size:11px;line-height:1.55}
+.sticky-create-card .button{width:100%;min-height:40px;margin-top:3px;font-size:11px}
+.sticky-create-card .button .heroicon{width:16px;height:16px}
+@media(min-width:961px){.right-rail{display:flex;flex-direction:column;height:calc(100vh - 114px);gap:12px}.right-rail>.right-card:not(.sticky-create-card){flex:none}}
+@media(max-width:700px){.settings-preference-grid{grid-template-columns:1fr;gap:0}.entry-dialog .dialog-frame{padding:26px 22px}.settings-toggle{align-items:flex-start}}
+
+/* Dark theme for the travel community interface */
+:root[data-theme="dark"]{color-scheme:dark;--ink:#e8eee9;--ink-2:#d3dfd6;--muted:#a5b3a8;--paper:#111714;--cream:#1a211d;--line:#303c34;--white:#1c2420;--shadow:0 18px 55px rgba(0,0,0,.28)}
+:root[data-theme="dark"] body{background:var(--paper);color:var(--ink)}
+:root[data-theme="dark"] .social-app{background:#111714;color:#e8eee9}
+:root[data-theme="dark"] .social-topbar,:root[data-theme="dark"] .stories-section,:root[data-theme="dark"] .composer-card,:root[data-theme="dark"] .right-card,:root[data-theme="dark"] .settings-card,:root[data-theme="dark"] .explore-route-card,:root[data-theme="dark"] .social-app .trip-card{background:#1c2420;border-color:#303c34;color:#e8eee9}
+:root[data-theme="dark"] .left-rail{color:#e8eee9}
+:root[data-theme="dark"] .rail-profile{border-color:#303c34}
+:root[data-theme="dark"] .rail-nav a,:root[data-theme="dark"] .rail-nav button{color:#c3d0c6}
+:root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{background:#28362d;color:#d9f29a}
+:root[data-theme="dark"] .composer-prompt,:root[data-theme="dark"] .feed-filter,:root[data-theme="dark"] .settings-toggle{background:#151c18;border-color:#344239;color:#d3dfd6}
+:root[data-theme="dark"] .feed-filter select,:root[data-theme="dark"] .settings-card>select,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .field select,:root[data-theme="dark"] .field textarea{background:#151c18;border-color:#3a4940;color:#e8eee9}
+:root[data-theme="dark"] .explore-route-copy>span,:root[data-theme="dark"] .dialog-intro,:root[data-theme="dark"] .settings-card-heading p,:root[data-theme="dark"] .settings-toggle small,:root[data-theme="dark"] .sticky-create-card p{color:#aab8ad}
+:root[data-theme="dark"] .settings-card-heading{border-color:#303c34}
+:root[data-theme="dark"] .settings-symbol,:root[data-theme="dark"] .entry-mark{background:#29382e;color:#c7e99b}
+:root[data-theme="dark"] .sticky-create-card{background:#25372c}
+:root[data-theme="dark"] .sticky-create-card .section-kicker{color:#bed49f}
+:root[data-theme="dark"] .sticky-create-card h2{color:#eef4ef}
+:root[data-theme="dark"] .dialog-frame{background:#1c2420;color:#e8eee9}
+:root[data-theme="dark"] .dialog-close{background:#222d26;border-color:#3a4940;color:#e8eee9}
+:root[data-theme="dark"] .note-box,:root[data-theme="dark"] .profile-summary,:root[data-theme="dark"] .update-item,:root[data-theme="dark"] .request-row{background:#26352c;border-color:#3a4940;color:#d3dfd6}
+:root[data-theme="dark"] .feed-filter:focus-within{box-shadow:0 0 0 3px #344a3b}
+:root[data-theme="dark"] .mobile-nav{background:#1c2420;border-color:#303c34}
+:root[data-theme="dark"] .side-footer,:root[data-theme="dark"] .side-footer a{color:#98a99c}
+button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close),input:not([type="checkbox"]):not([type="radio"]),select,textarea{border-radius:var(--control-radius)}
+:root[data-theme="dark"] .feed-welcome,:root[data-theme="dark"] .feed-end,:root[data-theme="dark"] .social-app .empty-trips,:root[data-theme="dark"] .post-journey{background:#1c2420;border-color:#303c34;color:#e8eee9}
+:root[data-theme="dark"] .feed-welcome p,:root[data-theme="dark"] .feed-end p,:root[data-theme="dark"] .social-app .empty-trips p,:root[data-theme="dark"] .post-route small{color:#aab8ad}
+:root[data-theme="dark"] .route-story,:root[data-theme="dark"] .post-actions button{color:#c7d7cb}
+:root[data-theme="dark"] .settings-toggle input:checked{background:#77965d}

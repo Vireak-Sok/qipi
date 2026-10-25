@@ -2,7 +2,7 @@
 
 **Qi (七)** means seven in Chinese. **Pi (ពីរ)** means two in Khmer. Seven days make a week; two of them are the weekend, when people can get out and travel. Qipi helps people turn those two days into trips and stories.
 
-This repository is an MVP demo for Cambodia travelers. It starts with the Kampot–Kep–Bokor area and focuses on a single flow: explore a route, post or find a trip, request to join, and let the host decide. The Khmer and English interface presents these plans as a community travel feed. The deployed demo is [qipi.vercel.app](https://qipi.vercel.app/).
+This repository is an MVP demo for Cambodia travelers. It starts with the Kampot–Kep–Bokor area and focuses on a single flow: explore a route, post or find a trip, request to join, and let the host decide. The social feed supports English (default), Khmer, and Chinese, with account and language controls in Settings. The deployed demo is [qipi.vercel.app](https://qipi.vercel.app/).
 
 ## Run locally
 
@@ -41,7 +41,8 @@ Use [.env.example](.env.example) as a list of environment variable names. Never 
 ## What the demo includes
 
 - Three bilingual route guides with stops, cost checklists, source links, and a way to submit recent route notes for moderation.
-- A community feed with route highlights, searchable trip posts, saved trips in the browser, and a responsive mobile nav.
+- An Instagram-inspired community feed with story-style route highlights, trip posts, saved trips in the browser, profile settings, and a responsive mobile nav.
+- A Settings page for account profile details and English, Khmer, or Chinese language selection.
 - Supabase email/password accounts with email confirmation and password reset. Guests can browse; members can post trips, request to join, and submit route notes. The server checks each access token with Supabase Auth before these actions.
 - Trip filtering, shareable links, join requests, host approval or decline, capacity tracking, and trip closure. Account ownership works across devices. Existing pilot trips retain their browser-token controls.
 - A “My trips” view for hosted trips and join request status.

@@ -128,6 +128,16 @@ export class QipiAuth {
     this.recovery = false;
   }
 
+  async updateProfile(displayName) {
+    const accessToken = await this.accessToken();
+    if (!accessToken) throw new Error("Sign in again to update your profile");
+    const user = await this.request("/user", {
+      method: "PUT", body: { data: { display_name: displayName } }, accessToken
+    });
+    this.save({ ...this.session, user });
+    return user;
+  }
+
   async signOut() {
     const accessToken = await this.accessToken().catch(() => null);
     this.save(null);

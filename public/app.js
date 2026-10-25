@@ -102,7 +102,8 @@ const copy = {
     saveSuccess: "ដំណើរបានបង្ហោះ។ ចែករំលែកតំណជាមួយក្រុមរបស់អ្នក។", requestSuccess: "សំណើបានផ្ញើទៅអ្នករៀបចំ។",
     decisionSuccess: "សំណើបានធ្វើបច្ចុប្បន្នភាព។", updateSuccess: "អរគុណ។ ព័ត៌មានរបស់អ្នកកំពុងរង់ចាំការពិនិត្យ។", reportSuccess: "អរគុណ។ យើងបានទទួលរបាយការណ៍។",
     copied: "បានចម្លងតំណ", failed: "មានបញ្ហា។ សូមសាកម្តងទៀត។", noTripsFilter: "មិនទាន់មានដំណើរខាងមុខសម្រាប់ផ្លូវនេះទេ។"
-  }
+  },
+  zh: {}
 };
 
 Object.assign(copy.en, {
@@ -163,11 +164,70 @@ Object.assign(copy.km, {
   hostDeviceNote: "គណនីរបស់អ្នកអាចគ្រប់គ្រងដំណើរនេះពីឧបករណ៍ផ្សេងបាន។",
   myIntro: "ដំណើរដែលអ្នករៀបចំ និងសំណើរបស់អ្នកបង្ហាញនៅទីនេះក្រោយចូលគណនី។"
 });
+Object.assign(copy.en, {
+  explore: "Explore", seeAll: "See all", forYou: "For you", settings: "Settings",
+  accountSettings: "Account and profile", profileSettingsIntro: "Manage your Qipi profile.",
+  languageSettings: "Language", languageSettingsIntro: "Choose the language used across Qipi.",
+  displayLanguage: "Display language", profileName: "Profile name", saveProfile: "Save profile",
+  guestProfileText: "Sign in to manage your account and profile.", backToFeed: "Back to feed",
+  profileSaved: "Profile updated.", profileSaveError: "Could not update your profile. Try again."
+});
+Object.assign(copy.km, {
+  explore: "ស្វែងរក", seeAll: "មើលទាំងអស់", forYou: "សម្រាប់អ្នក", settings: "ការកំណត់",
+  accountSettings: "គណនី និង ប្រវត្តិរូប", profileSettingsIntro: "គ្រប់គ្រងប្រវត្តិរូប Qipi របស់អ្នក។",
+  languageSettings: "ភាសា", languageSettingsIntro: "ជ្រើសរើសភាសាដែលប្រើនៅលើ Qipi។",
+  displayLanguage: "ភាសាបង្ហាញ", profileName: "ឈ្មោះប្រវត្តិរូប", saveProfile: "រក្សាទុកប្រវត្តិរូប",
+  guestProfileText: "ចូលគណនីដើម្បីគ្រប់គ្រងគណនី និង ប្រវត្តិរូប។", backToFeed: "ត្រឡប់ទៅព័ត៌មានថ្មីៗ",
+  profileSaved: "បានធ្វើបច្ចុប្បន្នភាពប្រវត្តិរូប។", profileSaveError: "មិនអាចធ្វើបច្ចុប្បន្នភាពបានទេ។ សូមសាកម្តងទៀត។"
+});
+Object.assign(copy.zh, {
+  home: "首页", saved: "已收藏", profile: "个人主页", signIn: "登录", signOut: "退出登录",
+  signUp: "创建账号", create: "创建", createPost: "下一趟旅程，邀人同行。", searchPlaceholder: "搜索路线和行程",
+  guestTraveler: "访客", navRoutes: "路线", navTrips: "行程", myTrips: "我的行程", postTrip: "发布行程",
+  explore: "发现", seeAll: "查看全部", forYou: "为你推荐", settings: "设置",
+  accountSettings: "账号与个人资料", profileSettingsIntro: "管理你的 Qipi 个人资料。",
+  languageSettings: "语言", languageSettingsIntro: "选择 Qipi 使用的语言。", displayLanguage: "显示语言",
+  profileName: "个人资料名称", saveProfile: "保存资料", guestProfileText: "登录以管理账号和个人资料。",
+  backToFeed: "返回动态", profileSaved: "资料已更新。", profileSaveError: "无法更新资料，请重试。",
+  composerPrompt: "这个周末你想去哪里？", feedTitle: "让周末成为一段故事。", routesTitle: "探索路线",
+  tripsTitle: "旅行动态", popularNow: "热门目的地", travelThoughtfully: "安全出行",
+  safetyCopy: "使用公共会合地点，出发前确认路况并和同行者商定计划。",
+  filterByRoute: "按路线筛选", allRoutes: "所有路线", postYourTrip: "发布你的行程",
+  viewRoute: "查看路线", viewTrip: "查看行程", hostedBy: "发起人", startsAt: "出发时间",
+  meetingArea: "会合区域", aboutTrip: "行程介绍", joinTrip: "申请加入", manageRequests: "管理申请",
+  spots: "个名额", shareTrip: "分享行程链接", discussTrip: "查看行程", requestJoin: "申请加入",
+  member: "Qipi 会员", guestHost: "旅行者", tripBoardEmptyTitle: "还没有行程。",
+  tripBoardEmptyBody: "有周末计划吗？分享日期和路线，邀请其他人同行。",
+  signInToContinue: "请登录后继续。", authIntro: "加入柬埔寨周末旅行社区，浏览路线并结识同行者。",
+  authPrivacy: "邮箱仅用于登录，不会显示在行程帖子中。", email: "邮箱", password: "密码",
+  displayName: "姓名或昵称", haveAccount: "已有账号？", needAccount: "第一次使用 Qipi？",
+  forgotPassword: "忘记密码？", resetPassword: "重置密码", sendReset: "发送重置链接",
+  checkEmail: "请查看邮箱并点击确认链接，然后返回 Qipi。", resetSent: "如果该邮箱已注册，重置链接即将发送。",
+  passwordUpdated: "密码已更新。", profileTitle: "你的 Qipi 个人资料", savedTrips: "已收藏的行程",
+  save: "收藏", unsave: "已收藏", routeFilterEmpty: "没有找到符合条件的路线。",
+  createTitle: "发布你的行程", createIntro: "告诉大家你计划去哪里、何时出发。",
+  yourName: "姓名或昵称", tripTitle: "行程标题", route: "路线", travelDate: "出行日期",
+  departureTime: "出发时间", transport: "交通方式", motorbike: "摩托车", car: "汽车",
+  mixed: "混合交通", openPlaces: "开放名额", meetingAreaLabel: "大致会合地点",
+  meetingAreaHint: "例如：贡布市中心。请勿填写家庭住址。", costStyle: "费用",
+  ownCosts: "各自承担费用", sharedCosts: "分摊油费或团体费用", freeTrip: "无共同费用",
+  tripNotes: "行程安排与注意事项", tripNotesHint: "分享行程节奏、停靠点或同行者需要了解的经验。",
+  createTripButton: "发布行程", joinTitle: "申请加入", joinIntro: "向发起人介绍自己。",
+  travelerName: "姓名或昵称", shortMessage: "简短留言（选填）", sendRequest: "发送申请",
+  myTitle: "我的行程和申请", hosting: "我发起的行程", joining: "我提交的申请",
+  noHosted: "你还没有发布行程。", noJoined: "你还没有提交加入申请。", open: "打开",
+  closed: "已关闭", condition: "路线状况", good: "良好", mixedCondition: "一般",
+  caution: "请谨慎出行", routeUpdateNote: "有哪些变化或实用信息？", submitUpdate: "提交审核",
+  reportTitle: "举报问题", reason: "原因", inaccurate: "信息不准确", unsafe: "安全问题",
+  spam: "垃圾内容", other: "其他", details: "补充说明（选填）", sendReport: "提交举报",
+  loading: "加载中…", retry: "重试", copied: "链接已复制", failed: "出错了，请重试。",
+  noTripsFilter: "此路线暂无即将出发的行程。", profileSaved: "资料已更新。"
+});
 
 const auth = new QipiAuth();
 const state = {
-  lang: localStorage.getItem("qipi:language") || "km",
-  routes: [], trips: [], filter: "", search: "", me: null,
+  lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
+  routes: [], trips: [], filter: "", search: "", me: null, view: "feed",
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys")
 };
@@ -192,13 +252,15 @@ function readLocal(key) {
 function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 function routeFor(id) { return state.routes.find((route) => route.id === id); }
 function dateLabel(date) {
-  return new Intl.DateTimeFormat(state.lang === "km" ? "km-KH" : "en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
 }
 function dateParts(date) {
   const parsed = new Date(`${date}T00:00:00Z`);
+  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
   return {
-    day: new Intl.DateTimeFormat("en-GB", { day: "2-digit", timeZone: "UTC" }).format(parsed),
-    month: new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(parsed)
+    day: new Intl.DateTimeFormat(locale, { day: "2-digit", timeZone: "UTC" }).format(parsed),
+    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(parsed)
   };
 }
 function toast(message) {
@@ -240,11 +302,14 @@ function setLink(param, id) {
   history.replaceState({}, "", url);
 }
 function applyLanguage() {
-  document.documentElement.lang = state.lang;
+  document.documentElement.lang = state.lang === "zh" ? "zh-Hans" : state.lang;
   document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
-  $("#language-button").textContent = state.lang === "km" ? "EN" : "ខ្មែរ";
+  $("#language-button").textContent = state.lang === "km" ? "KH" : state.lang === "zh" ? "中文" : "EN";
+  $("#language-button").setAttribute("aria-label", t("languageSettings"));
+  if ($("#settings-language")) $("#settings-language").value = state.lang;
   renderAccount(); renderRoutes(); renderFilter(); renderTrips();
+  if (state.view === "settings") renderSettings();
 }
 
 function renderAccount() {
@@ -256,6 +321,37 @@ function renderAccount() {
   $("#rail-user-name").textContent = name || t("guestTraveler");
 }
 
+function renderSettings() {
+  const content = $("#settings-account-content");
+  if (!content) return;
+  const name = displayName();
+  content.innerHTML = auth.user
+    ? `<div class="settings-profile"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div>
+      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
+    : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
+  $("#settings-language").value = state.lang;
+}
+
+function setSettingsView(open) {
+  state.view = open ? "settings" : "feed";
+  const main = $("#main");
+  const settings = $("#settings-view");
+  main.classList.toggle("settings-open", open);
+  document.querySelectorAll('.rail-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", !open));
+  document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", open));
+  document.querySelectorAll(".feed-column > :not(#settings-view)").forEach((section) => { section.hidden = open; });
+  settings.hidden = !open;
+  if (open) renderSettings();
+  const targetHash = open ? "#settings" : "#feed";
+  if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function openSettings() {
+  closeDialogs();
+  setSettingsView(true);
+}
+
 async function refreshMe() {
   if (!auth.user) { state.me = null; return; }
   try { state.me = await api("/api/me"); }
@@ -265,12 +361,10 @@ async function refreshMe() {
 function renderRoutes() {
   const visible = state.routes.filter((route) => !state.search || `${label(route.title)} ${label(route.summary)}`.toLowerCase().includes(state.search));
   $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => `
-    <article class="route-card ${esc(route.accent)}">
-      <button type="button" class="route-card-button" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
-        <div class="route-card-visual"><span class="route-card-tag">${esc(label(route.label))}</span><span class="road"></span><span class="pin"></span><span class="pin end"></span><span class="visual-number">0${index + 1}</span></div>
-        <div class="route-card-body"><div class="route-meta">${esc(label(route.duration))} · ${esc(label(route.mode))}</div><h3>${esc(label(route.title))}</h3><div class="route-card-footer"><span>${esc(t("viewRoute"))}</span><span class="round-arrow" aria-hidden="true">↗</span></div></div>
-      </button>
-    </article>`).join("") : `<p class="small-copy">${esc(t("routeFilterEmpty"))}</p>`;
+    <button type="button" class="route-story ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
+      <span class="story-avatar"><span class="story-art"><span class="story-road"></span><span class="story-count">0${index + 1}</span></span></span>
+      <span class="story-name">${esc(label(route.title))}</span>
+    </button>`).join("") : `<p class="small-copy">${esc(t("routeFilterEmpty"))}</p>`;
 }
 function renderFilter() {
   $("#trip-route-filter").innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
@@ -285,6 +379,7 @@ function renderTrips() {
   }
   $("#trip-list").innerHTML = filtered.map((trip) => {
     const date = dateParts(trip.date);
+    const route = routeFor(trip.routeId);
     const saved = state.savedTrips.includes(trip.id);
     const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
     const request = state.me?.requests.find((item) => item.trip.id === trip.id);
@@ -296,6 +391,7 @@ function renderTrips() {
     const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
     return `<article class="trip-card">
       <div class="post-head"><span class="post-avatar">${esc(initials(trip.hostName))}</span><div class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">✳</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></div><button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${saved ? "♥" : "♡"}</button></div>
+      <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
       <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
       <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
       <div class="post-actions"><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">↗ ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">◎ ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} →</button></div>
@@ -465,6 +561,7 @@ function openAuth(mode = "signin") {
 async function authSuccess() {
   await refreshMe();
   renderAccount();
+  renderSettings();
   renderTrips();
   closeDialogs();
   const action = pendingAction;
@@ -483,9 +580,12 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "join-trip") requireSignIn(() => openJoin(id));
   if (action === "my-trips") openMyTrips();
   if (action === "saved-trips") openSavedTrips();
+  if (action === "open-settings") openSettings();
+  if (action === "back-to-feed") setSettingsView(false);
+  if (action === "settings-sign-in") openAuth("signin");
   if (action === "account") { pendingAction = null; openAuth(auth.user ? "profile" : "signin"); }
   if (action === "auth-mode") openAuth(mode);
-  if (action === "sign-out") { await auth.signOut(); state.me = null; renderAccount(); renderTrips(); closeDialogs(); }
+  if (action === "sign-out") { await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); closeDialogs(); }
   if (action === "toggle-save") {
     state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
     saveLocal("qipi:saved-trips", state.savedTrips);
@@ -517,6 +617,18 @@ document.addEventListener("click", async (eventTarget) => {
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "settings-profile-form") {
+    eventTarget.preventDefault();
+    const submit = form.querySelector("button[type=submit]");
+    submit.disabled = true;
+    try {
+      const values = Object.fromEntries(new FormData(form));
+      await auth.updateProfile(values.displayName.trim());
+      renderAccount(); renderSettings(); toast(t("profileSaved"));
+    } catch (error) { setError(form, error.message || t("profileSaveError")); }
+    finally { submit.disabled = false; }
+    return;
+  }
   if (form.id === "auth-form") {
     eventTarget.preventDefault();
     const submit = form.querySelector("button[type=submit]");
@@ -579,11 +691,14 @@ $("#feed-search").addEventListener("input", (eventTarget) => {
   state.search = eventTarget.target.value.trim().toLowerCase();
   renderRoutes(); renderTrips();
 });
-$("#language-button").addEventListener("click", () => {
-  state.lang = state.lang === "km" ? "en" : "km";
+$("#settings-language").addEventListener("change", (eventTarget) => {
+  state.lang = ["en", "km", "zh"].includes(eventTarget.target.value) ? eventTarget.target.value : "en";
   localStorage.setItem("qipi:language", state.lang);
-  closeDialogs(); applyLanguage();
+  applyLanguage();
 });
+document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", () => {
+  if (state.view === "settings") setSettingsView(false);
+}));
 document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener("click", (eventTarget) => {
   if (eventTarget.target === dialog) { dialog.close(); setLink(); }
 }));
@@ -598,6 +713,7 @@ async function initialize() {
     state.routes = routeResult.routes;
     state.trips = tripResult.trips;
     applyLanguage();
+    if (location.hash === "#settings") openSettings();
     const query = new URLSearchParams(location.search);
     if (query.has("route")) await openRoute(query.get("route"), false);
     else if (query.has("trip")) await openTrip(query.get("trip"), false);

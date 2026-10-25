@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { JsonStore, SupabaseStore } from "./src/store.mjs";
+import { SupabaseAuthVerifier } from "./src/auth.mjs";
 import { routeById, routes } from "./src/routes.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
@@ -14,6 +15,7 @@ const staticFiles = new Map([
   ["/index.html", ["index.html", "text/html; charset=utf-8"]],
   ["/styles.css", ["styles.css", "text/css; charset=utf-8"]],
   ["/app.js", ["app.js", "text/javascript; charset=utf-8"]],
+  ["/auth.js", ["auth.js", "text/javascript; charset=utf-8"]],
   ["/admin.html", ["admin.html", "text/html; charset=utf-8"]],
   ["/admin.js", ["admin.js", "text/javascript; charset=utf-8"]],
   ["/favicon.svg", ["favicon.svg", "image/svg+xml"]]
@@ -138,6 +140,7 @@ function publicTrip(trip, data) {
     costStyle: trip.costStyle,
     notes: trip.notes,
     hostName: trip.hostName,
+    hostVerified: Boolean(trip.hostUserId),
     status: trip.status,
     createdAt: trip.createdAt
   };
@@ -149,7 +152,11 @@ function findTrip(data, id, { includeHidden = false } = {}) {
   return trip;
 }
 
-function owner(req, trip) {
+function owner(req, trip, user) {
+  if (trip.hostUserId) {
+    if (user?.id === trip.hostUserId) return;
+    throw new HttpError(403, "This trip belongs to another host");
+  }
   if (!sameSecret(req.headers["x-host-token"], trip.ownerTokenHash)) {
     throw new HttpError(403, "This trip belongs to another host");
   }
@@ -172,11 +179,35 @@ export function createQipiHandler({
   dataFile = defaultDataFile,
   publicDir = defaultPublicDir,
   adminToken = process.env.QIPI_ADMIN_TOKEN || "",
+  authVerifier = process.env.SUPABASE_URL && process.env.SUPABASE_PUBLISHABLE_KEY
+    ? new SupabaseAuthVerifier({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_PUBLISHABLE_KEY })
+    : null,
   store = process.env.SUPABASE_URL && process.env.SUPABASE_SECRET_KEY
     ? new SupabaseStore({ url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SECRET_KEY })
     : new JsonStore(dataFile)
 } = {}) {
   const recentWrites = new Map();
+  const authOrigin = authVerifier && process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : "";
+
+  async function userFor(req, { required = false } = {}) {
+    if (!authVerifier) {
+      if (required && store instanceof SupabaseStore) throw new HttpError(503, "Authentication is not configured");
+      return null; // Local JSON development keeps the original browser-token demo flow.
+    }
+    const header = req.headers.authorization;
+    if (typeof header !== "string" || !header.startsWith("Bearer ")) {
+      if (required) throw new HttpError(401, "Sign in to continue");
+      return null;
+    }
+    try {
+      const user = await authVerifier.verify(header.slice(7));
+      if (!user) throw new HttpError(401, "Your session has expired. Sign in again");
+      return user;
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      throw new HttpError(503, "Sign-in service is unavailable");
+    }
+  }
 
   function limitWrites(req) {
     const key = (typeof req.headers["x-real-ip"] === "string" && req.headers["x-real-ip"]) ||
@@ -200,6 +231,29 @@ export function createQipiHandler({
         await store.read();
         return json(res, 200, { ok: true, name: "Qipi", storage: store instanceof SupabaseStore ? "supabase" : "local" });
       }
+      if (path === "/api/config" && method === "GET") {
+        return json(res, 200, {
+          authEnabled: Boolean(authVerifier),
+          supabaseUrl: authVerifier ? process.env.SUPABASE_URL : "",
+          publishableKey: authVerifier ? process.env.SUPABASE_PUBLISHABLE_KEY : ""
+        });
+      }
+      if (path === "/api/me" && method === "GET") {
+        const user = await userFor(req, { required: true });
+        if (!user) throw new HttpError(503, "Authentication is not configured");
+        const data = await store.read();
+        return json(res, 200, {
+          user,
+          trips: data.trips.filter((trip) => trip.hostUserId === user.id).map((trip) => publicTrip(trip, data)),
+          requests: data.joinRequests.filter((request) => request.travelerUserId === user.id)
+            .map((request) => ({
+              id: request.id, status: request.status,
+              trip: data.trips.find((trip) => trip.id === request.tripId)
+            }))
+            .filter((item) => item.trip && !item.trip.hidden)
+            .map((item) => ({ id: item.id, status: item.status, trip: publicTrip(item.trip, data) }))
+        });
+      }
       if (path === "/api/routes" && method === "GET") return json(res, 200, { routes });
 
       const routeMatch = /^\/api\/routes\/([a-z0-9-]+)$/.exec(path);
@@ -216,11 +270,13 @@ export function createQipiHandler({
       const updateMatch = /^\/api\/routes\/([a-z0-9-]+)\/updates$/.exec(path);
       if (updateMatch && method === "POST") {
         if (!routeById.has(updateMatch[1])) throw new HttpError(404, "Route not found");
+        const user = await userFor(req, { required: true });
         const input = await body(req);
         const update = {
           id: randomUUID(),
           routeId: updateMatch[1],
           nickname: text(input.nickname, "nickname", 2, 40),
+          userId: user?.id || null,
           visitedOn: dateField(input.visitedOn, "visitedOn", { past: true }),
           condition: choice(input.condition, "condition", ["good", "mixed", "caution"]),
           note: text(input.note, "note", 10, 500),
@@ -245,13 +301,14 @@ export function createQipiHandler({
       }
 
       if (path === "/api/trips" && method === "POST") {
+        const user = await userFor(req, { required: true });
         const input = await body(req);
         if (!routeById.has(input.routeId)) throw new HttpError(400, "Choose a route");
         const seats = Number(input.seats);
         if (!Number.isInteger(seats) || seats < 1 || seats > 12) {
           throw new HttpError(400, "seats must be between 1 and 12");
         }
-        const ownerToken = token();
+        const ownerToken = user ? null : token();
         const trip = {
           id: randomUUID(),
           routeId: input.routeId,
@@ -264,7 +321,8 @@ export function createQipiHandler({
           costStyle: choice(input.costStyle, "costStyle", ["own", "shared", "free"]),
           notes: optionalText(input.notes, "notes", 500),
           hostName: text(input.hostName, "hostName", 2, 40),
-          ownerTokenHash: digest(ownerToken),
+          ownerTokenHash: ownerToken ? digest(ownerToken) : null,
+          hostUserId: user?.id || null,
           status: "open",
           hidden: false,
           createdAt: new Date().toISOString()
@@ -274,7 +332,7 @@ export function createQipiHandler({
           addEvent(data, "trip_created", trip.id);
           return publicTrip(trip, data);
         });
-        return json(res, 201, { trip: publicRecord, ownerToken });
+        return json(res, 201, { trip: publicRecord, ...(ownerToken ? { ownerToken } : {}) });
       }
 
       const tripMatch = /^\/api\/trips\/([0-9a-f-]+)$/.exec(path);
@@ -285,9 +343,10 @@ export function createQipiHandler({
 
       const closeMatch = /^\/api\/trips\/([0-9a-f-]+)\/close$/.exec(path);
       if (closeMatch && method === "POST") {
+        const user = await userFor(req);
         const result = await store.mutate((data) => {
           const trip = findTrip(data, closeMatch[1]);
-          owner(req, trip);
+          owner(req, trip, user);
           trip.status = "closed";
           addEvent(data, "trip_closed", trip.id);
           return publicTrip(trip, data);
@@ -297,9 +356,10 @@ export function createQipiHandler({
 
       const requestsMatch = /^\/api\/trips\/([0-9a-f-]+)\/requests$/.exec(path);
       if (requestsMatch && method === "GET") {
+        const user = await userFor(req);
         const data = await store.read();
         const trip = findTrip(data, requestsMatch[1]);
-        owner(req, trip);
+        owner(req, trip, user);
         return json(res, 200, {
           requests: data.joinRequests
             .filter((request) => request.tripId === trip.id)
@@ -307,10 +367,15 @@ export function createQipiHandler({
         });
       }
       if (requestsMatch && method === "POST") {
+        const user = await userFor(req, { required: true });
         const input = await body(req);
-        const requestToken = token();
+        const requestToken = user ? null : token();
         const request = await store.mutate((data) => {
           const trip = findTrip(data, requestsMatch[1]);
+          if (user && trip.hostUserId === user.id) throw new HttpError(409, "You cannot join your own trip");
+          if (user && data.joinRequests.some((item) => item.tripId === trip.id && item.travelerUserId === user.id)) {
+            throw new HttpError(409, "You have already requested to join this trip");
+          }
           if (trip.status !== "open") throw new HttpError(409, "This trip is closed");
           if (trip.date < todayInCambodia()) throw new HttpError(409, "This trip has passed");
           if (publicTrip(trip, data).availableSpots === 0) throw new HttpError(409, "This trip is full");
@@ -319,7 +384,8 @@ export function createQipiHandler({
             tripId: trip.id,
             travelerName: text(input.travelerName, "travelerName", 2, 40),
             message: optionalText(input.message, "message", 280),
-            requestTokenHash: digest(requestToken),
+            requestTokenHash: requestToken ? digest(requestToken) : null,
+            travelerUserId: user?.id || null,
             status: "pending",
             createdAt: new Date().toISOString()
           };
@@ -327,16 +393,18 @@ export function createQipiHandler({
           addEvent(data, "join_requested", trip.id);
           return { id: record.id, status: record.status };
         });
-        return json(res, 201, { request, requestToken });
+        return json(res, 201, { request, ...(requestToken ? { requestToken } : {}) });
       }
 
       const requestMatch = /^\/api\/trips\/([0-9a-f-]+)\/requests\/([0-9a-f-]+)$/.exec(path);
       if (requestMatch && method === "GET") {
+        const user = await userFor(req);
         const data = await store.read();
         findTrip(data, requestMatch[1]);
         const request = data.joinRequests.find((item) => item.id === requestMatch[2] && item.tripId === requestMatch[1]);
         if (!request) throw new HttpError(404, "Request not found");
-        if (!sameSecret(req.headers["x-request-token"], request.requestTokenHash)) {
+        if (!(request.travelerUserId && user?.id === request.travelerUserId) &&
+            !sameSecret(req.headers["x-request-token"], request.requestTokenHash)) {
           throw new HttpError(403, "This request belongs to another traveler");
         }
         return json(res, 200, { request: {
@@ -349,11 +417,12 @@ export function createQipiHandler({
 
       const decisionMatch = /^\/api\/trips\/([0-9a-f-]+)\/requests\/([0-9a-f-]+)\/decision$/.exec(path);
       if (decisionMatch && method === "POST") {
+        const user = await userFor(req);
         const input = await body(req);
         const decision = choice(input.decision, "decision", ["approved", "declined"]);
         const result = await store.mutate((data) => {
           const trip = findTrip(data, decisionMatch[1]);
-          owner(req, trip);
+          owner(req, trip, user);
           const request = data.joinRequests.find((item) => item.id === decisionMatch[2] && item.tripId === trip.id);
           if (!request) throw new HttpError(404, "Request not found");
           if (request.status !== "pending") throw new HttpError(409, "Request is already decided");
@@ -452,7 +521,7 @@ export function createQipiHandler({
           "content-length": content.length,
           "cache-control": "no-cache",
           "x-content-type-options": "nosniff",
-          "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+          "content-security-policy": `default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'${authOrigin ? ` ${authOrigin}` : ""}; base-uri 'self'; form-action 'self'; object-src 'none'`
         });
         return res.end(method === "HEAD" ? undefined : content);
       }

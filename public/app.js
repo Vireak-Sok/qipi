@@ -1,3 +1,5 @@
+import { QipiAuth } from "./auth.js";
+
 const copy = {
   en: {
     navRoutes: "Routes", navTrips: "Upcoming trips", navHow: "How it works", myTrips: "My trips", postTrip: "Post a trip",
@@ -103,15 +105,78 @@ const copy = {
   }
 };
 
+Object.assign(copy.en, {
+  home: "Home", saved: "Saved", profile: "Profile", signIn: "Sign in", signOut: "Sign out",
+  signUp: "Create account", create: "Create", searchPlaceholder: "Search routes and trips",
+  guestTraveler: "Guest traveler", joinCommunity: "Join the Qipi community",
+  railNoteTitle: "Your next story starts nearby.", railNoteBody: "Plan a route, meet a crew, and make two days count.",
+  feedEyebrow: "CAMBODIA TRAVEL COMMUNITY", feedTitle: "Make the weekend a story.",
+  feedIntro: "Find your next route and the people heading your way.", exploreFeed: "Explore the feed ↗",
+  composerPrompt: "Where are you going this weekend?", feedFilterLabel: "See plans from the community",
+  weekendLabel: "THE QIPI IDEA", weekendStory: "Qi is seven in Chinese. Pi is two in Khmer. The weekend is yours to explore.",
+  days: "days", daysToGo: "days to go.",
+  popularNow: "Popular now", kampotTag: "Riverside starts", kepTag: "Coastal detours", bokorTag: "Mountain air",
+  travelThoughtfully: "Travel thoughtfully", safetyCopy: "Keep meeting areas general, check live conditions and agree on plans before you go.",
+  howBody: "Browse the route, say hello to the host, then bring a useful note back for the next traveler.",
+  authIntro: "Join Cambodia's weekend travel community. Browse freely; sign in to post and connect.",
+  authPrivacy: "Your email is used for sign-in and is never shown on trip posts.",
+  email: "Email", password: "Password", displayName: "Name or nickname", haveAccount: "Already have an account?",
+  needAccount: "New to Qipi?", forgotPassword: "Forgot password?", resetPassword: "Reset password",
+  sendReset: "Send reset link", checkEmail: "Check your email for a confirmation link, then return to Qipi.",
+  resetSent: "If this email has an account, a reset link is on its way.", passwordUpdated: "Password updated. You can keep exploring.",
+  profileTitle: "Your Qipi profile", memberSince: "Signed in to the travel community",
+  authUnavailable: "Sign-in is not configured for this local demo.", savedTrips: "Saved trips",
+  noSaved: "No saved trips yet. Save a plan from the feed to find it here.", save: "Save", unsave: "Saved",
+  discussTrip: "View trip", requestJoin: "Ask to join", member: "Qipi member", guestHost: "Traveler",
+  routeFilterEmpty: "No routes match your search.", signInToContinue: "Sign in to continue.",
+  routesKicker: "EXPLORE THE AREA", routesTitle: "Routes to explore", tripsKicker: "ON THE ROAD TOGETHER",
+  tripsTitle: "The travel feed", howTitle: "Good trips begin together.",
+  hostDeviceNote: "Your account lets you manage this trip across devices.",
+  myIntro: "Trips you host and requests you send appear here when you sign in."
+});
+Object.assign(copy.km, {
+  home: "ទំព័រដើម", saved: "បានរក្សាទុក", profile: "ប្រវត្តិរូប", signIn: "ចូលគណនី", signOut: "ចាកចេញ",
+  signUp: "បង្កើតគណនី", create: "បង្កើត", searchPlaceholder: "ស្វែងរកផ្លូវ និង ដំណើរ",
+  guestTraveler: "អ្នកធ្វើដំណើរថ្មី", joinCommunity: "ចូលរួមសហគមន៍ Qipi",
+  railNoteTitle: "រឿងបន្ទាប់ចាប់ផ្ដើមនៅក្បែរអ្នក។", railNoteBody: "រៀបចំផ្លូវ ជួបមិត្តថ្មី និងធ្វើឱ្យពីរថ្ងៃមានន័យ។",
+  feedEyebrow: "សហគមន៍ដំណើរកម្សាន្តកម្ពុជា", feedTitle: "ធ្វើឱ្យចុងសប្ដាហ៍ក្លាយជារឿងរ៉ាវ។",
+  feedIntro: "ស្វែងរកផ្លូវ និង អ្នកដែលធ្វើដំណើរទៅទិសដៅដូចគ្នា។", exploreFeed: "មើលដំណើរ ↗",
+  composerPrompt: "ចុងសប្ដាហ៍នេះអ្នកទៅណា?", feedFilterLabel: "មើលគម្រោងពីសហគមន៍",
+  weekendLabel: "គំនិត QIPI", weekendStory: "Qi មានន័យថា ប្រាំពីរ ជាភាសាចិន។ Pi មានន័យថា ពីរ ជាភាសាខ្មែរ។ ចុងសប្ដាហ៍ជាពេលចេញដំណើរ។",
+  days: "ថ្ងៃ", daysToGo: "ថ្ងៃសម្រាប់ចេញដំណើរ",
+  popularNow: "កំពុងពេញនិយម", kampotTag: "ចាប់ផ្ដើមក្បែរទន្លេ", kepTag: "ដំណើរតាមឆ្នេរ", bokorTag: "ខ្យល់ភ្នំ",
+  travelThoughtfully: "ធ្វើដំណើរដោយប្រុងប្រយ័ត្ន", safetyCopy: "ជ្រើសតំបន់ជួបទូទៅ ពិនិត្យស្ថានភាពថ្មីៗ និងឯកភាពផែនការមុនចេញដំណើរ។",
+  howBody: "មើលផ្លូវ សួរសុខទុក្ខអ្នករៀបចំ ហើយចែករំលែកព័ត៌មានមានប្រយោជន៍ទៅអ្នកបន្ទាប់។",
+  authIntro: "ចូលរួមសហគមន៍ធ្វើដំណើរចុងសប្ដាហ៍។ អាចមើលដោយសេរី ហើយចូលគណនីដើម្បីបង្ហោះ។",
+  authPrivacy: "អ៊ីមែលរបស់អ្នកប្រើសម្រាប់ចូលគណនី ហើយមិនបង្ហាញនៅលើដំណើរឡើយ។",
+  email: "អ៊ីមែល", password: "ពាក្យសម្ងាត់", displayName: "ឈ្មោះ ឬ ឈ្មោះហៅក្រៅ", haveAccount: "មានគណនីហើយ?",
+  needAccount: "ថ្មីនៅ Qipi?", forgotPassword: "ភ្លេចពាក្យសម្ងាត់?", resetPassword: "កំណត់ពាក្យសម្ងាត់ថ្មី",
+  sendReset: "ផ្ញើតំណកំណត់ឡើងវិញ", checkEmail: "ពិនិត្យអ៊ីមែលដើម្បីបញ្ជាក់គណនី រួចត្រឡប់មក Qipi។",
+  resetSent: "បើអ៊ីមែលនេះមានគណនី តំណកំណត់ឡើងវិញកំពុងផ្ញើទៅអ្នក។", passwordUpdated: "ពាក្យសម្ងាត់បានធ្វើបច្ចុប្បន្នភាព។",
+  profileTitle: "ប្រវត្តិរូប Qipi", memberSince: "បានចូលក្នុងសហគមន៍ដំណើរ",
+  authUnavailable: "ការចូលគណនីមិនទាន់បានកំណត់សម្រាប់គំរូមូលដ្ឋាននេះទេ។", savedTrips: "ដំណើរដែលបានរក្សាទុក",
+  noSaved: "មិនទាន់មានដំណើរដែលបានរក្សាទុកទេ។", save: "រក្សាទុក", unsave: "បានរក្សាទុក",
+  discussTrip: "មើលដំណើរ", requestJoin: "ស្នើសុំចូលរួម", member: "សមាជិក Qipi", guestHost: "អ្នកធ្វើដំណើរ",
+  routeFilterEmpty: "មិនមានផ្លូវត្រូវនឹងការស្វែងរកទេ។", signInToContinue: "ចូលគណនីដើម្បីបន្ត។",
+  routesKicker: "ស្វែងរកតំបន់", routesTitle: "ផ្លូវដំណើរគួរឱ្យស្វែងរក", tripsKicker: "ទៅជាមួយគ្នា",
+  tripsTitle: "ដំណើរពីសហគមន៍", howTitle: "ដំណើរល្អចាប់ផ្ដើមជាមួយគ្នា។",
+  hostDeviceNote: "គណនីរបស់អ្នកអាចគ្រប់គ្រងដំណើរនេះពីឧបករណ៍ផ្សេងបាន។",
+  myIntro: "ដំណើរដែលអ្នករៀបចំ និងសំណើរបស់អ្នកបង្ហាញនៅទីនេះក្រោយចូលគណនី។"
+});
+
+const auth = new QipiAuth();
 const state = {
   lang: localStorage.getItem("qipi:language") || "km",
-  routes: [], trips: [], filter: "",
+  routes: [], trips: [], filter: "", search: "", me: null,
+  savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys")
 };
 const $ = (selector) => document.querySelector(selector);
 const t = (key) => copy[state.lang][key] || copy.en[key] || key;
 const label = (value) => value?.[state.lang] || value?.en || "";
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+const initials = (value) => String(value || "Q").trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
+const displayName = () => auth.user?.user_metadata?.display_name?.trim() || auth.user?.email?.split("@")[0] || "";
 const dateToday = () => {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Phnom_Penh", year: "numeric", month: "2-digit", day: "2-digit"
@@ -144,9 +209,10 @@ function toast(message) {
   toastTimeout = setTimeout(() => element.classList.remove("show"), 3500);
 }
 async function api(path, { method = "GET", data, headers = {} } = {}) {
+  const accessToken = await auth.accessToken();
   const response = await fetch(path, {
     method,
-    headers: { ...(data ? { "content-type": "application/json" } : {}), ...headers },
+    headers: { ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
     body: data ? JSON.stringify(data) : undefined
   });
   const result = await response.json();
@@ -176,32 +242,65 @@ function setLink(param, id) {
 function applyLanguage() {
   document.documentElement.lang = state.lang;
   document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = t(node.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
   $("#language-button").textContent = state.lang === "km" ? "EN" : "ខ្មែរ";
-  renderRoutes(); renderFilter(); renderTrips();
+  renderAccount(); renderRoutes(); renderFilter(); renderTrips();
+}
+
+function renderAccount() {
+  const name = displayName();
+  $("#account-label").textContent = name || t("signIn");
+  $("#account-avatar").textContent = name ? initials(name) : "☺";
+  $("#rail-avatar").textContent = name ? initials(name) : "Q";
+  $("#composer-avatar").textContent = name ? initials(name) : "Q";
+  $("#rail-user-name").textContent = name || t("guestTraveler");
+  $("#rail-user-caption").textContent = name ? t("memberSince") : t("joinCommunity");
+}
+
+async function refreshMe() {
+  if (!auth.user) { state.me = null; return; }
+  try { state.me = await api("/api/me"); }
+  catch { state.me = null; }
 }
 
 function renderRoutes() {
-  $("#route-grid").innerHTML = state.routes.map((route, index) => `
+  const visible = state.routes.filter((route) => !state.search || `${label(route.title)} ${label(route.summary)}`.toLowerCase().includes(state.search));
+  $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => `
     <article class="route-card ${esc(route.accent)}">
       <button type="button" class="route-card-button" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
         <div class="route-card-visual"><span class="route-card-tag">${esc(label(route.label))}</span><span class="road"></span><span class="pin"></span><span class="pin end"></span><span class="visual-number">0${index + 1}</span></div>
         <div class="route-card-body"><div class="route-meta">${esc(label(route.duration))} · ${esc(label(route.mode))}</div><h3>${esc(label(route.title))}</h3><p>${esc(label(route.summary))}</p><div class="route-card-footer"><span>${esc(t("viewRoute"))}</span><span class="round-arrow" aria-hidden="true">↗</span></div></div>
       </button>
-    </article>`).join("");
+    </article>`).join("") : `<p class="small-copy">${esc(t("routeFilterEmpty"))}</p>`;
 }
 function renderFilter() {
   $("#trip-route-filter").innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
   $("#trip-route-filter").value = state.filter;
 }
 function renderTrips() {
-  const filtered = state.trips.filter((trip) => !state.filter || trip.routeId === state.filter);
+  const filtered = state.trips.filter((trip) => (!state.filter || trip.routeId === state.filter) &&
+    (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)));
   if (!filtered.length) {
     $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon" aria-hidden="true">↗</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ↗</button></div>`;
     return;
   }
   $("#trip-list").innerHTML = filtered.map((trip) => {
     const date = dateParts(trip.date);
-    return `<article class="trip-card"><div class="date-block"><strong>${date.day}</strong><span>${date.month}</span></div><div class="trip-card-content"><div class="trip-card-top"><span>${esc(label(routeFor(trip.routeId)?.title))}</span><span>${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span></div><h3>${esc(trip.title)}</h3><p>${esc(t("hostedBy"))} ${esc(trip.hostName)} · ${esc(trip.departureTime)} · ${esc(trip.meetingArea)}</p><div class="trip-card-bottom"><span>${trip.availableSpots} ${esc(t("spots"))}</span><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("viewTrip"))} ↗</button></div></div></article>`;
+    const saved = state.savedTrips.includes(trip.id);
+    const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
+    const request = state.me?.requests.find((item) => item.trip.id === trip.id);
+    const isRequested = Boolean(request || state.requestKeys[trip.id]);
+    const ctaAction = isHost || isRequested ? "open-trip" : "join-trip";
+    const ctaLabel = isHost ? t("manageRequests") : isRequested
+      ? t(request?.status === "approved" ? "requestApproved" : request?.status === "declined" ? "requestDeclined" : "requestPending")
+      : t("requestJoin");
+    const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
+    return `<article class="trip-card">
+      <div class="post-head"><span class="post-avatar">${esc(initials(trip.hostName))}</span><div class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">✳</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></div><button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${saved ? "♥" : "♡"}</button></div>
+      <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
+      <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
+      <div class="post-actions"><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">↗ ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">◎ ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} →</button></div>
+    </article>`;
   }).join("");
 }
 async function loadTrips() {
@@ -233,15 +332,15 @@ async function openTrip(id, deepLink = true) {
     const { trip } = await api(`/api/trips/${encodeURIComponent(id)}`);
     if (deepLink) setLink("trip", id);
     event("trip_viewed", id);
-    let requestStatus = "";
+    let requestStatus = state.me?.requests.find((request) => request.trip.id === id)?.status || "";
     const ownRequest = state.requestKeys[id];
-    if (ownRequest) {
+    if (!requestStatus && ownRequest) {
       try {
         const result = await api(`/api/trips/${encodeURIComponent(id)}/requests/${encodeURIComponent(ownRequest.id)}`, { headers: { "x-request-token": ownRequest.token } });
         requestStatus = result.request.status;
       } catch { requestStatus = ""; }
     }
-    const isHost = Boolean(state.hostKeys[id]);
+    const isHost = Boolean(state.hostKeys[id] || state.me?.trips.some((owned) => owned.id === id));
     const statusText = requestStatus ? t(requestStatus === "approved" ? "requestApproved" : requestStatus === "declined" ? "requestDeclined" : "requestPending") : "";
     const primary = isHost
       ? `<button class="button button-primary" type="button" data-action="manage-trip" data-id="${esc(id)}">${esc(t("manageRequests"))} ↗</button>`
@@ -268,7 +367,7 @@ function openCreate(selectedRoute = "") {
   showDialog("create-dialog", `
     <p class="dialog-kicker">QIPI / ${esc(t("postTrip"))}</p><h2 id="create-dialog-title">${esc(t("createTitle"))}</h2><p class="dialog-intro">${esc(t("createIntro"))}</p>
     <form id="create-form"><div class="form-grid">
-      <div class="field"><label for="host-name">${esc(t("yourName"))}</label><input id="host-name" name="hostName" maxlength="40" minlength="2" required value="${esc(localStorage.getItem("qipi:nickname") || "")}" /></div>
+      <div class="field"><label for="host-name">${esc(t("yourName"))}</label><input id="host-name" name="hostName" maxlength="40" minlength="2" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div>
       <div class="field"><label for="trip-title">${esc(t("tripTitle"))}</label><input id="trip-title" name="title" maxlength="80" minlength="5" required /></div>
       <div class="field span-2"><label for="trip-route">${esc(t("route"))}</label><select id="trip-route" name="routeId" required><option value="">—</option>${state.routes.map((route) => `<option value="${esc(route.id)}" ${route.id === selectedRoute ? "selected" : ""}>${esc(label(route.title))}</option>`).join("")}</select></div>
       <div class="field"><label for="trip-date">${esc(t("travelDate"))}</label><input id="trip-date" name="date" type="date" min="${dateToday()}" required /></div>
@@ -281,7 +380,7 @@ function openCreate(selectedRoute = "") {
     </div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ↗</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
 }
 function openJoin(id) {
-  showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ↗</button></form>`);
+  showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ↗</button></form>`);
 }
 async function manageTrip(id) {
   try {
@@ -294,9 +393,12 @@ async function manageTrip(id) {
 
 async function openMyTrips() {
   try {
+    if (auth.enabled && !auth.user) { openAuth("signin"); return; }
+    if (auth.user) await refreshMe();
     const { trips } = await api("/api/trips?includeClosed=true");
-    const hosted = trips.filter((trip) => state.hostKeys[trip.id]);
-    const requests = await Promise.all(Object.entries(state.requestKeys).map(async ([tripId, request]) => {
+    const hosted = [...(state.me?.trips || []), ...trips.filter((trip) => state.hostKeys[trip.id])]
+      .filter((trip, index, all) => all.findIndex((item) => item.id === trip.id) === index);
+    const legacyRequests = await Promise.all(Object.entries(state.requestKeys).map(async ([tripId, request]) => {
       try {
         const [tripResult, requestResult] = await Promise.all([
           api(`/api/trips/${encodeURIComponent(tripId)}`),
@@ -305,14 +407,24 @@ async function openMyTrips() {
         return { trip: tripResult.trip, status: requestResult.request.status };
       } catch { return null; }
     }));
+    const requests = [...(state.me?.requests || []).map(({ trip, status }) => ({ trip, status })), ...legacyRequests.filter(Boolean)]
+      .filter((item, index, all) => all.findIndex((entry) => entry.trip.id === item.trip.id) === index);
     showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("myTrips"))}</p><h2 id="my-dialog-title">${esc(t("myTitle"))}</h2><p class="dialog-intro">${esc(t("myIntro"))}</p>
       <div class="dialog-section"><h3>${esc(t("hosting"))}</h3><div class="my-list">${hosted.length ? hosted.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(t(trip.status))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noHosted"))}</p>`}</div></div>
-      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.filter(Boolean).length ? requests.filter(Boolean).map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
+      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
+  } catch (error) { toast(error.message || t("failed")); }
+}
+
+async function openSavedTrips() {
+  try {
+    const { trips } = await api("/api/trips?includeClosed=true");
+    const saved = trips.filter((trip) => state.savedTrips.includes(trip.id));
+    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("saved"))}</p><h2 id="my-dialog-title">${esc(t("savedTrips"))}</h2><div class="my-list">${saved.length ? saved.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(label(routeFor(trip.routeId)?.title))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noSaved"))}</p>`}</div>`);
   } catch (error) { toast(error.message || t("failed")); }
 }
 
 function openUpdate(id) {
-  showDialog("update-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("addRouteNote"))}</p><h2 id="update-dialog-title">${esc(t("updateTitle"))}</h2><p class="dialog-intro">${esc(t("updateIntro"))}</p><form id="update-form" data-route-id="${esc(id)}"><div class="form-grid"><div class="field"><label for="update-name">${esc(t("yourName"))}</label><input id="update-name" name="nickname" minlength="2" maxlength="40" required value="${esc(localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="update-date">${esc(t("visitDate"))}</label><input id="update-date" type="date" name="visitedOn" max="${dateToday()}" required /></div><div class="field span-2"><label for="update-condition">${esc(t("condition"))}</label><select id="update-condition" name="condition"><option value="good">${esc(t("good"))}</option><option value="mixed">${esc(t("mixedCondition"))}</option><option value="caution">${esc(t("caution"))}</option></select></div><div class="field span-2"><label for="update-note">${esc(t("routeUpdateNote"))}</label><textarea id="update-note" name="note" minlength="10" maxlength="500" required></textarea></div></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("submitUpdate"))} ↗</button></form>`);
+  showDialog("update-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("addRouteNote"))}</p><h2 id="update-dialog-title">${esc(t("updateTitle"))}</h2><p class="dialog-intro">${esc(t("updateIntro"))}</p><form id="update-form" data-route-id="${esc(id)}"><div class="form-grid"><div class="field"><label for="update-name">${esc(t("yourName"))}</label><input id="update-name" name="nickname" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="update-date">${esc(t("visitDate"))}</label><input id="update-date" type="date" name="visitedOn" max="${dateToday()}" required /></div><div class="field span-2"><label for="update-condition">${esc(t("condition"))}</label><select id="update-condition" name="condition"><option value="good">${esc(t("good"))}</option><option value="mixed">${esc(t("mixedCondition"))}</option><option value="caution">${esc(t("caution"))}</option></select></div><div class="field span-2"><label for="update-note">${esc(t("routeUpdateNote"))}</label><textarea id="update-note" name="note" minlength="10" maxlength="500" required></textarea></div></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("submitUpdate"))} ↗</button></form>`);
 }
 function openReport(type, id) {
   showDialog("report-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("reportTitle"))}</p><h2 id="report-dialog-title">${esc(t("reportTitle"))}</h2><p class="dialog-intro">${esc(t("reportIntro"))}</p><form id="report-form" data-target-type="${esc(type)}" data-target-id="${esc(id)}"><div class="field"><label for="report-reason">${esc(t("reason"))}</label><select id="report-reason" name="reason"><option value="inaccurate">${esc(t("inaccurate"))}</option><option value="unsafe">${esc(t("unsafe"))}</option><option value="spam">${esc(t("spam"))}</option><option value="other">${esc(t("other"))}</option></select></div><div class="field"><label for="report-details">${esc(t("details"))}</label><textarea id="report-details" name="details" maxlength="500"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendReport"))} ↗</button></form>`);
@@ -324,18 +436,64 @@ async function shareTrip(id) {
   catch { window.prompt(t("shareTrip"), url.toString()); }
 }
 
+let pendingAction = null;
+function requireSignIn(action) {
+  if (!auth.enabled || auth.user) { action(); return; }
+  pendingAction = action;
+  openAuth("signin");
+}
+
+function openAuth(mode = "signin") {
+  if (!auth.enabled) {
+    showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profile"))}</h2><p class="dialog-intro">${esc(t("authUnavailable"))}</p>`);
+    return;
+  }
+  if (mode === "profile" && auth.user) {
+    const name = displayName();
+    showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profileTitle"))}</h2><div class="profile-summary"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div><div class="dialog-actions"><button class="button button-primary" type="button" data-action="my-trips">${esc(t("myTrips"))}</button><button class="button button-ghost" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div>`);
+    return;
+  }
+  const signup = mode === "signup";
+  const recover = mode === "recover";
+  const reset = mode === "reset";
+  const title = signup ? t("signUp") : recover || reset ? t("resetPassword") : t("signIn");
+  const form = reset
+    ? `<form id="auth-form" data-mode="reset"><div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="new-password" required /></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("resetPassword"))}</button></form>`
+    : `<form id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : `<div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${signup ? "new-password" : "current-password"}" required /></div>`}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(recover ? t("sendReset") : title)} ↗</button></form>`;
+  showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("member"))}</p><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro">${esc(t("authIntro"))}</p>${form}<p class="small-copy">${esc(t("authPrivacy"))}</p>${!reset ? `<div class="auth-switch">${esc(signup ? t("haveAccount") : t("needAccount"))}<button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}${!signup && !recover && !reset ? `<button class="auth-subtle" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}`);
+}
+
+async function authSuccess() {
+  await refreshMe();
+  renderAccount();
+  renderTrips();
+  closeDialogs();
+  const action = pendingAction;
+  pendingAction = null;
+  if (action) action();
+}
+
 document.addEventListener("click", async (eventTarget) => {
   const button = eventTarget.target.closest("[data-action]");
   if (!button) return;
-  const { action, id, type, request, decision } = button.dataset;
+  const { action, id, type, request, decision, mode } = button.dataset;
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
   if (action === "open-trip") openTrip(id);
-  if (action === "create-trip") openCreate(id || state.filter);
-  if (action === "join-trip") openJoin(id);
+  if (action === "create-trip") requireSignIn(() => openCreate(id || state.filter));
+  if (action === "join-trip") requireSignIn(() => openJoin(id));
   if (action === "my-trips") openMyTrips();
+  if (action === "saved-trips") openSavedTrips();
+  if (action === "account") { pendingAction = null; openAuth(auth.user ? "profile" : "signin"); }
+  if (action === "auth-mode") openAuth(mode);
+  if (action === "sign-out") { await auth.signOut(); state.me = null; renderAccount(); renderTrips(); closeDialogs(); }
+  if (action === "toggle-save") {
+    state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
+    saveLocal("qipi:saved-trips", state.savedTrips);
+    renderTrips();
+  }
   if (action === "manage-trip") manageTrip(id);
-  if (action === "open-update") openUpdate(id);
+  if (action === "open-update") requireSignIn(() => openUpdate(id));
   if (action === "open-report") openReport(type, id);
   if (action === "share-trip") shareTrip(id);
   if (action === "show-route-trips") {
@@ -353,13 +511,38 @@ document.addEventListener("click", async (eventTarget) => {
     if (!window.confirm(t("confirmClose"))) return;
     try {
       await api(`/api/trips/${encodeURIComponent(id)}/close`, { method: "POST", data: {}, headers: { "x-host-token": state.hostKeys[id] || "" } });
-      toast(t("tripClosed")); await loadTrips(); await openTrip(id);
+      toast(t("tripClosed")); await refreshMe(); await loadTrips(); await openTrip(id);
     } catch (error) { toast(error.message || t("failed")); }
   }
 });
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "auth-form") {
+    eventTarget.preventDefault();
+    const submit = form.querySelector("button[type=submit]");
+    submit.disabled = true;
+    const values = Object.fromEntries(new FormData(form));
+    try {
+      if (form.dataset.mode === "signup") {
+        const signedIn = await auth.signUp(values);
+        if (signedIn) await authSuccess();
+        else form.insertAdjacentHTML("beforeend", `<p class="auth-status">${esc(t("checkEmail"))}</p>`);
+      } else if (form.dataset.mode === "signin") {
+        await auth.signIn(values);
+        await authSuccess();
+      } else if (form.dataset.mode === "recover") {
+        await auth.recover(values.email);
+        form.insertAdjacentHTML("beforeend", `<p class="auth-status">${esc(t("resetSent"))}</p>`);
+      } else if (form.dataset.mode === "reset") {
+        await auth.updatePassword(values.password);
+        toast(t("passwordUpdated"));
+        await authSuccess();
+      }
+    } catch (error) { setError(form, error.message || t("failed")); }
+    finally { submit.disabled = false; }
+    return;
+  }
   if (!["create-form", "join-form", "update-form", "report-form"].includes(form.id)) return;
   eventTarget.preventDefault();
   const submit = form.querySelector("button[type=submit]");
@@ -368,18 +551,16 @@ document.addEventListener("submit", async (eventTarget) => {
   try {
     if (form.id === "create-form") {
       const { trip, ownerToken } = await api("/api/trips", { method: "POST", data: values });
-      state.hostKeys[trip.id] = ownerToken;
-      saveLocal("qipi:host-keys", state.hostKeys);
+      if (ownerToken) { state.hostKeys[trip.id] = ownerToken; saveLocal("qipi:host-keys", state.hostKeys); }
       localStorage.setItem("qipi:nickname", values.hostName);
-      toast(t("saveSuccess")); await loadTrips(); await openTrip(trip.id);
+      toast(t("saveSuccess")); await refreshMe(); await loadTrips(); await openTrip(trip.id);
     }
     if (form.id === "join-form") {
       const id = form.dataset.tripId;
       const { request, requestToken } = await api(`/api/trips/${encodeURIComponent(id)}/requests`, { method: "POST", data: values });
-      state.requestKeys[id] = { id: request.id, token: requestToken };
-      saveLocal("qipi:request-keys", state.requestKeys);
+      if (requestToken) { state.requestKeys[id] = { id: request.id, token: requestToken }; saveLocal("qipi:request-keys", state.requestKeys); }
       localStorage.setItem("qipi:nickname", values.travelerName);
-      toast(t("requestSuccess")); await openTrip(id);
+      toast(t("requestSuccess")); await refreshMe(); renderTrips(); await openTrip(id);
     }
     if (form.id === "update-form") {
       await api(`/api/routes/${encodeURIComponent(form.dataset.routeId)}/updates`, { method: "POST", data: values });
@@ -395,6 +576,10 @@ document.addEventListener("submit", async (eventTarget) => {
 });
 
 $("#trip-route-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
+$("#feed-search").addEventListener("input", (eventTarget) => {
+  state.search = eventTarget.target.value.trim().toLowerCase();
+  renderRoutes(); renderTrips();
+});
 $("#language-button").addEventListener("click", () => {
   state.lang = state.lang === "km" ? "en" : "km";
   localStorage.setItem("qipi:language", state.lang);
@@ -406,6 +591,10 @@ document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener(
 
 async function initialize() {
   try {
+    await auth.initialize();
+    if (auth.user) await refreshMe();
+  } catch (error) { toast(error.message || t("failed")); }
+  try {
     const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
     state.routes = routeResult.routes;
     state.trips = tripResult.trips;
@@ -413,6 +602,7 @@ async function initialize() {
     const query = new URLSearchParams(location.search);
     if (query.has("route")) await openRoute(query.get("route"), false);
     else if (query.has("trip")) await openTrip(query.get("trip"), false);
+    if (auth.recovery) openAuth("reset");
   } catch (error) { toast(error.message || t("failed")); }
 }
 initialize();

@@ -6,12 +6,14 @@ import { join } from "node:path";
 import { once } from "node:events";
 import { createQipiHandler, createQipiServer } from "../server.mjs";
 import { JsonStore, SupabaseStore } from "../src/store.mjs";
+import { SupabaseAuthVerifier } from "../src/auth.mjs";
 
-async function fixture() {
+async function fixture(options = {}) {
   const directory = await mkdtemp(join(tmpdir(), "qipi-test-"));
   const { server, ready } = createQipiServer({
     store: new JsonStore(join(directory, "store.json")),
-    adminToken: "test-admin-secret"
+    adminToken: "test-admin-secret",
+    ...options
   });
   await ready;
   server.listen(0, "127.0.0.1");
@@ -32,6 +34,61 @@ async function fixture() {
   }
   return { base, request, close };
 }
+
+test("Supabase Auth protects posting and ties trip controls to accounts", async () => {
+  const users = {
+    "host-token": { id: "user-host", email: "host@example.test", displayName: "Host" },
+    "traveler-token": { id: "user-traveler", email: "traveler@example.test", displayName: "Traveler" }
+  };
+  const app = await fixture({ authVerifier: { verify: async (token) => users[token] || null } });
+  const host = { authorization: "Bearer host-token" };
+  const traveler = { authorization: "Bearer traveler-token" };
+  const date = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  const tripInput = {
+    routeId: "kampot-kep", title: "Account-based weekend trip", date,
+    departureTime: "07:30", transport: "motorbike", seats: 2,
+    meetingArea: "Kampot town", costStyle: "own", hostName: "Host"
+  };
+  try {
+    assert.equal((await app.request("/api/trips", "POST", tripInput)).status, 401);
+    assert.equal((await app.request("/api/trips", "POST", tripInput, { authorization: "Bearer invalid" })).status, 401);
+    const created = await app.request("/api/trips", "POST", tripInput, host);
+    assert.equal(created.status, 201);
+    assert.equal(created.body.ownerToken, undefined);
+    assert.equal(created.body.trip.hostVerified, true);
+    const id = created.body.trip.id;
+
+    assert.equal((await app.request(`/api/trips/${id}/requests`, "POST", { travelerName: "Guest" })).status, 401);
+    assert.equal((await app.request(`/api/trips/${id}/close`, "POST", {}, traveler)).status, 403);
+    assert.equal((await app.request(`/api/trips/${id}/requests`, "POST", { travelerName: "Host" }, host)).status, 409);
+    const joined = await app.request(`/api/trips/${id}/requests`, "POST", { travelerName: "Traveler" }, traveler);
+    assert.equal(joined.status, 201);
+    assert.equal(joined.body.requestToken, undefined);
+    assert.equal((await app.request(`/api/trips/${id}/requests`, "POST", { travelerName: "Traveler" }, traveler)).status, 409);
+    const requestId = joined.body.request.id;
+    assert.equal((await app.request(`/api/trips/${id}/requests/${requestId}`, "GET", undefined, host)).status, 403);
+    assert.equal((await app.request(`/api/trips/${id}/requests/${requestId}`, "GET", undefined, traveler)).status, 200);
+    const me = await app.request("/api/me", "GET", undefined, traveler);
+    assert.equal(me.body.requests[0].trip.id, id);
+    assert.equal((await app.request(`/api/trips/${id}/requests/${requestId}/decision`, "POST", { decision: "approved" }, host)).status, 200);
+    assert.equal((await app.request(`/api/trips/${id}/close`, "POST", {}, host)).status, 200);
+  } finally { await app.close(); }
+});
+
+test("access tokens are checked against Supabase Auth, not trusted from the browser", async () => {
+  const token = "test-access-token-with-enough-characters";
+  const verifier = new SupabaseAuthVerifier({
+    url: "https://example.supabase.co", key: "public-key",
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "https://example.supabase.co/auth/v1/user");
+      assert.equal(options.headers.apikey, "public-key");
+      assert.equal(options.headers.authorization, `Bearer ${token}`);
+      return Response.json({ id: "user-id", email: "rider@example.test", user_metadata: { display_name: "  Rider  " } });
+    }
+  });
+  assert.deepEqual(await verifier.verify(token), { id: "user-id", email: "rider@example.test", displayName: "Rider" });
+  assert.equal(await verifier.verify("short"), null);
+});
 
 test("routes and trip join flow persist, authorize, and enforce capacity", async () => {
   const app = await fixture();

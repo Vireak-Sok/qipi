@@ -4,7 +4,7 @@ import { SupabaseStore } from "../src/store.mjs";
 let app;
 
 export default async function handler(req, res) {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY) {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY || !process.env.SUPABASE_PUBLISHABLE_KEY) {
     res.writeHead(503, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
     return res.end(JSON.stringify({ error: "Qipi database is not configured" }));
   }

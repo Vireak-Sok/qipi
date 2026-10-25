@@ -3,118 +3,48 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#183d38" />
-    <meta name="description" content="Qipi makes the two days of your weekend count. Plan Cambodia road trips and find people heading your way." />
+    <meta name="theme-color" content="#f5f7f2" />
+    <meta name="description" content="Qipi is a Cambodia travel community for sharing routes, weekend plans and stories from the road." />
     <title>Qipi — Make the weekend a story</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/app.js"></script>
   </head>
-  <body>
+  <body class="social-app">
     <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="shell header-inner">
-        <a class="brand" href="/" aria-label="Qipi home">
-          <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
-          <span class="brand-word">qi<span>pi</span></span>
-        </a>
-        <nav class="main-nav" aria-label="Main navigation">
-          <a href="#routes" data-i18n="navRoutes">Routes</a>
-          <a href="#trips" data-i18n="navTrips">Upcoming trips</a>
-          <a href="#how" data-i18n="navHow">How it works</a>
-        </nav>
-        <div class="header-actions">
-          <button class="lang-button" id="language-button" type="button" aria-label="Switch language">EN</button>
-          <button class="text-button my-trips-button" type="button" data-action="my-trips" data-i18n="myTrips">My trips</button>
-          <button class="button button-dark header-post" type="button" data-action="create-trip"><span data-i18n="postTrip">Post a trip</span><span aria-hidden="true">↗</span></button>
-        </div>
+    <header class="social-topbar">
+      <div class="topbar-inner shell">
+        <a class="brand" href="/" aria-label="Qipi home"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="brand-word">qi<span>pi</span></span></a>
+        <label class="top-search"><span aria-hidden="true">⌕</span><input id="feed-search" type="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search routes and trips" aria-label="Search routes and trips" /></label>
+        <nav class="top-links" aria-label="Main navigation"><a href="#feed" data-i18n="home">Home</a><a href="#routes" data-i18n="navRoutes">Routes</a><a href="#trips" data-i18n="navTrips">Trips</a></nav>
+        <div class="top-actions"><button class="lang-button" id="language-button" type="button" aria-label="Switch language">EN</button><button class="account-button" id="account-button" type="button" data-action="account"><span class="account-avatar" id="account-avatar">☺</span><span id="account-label" data-i18n="signIn">Sign in</span></button><button class="button button-dark top-post" type="button" data-action="create-trip"><span aria-hidden="true">＋</span><span data-i18n="postTrip">Post a trip</span></button></div>
       </div>
     </header>
 
-    <main id="main">
-      <section class="hero shell" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <div class="eyebrow"><span class="eyebrow-dot"></span><span data-i18n="heroEyebrow">Seven days. Two made for going.</span></div>
-          <h1 id="hero-title"><span data-i18n="heroTitleA">Make the weekend</span><br /><em data-i18n="heroTitleB">a story.</em></h1>
-          <p class="hero-intro" data-i18n="heroIntro">Practical routes for Cambodia. Real trips with people going your way. Start with Kampot, Kep and Bokor.</p>
-          <div class="hero-cta">
-            <a class="button button-primary" href="#routes"><span data-i18n="exploreRoutes">Explore routes</span><span aria-hidden="true">↗</span></a>
-            <a class="button button-ghost" href="#trips"><span data-i18n="findTrip">Find a trip</span><span aria-hidden="true">→</span></a>
-          </div>
-          <div class="hero-footnote"><span class="stacked-dots" aria-hidden="true"><i></i><i></i><i></i></span><span data-i18n="heroFootnote">Qi is 7 in Chinese. Pi is 2 in Khmer. Your weekend starts here.</span></div>
-        </div>
-        <div class="hero-art" aria-label="Illustrated route from Kampot to Kep and Bokor">
-          <div class="art-topline"><span data-i18n="mapPilot">PILOT AREA · SOUTH COAST</span><span>10.6° N / 104.2° E</span></div>
-          <svg class="route-art" viewBox="0 0 560 430" role="img" aria-label="An illustrated road winding between Kampot, Kep and Bokor">
-            <defs>
-              <pattern id="art-grid" width="34" height="34" patternUnits="userSpaceOnUse"><path d="M 34 0 L 0 0 0 34" fill="none" stroke="#d4ddc9" stroke-width="1" /></pattern>
-              <linearGradient id="art-sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cce2d9"/><stop offset="1" stop-color="#b9d9d5"/></linearGradient>
-            </defs>
-            <rect width="560" height="430" fill="#ecf1e5" />
-            <rect width="560" height="430" fill="url(#art-grid)" opacity=".62" />
-            <path d="M-20 345 C80 305 168 328 245 362 C351 410 438 390 580 330 L580 450 L-20 450Z" fill="url(#art-sea)" />
-            <path d="M-20 355 C80 315 168 338 245 372 C351 420 438 400 580 340" fill="none" stroke="#8dbab0" stroke-width="2" stroke-dasharray="7 8" />
-            <path d="M52 88 C117 80 131 104 159 143 C188 187 191 176 229 195 C278 221 310 190 344 237 C375 280 414 289 485 291" fill="none" stroke="#b8cab2" stroke-width="24" stroke-linecap="round" />
-            <path d="M52 88 C117 80 131 104 159 143 C188 187 191 176 229 195 C278 221 310 190 344 237 C375 280 414 289 485 291" fill="none" stroke="#fdfcf4" stroke-width="9" stroke-linecap="round" />
-            <path d="M52 88 C117 80 131 104 159 143 C188 187 191 176 229 195 C278 221 310 190 344 237 C375 280 414 289 485 291" fill="none" stroke="#df7453" stroke-width="3" stroke-dasharray="2 13" stroke-linecap="round" />
-            <path d="M187 182 C193 114 267 68 350 74 C392 77 416 102 433 124" fill="none" stroke="#fffaf0" stroke-width="9" stroke-linecap="round" />
-            <path d="M187 182 C193 114 267 68 350 74 C392 77 416 102 433 124" fill="none" stroke="#df7453" stroke-width="3" stroke-dasharray="2 13" stroke-linecap="round" />
-            <circle cx="187" cy="182" r="15" fill="#183d38" stroke="#fff" stroke-width="5" />
-            <circle cx="433" cy="124" r="15" fill="#183d38" stroke="#fff" stroke-width="5" />
-            <circle cx="485" cy="291" r="15" fill="#183d38" stroke="#fff" stroke-width="5" />
-            <circle cx="91" cy="236" r="55" fill="#dce6cf" opacity=".58" />
-            <circle cx="468" cy="60" r="70" fill="#dce6cf" opacity=".58" />
-          </svg>
-          <div class="map-label label-kampot"><strong>KAMPOT</strong><small>START HERE</small></div>
-          <div class="map-label label-bokor"><strong>BOKOR</strong><small>MOUNTAIN</small></div>
-          <div class="map-label label-kep"><strong>KEP</strong><small>THE COAST</small></div>
-          <div class="art-bottomline"><span class="art-compass">✳</span><span data-i18n="mapCaption">Three ways to make the journey yours.</span><span>01 / 03</span></div>
-        </div>
-      </section>
+    <div class="app-layout shell" id="main">
+      <aside class="left-rail" aria-label="Community navigation">
+        <div class="rail-profile"><span class="profile-avatar" id="rail-avatar">Q</span><div><strong id="rail-user-name" data-i18n="guestTraveler">Guest traveler</strong><small id="rail-user-caption" data-i18n="joinCommunity">Join the Qipi community</small></div></div>
+        <nav class="rail-nav"><a class="active" href="#feed"><span aria-hidden="true">⌂</span><span data-i18n="home">Home</span></a><a href="#routes"><span aria-hidden="true">◇</span><span data-i18n="navRoutes">Routes</span></a><a href="#trips"><span aria-hidden="true">◎</span><span data-i18n="navTrips">Trips</span></a><button type="button" data-action="my-trips"><span aria-hidden="true">▤</span><span data-i18n="myTrips">My trips</span></button><button type="button" data-action="saved-trips"><span aria-hidden="true">♡</span><span data-i18n="saved">Saved</span></button></nav>
+        <div class="rail-note"><span class="rail-note-icon">✳</span><strong data-i18n="railNoteTitle">Your next story starts nearby.</strong><p data-i18n="railNoteBody">Plan a route, meet a crew, and make two days count.</p><button type="button" data-action="create-trip" data-i18n="postTrip">Post a trip</button></div>
+        <small class="rail-signature">QI = 7 · PI = 2 · WEEKEND = GO</small>
+      </aside>
 
-      <section class="value-band" aria-label="What this pilot offers">
-        <div class="shell value-inner">
-          <span><b>01</b><span data-i18n="valueRoutes">Routes with context</span></span>
-          <span><b>02</b><span data-i18n="valuePeople">People heading there</span></span>
-          <span><b>03</b><span data-i18n="valueUpdates">Fresh notes from the road</span></span>
-        </div>
-      </section>
+      <main class="feed-column">
+        <section class="feed-welcome" id="feed" aria-labelledby="feed-title"><div><p class="feed-eyebrow"><span class="live-dot"></span><span data-i18n="feedEyebrow">CAMBODIA TRAVEL COMMUNITY</span></p><h1 id="feed-title" data-i18n="feedTitle">Make the weekend a story.</h1><p data-i18n="feedIntro">Find your next route and the people heading your way.</p><a href="#trips" data-i18n="exploreFeed">Explore the feed ↗</a></div><div class="welcome-art" aria-hidden="true"><span class="sun"></span><span class="hill hill-back"></span><span class="hill hill-front"></span><span class="road-line"></span><span class="welcome-tag">KAMPOT · KEP · BOKOR</span></div></section>
 
-      <section class="section shell" id="routes" aria-labelledby="routes-title">
-        <div class="section-heading">
-          <div><p class="section-kicker" data-i18n="routesKicker">CHOOSE YOUR DIRECTION</p><h2 id="routes-title" data-i18n="routesTitle">Start with a route.</h2><p class="section-subtitle" data-i18n="routesSubtitle">These guides are a starting point. Check live conditions before you leave.</p></div>
-          <span class="section-index">01 / ROUTES</span>
-        </div>
-        <div id="route-grid" class="route-grid" aria-live="polite"></div>
-      </section>
+        <section class="composer-card" aria-label="Create a trip"><span class="composer-avatar" id="composer-avatar">Q</span><button class="composer-prompt" type="button" data-action="create-trip" data-i18n="composerPrompt">Where are you going this weekend?</button><button class="composer-create" type="button" data-action="create-trip"><span aria-hidden="true">＋</span><span data-i18n="create">Create</span></button></section>
 
-      <section class="trips-section" id="trips" aria-labelledby="trips-title">
-        <div class="shell">
-          <div class="section-heading light-heading">
-            <div><p class="section-kicker" data-i18n="tripsKicker">GO WITH GOOD COMPANY</p><h2 id="trips-title" data-i18n="tripsTitle">Find your next crew.</h2><p class="section-subtitle" data-i18n="tripsSubtitle">See who's going, or invite others on your own route.</p></div>
-            <span class="section-index">02 / TRIPS</span>
-          </div>
-          <div class="trip-toolbar">
-            <label class="filter-label" for="trip-route-filter"><span data-i18n="filterByRoute">Filter by route</span><select id="trip-route-filter"><option value="" data-i18n="allRoutes">All routes</option></select></label>
-            <button class="button button-outline-light" type="button" data-action="create-trip"><span data-i18n="postYourTrip">Post your trip</span><span aria-hidden="true">↗</span></button>
-          </div>
-          <div id="trip-list" class="trip-list" aria-live="polite"></div>
-        </div>
-      </section>
+        <section class="stories-section" id="routes" aria-labelledby="routes-title"><div class="feed-section-head"><div><p class="section-kicker" data-i18n="routesKicker">EXPLORE THE AREA</p><h2 id="routes-title" data-i18n="routesTitle">Routes to explore</h2></div><span class="head-decoration" aria-hidden="true">↗</span></div><div id="route-grid" class="route-grid" aria-live="polite"></div></section>
 
-      <section class="section shell how-section" id="how" aria-labelledby="how-title">
-        <div class="section-heading"><div><p class="section-kicker" data-i18n="howKicker">SIMPLE BY DESIGN</p><h2 id="how-title" data-i18n="howTitle">From idea to open road.</h2></div><span class="section-index">03 / HOW IT WORKS</span></div>
-        <div class="steps-grid">
-          <article class="step-card"><span>01</span><div class="step-icon" aria-hidden="true">⌁</div><h3 data-i18n="stepOneTitle">Choose a route</h3><p data-i18n="stepOneBody">Get the shape of the trip, useful stops and what to check before leaving.</p></article>
-          <article class="step-card"><span>02</span><div class="step-icon" aria-hidden="true">◎</div><h3 data-i18n="stepTwoTitle">Find your people</h3><p data-i18n="stepTwoBody">Post a trip or ask to join one that fits your dates and travel style.</p></article>
-          <article class="step-card"><span>03</span><div class="step-icon" aria-hidden="true">↗</div><h3 data-i18n="stepThreeTitle">Bring back a note</h3><p data-i18n="stepThreeBody">Share a recent route update so the next group can plan better.</p></article>
-        </div>
-      </section>
+        <section class="feed-trips" id="trips" aria-labelledby="trips-title"><div class="feed-section-head"><div><p class="section-kicker" data-i18n="tripsKicker">ON THE ROAD TOGETHER</p><h2 id="trips-title" data-i18n="tripsTitle">The travel feed</h2></div><button class="text-link" type="button" data-action="create-trip" data-i18n="postYourTrip">Post your trip</button></div><div class="feed-filter"><span data-i18n="feedFilterLabel">See plans from the community</span><label for="trip-route-filter"><span class="visually-hidden" data-i18n="filterByRoute">Filter by route</span><select id="trip-route-filter"><option value="" data-i18n="allRoutes">All routes</option></select></label></div><div id="trip-list" class="trip-list" aria-live="polite"></div></section>
 
-      <section class="closing-cta shell"><div><p class="section-kicker" data-i18n="closingKicker">THE FIRST MILES START HERE</p><h2 data-i18n="closingTitle">Have a date in mind?</h2><p data-i18n="closingBody">Put your trip on the board and see who wants to come along.</p></div><button class="button button-primary" type="button" data-action="create-trip"><span data-i18n="postTrip">Post a trip</span><span aria-hidden="true">↗</span></button></section>
-    </main>
+        <section class="feed-end" id="how"><span>✳</span><h2 data-i18n="howTitle">Good trips begin together.</h2><p data-i18n="howBody">Browse the route, say hello to the host, then bring a useful note back for the next traveler.</p><button class="button button-primary" type="button" data-action="create-trip" data-i18n="postTrip">Post a trip</button></section>
+      </main>
 
-    <footer class="site-footer"><div class="shell footer-inner"><span class="brand-word">qi<span>pi</span></span><p data-i18n="footerNote">Seven days in a week. Two days to make the weekend count.</p><a href="/admin.html" data-i18n="moderation">Moderation</a></div></footer>
+      <aside class="right-rail" aria-label="Community information"><div class="right-card weekend-card"><p class="section-kicker" data-i18n="weekendLabel">THE QIPI IDEA</p><strong>7 <span data-i18n="days">days</span><br />2 <span data-i18n="daysToGo">days to go.</span></strong><p data-i18n="weekendStory">Qi is seven in Chinese. Pi is two in Khmer. The weekend is yours to explore.</p></div><div class="right-card trend-card"><div class="side-card-head"><h2 data-i18n="popularNow">Popular now</h2><span aria-hidden="true">↗</span></div><a href="#routes"><span>01</span><div><strong>Kampot</strong><small data-i18n="kampotTag">Riverside starts</small></div><b>→</b></a><a href="#routes"><span>02</span><div><strong>Kep</strong><small data-i18n="kepTag">Coastal detours</small></div><b>→</b></a><a href="#routes"><span>03</span><div><strong>Bokor</strong><small data-i18n="bokorTag">Mountain air</small></div><b>→</b></a></div><div class="right-card safety-card"><span aria-hidden="true">✳</span><h2 data-i18n="travelThoughtfully">Travel thoughtfully</h2><p data-i18n="safetyCopy">Keep meeting areas general, check live conditions and agree on plans before you go.</p></div><div class="side-footer"><a href="/admin.html" data-i18n="moderation">Moderation</a><span>© Qipi 2026</span></div></aside>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation"><a href="#feed"><span>⌂</span><small data-i18n="home">Home</small></a><a href="#routes"><span>◇</span><small data-i18n="navRoutes">Routes</small></a><button type="button" data-action="create-trip" class="mobile-create" aria-label="Post a trip">＋</button><a href="#trips"><span>◎</span><small data-i18n="navTrips">Trips</small></a><button type="button" data-action="account"><span>☺</span><small data-i18n="profile">Profile</small></button></nav>
 
     <dialog class="panel-dialog" id="route-dialog" aria-labelledby="route-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="route-dialog-content"></div></div></dialog>
     <dialog class="panel-dialog" id="trip-dialog" aria-labelledby="trip-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="trip-dialog-content"></div></div></dialog>
@@ -123,6 +53,7 @@
     <dialog class="panel-dialog" id="my-dialog" aria-labelledby="my-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="my-dialog-content"></div></div></dialog>
     <dialog class="panel-dialog" id="update-dialog" aria-labelledby="update-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="update-dialog-content"></div></div></dialog>
     <dialog class="panel-dialog" id="report-dialog" aria-labelledby="report-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="report-dialog-content"></div></div></dialog>
+    <dialog class="panel-dialog auth-dialog" id="auth-dialog" aria-labelledby="auth-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close">×</button><div id="auth-dialog-content"></div></div></dialog>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </body>
 </html>

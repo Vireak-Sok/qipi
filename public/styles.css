@@ -729,3 +729,32 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
   .entry-page{max-width:420px;padding:27px 22px;border-radius:21px}
   .entry-page-brand{margin-bottom:25px}
 }
+
+.post-profile-link,.post-profile-static{display:flex;align-items:center;gap:9px;min-width:0;padding:0;border:0;background:transparent;color:inherit;text-align:left}
+.post-profile-link{cursor:pointer}
+.post-profile-link:hover .post-byline strong{text-decoration:underline;text-underline-offset:3px}
+.post-profile-link:focus-visible{outline:2px solid var(--brand-strong);outline-offset:3px;border-radius:10px}
+.post-actions .post-like{color:var(--text-secondary)}
+.post-actions .post-like .heroicon{fill:none;transition:fill .16s,transform .16s}
+.post-actions .post-like.liked{color:#d94f63}
+.post-actions .post-like.liked .heroicon{fill:currentColor}
+.post-actions .post-like:hover .heroicon{transform:scale(1.12)}
+.like-count{font-variant-numeric:tabular-nums}
+.profile-page{display:grid;gap:16px;align-content:start}
+.profile-card.settings-card{padding:22px}
+.profile-overview{display:flex;align-items:center;gap:14px;min-width:0}
+.profile-avatar-large{width:64px;height:64px;font-size:20px}
+.profile-identity{min-width:0;flex:1}
+.profile-identity h2{margin:3px 0 4px;font-size:21px;letter-spacing:-.04em;color:var(--text-primary)}
+.profile-identity small{font-size:11px;color:var(--text-secondary)}
+.profile-demo-label{font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-strong)}
+.profile-post-count{flex:none;color:var(--text-secondary);font-size:11px}
+.profile-bio{margin:17px 0 12px;color:var(--text-secondary);font-size:12px;line-height:1.5}
+.profile-interests{display:flex;gap:7px;flex-wrap:wrap}
+.profile-interests span{padding:6px 9px;border-radius:99px;background:var(--surface-selected);color:var(--brand-strong);font-size:10px;font-weight:700}
+.profile-posts{display:grid;gap:10px}
+.profile-posts>.feed-section-head{margin:0}
+.profile-posts>.feed-section-head h2{margin:0;font-size:15px}
+.profile-posts .empty-trips{padding:24px;background:var(--surface-card);border:1px dashed var(--border-soft);border-radius:14px;color:var(--text-secondary)}
+.profile-posts .empty-trips h3{margin:0;font-size:13px}
+@media(max-width:700px){.profile-card.settings-card{padding:18px 16px}.profile-avatar-large{width:56px;height:56px}.profile-identity h2{font-size:18px}.profile-overview{gap:11px}}

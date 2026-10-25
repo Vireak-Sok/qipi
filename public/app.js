@@ -1,13 +1,23 @@
 import { QipiAuth } from "./auth.js?v=signup-profile-20261025";
-import { copy } from "./i18n.js?v=clean-code-20261025";
+import { copy } from "./i18n.js?v=profiles-likes-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
+
+function getLikeActorId() {
+  let id = localStorage.getItem("qipi:like-actor");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("qipi:like-actor", id);
+  }
+  return id;
+}
 
 // Application state and shared helpers.
 const auth = new QipiAuth();
 const state = {
   lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
   routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
+  likeActorId: getLikeActorId(), profile: null, profileReturnView: "feed",
   feedRequestActive: false,
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   theme: window.qipiTheme?.getPreference() || "system",
@@ -70,7 +80,7 @@ async function api(path, { method = "GET", data, headers = {} } = {}) {
   const accessToken = await auth.accessToken();
   const response = await fetch(path, {
     method,
-    headers: { ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
+    headers: { "x-qipi-actor": state.likeActorId, ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
     body: data ? JSON.stringify(data) : undefined
   });
   const result = await response.json();
@@ -253,6 +263,7 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => { node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel)); });
   if ($("#settings-language")) $("#settings-language").value = state.lang;
   renderAccount(); renderRoutes(); renderFilter(); renderTrips();
+  if (state.view === "profile") renderProfile();
   if (state.view === "settings") renderSettings();
   syncEnhancedSelects();
 }
@@ -364,11 +375,13 @@ function setPageView(view) {
   const isSearchResults = view === "search-results";
   const isSaved = view === "saved";
   const isSignup = view === "signup";
+  const isProfile = view === "profile";
   main.classList.toggle("entry-open", isEntry);
   main.classList.toggle("settings-open", isSettings || isSaved);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
+  main.classList.toggle("profile-open", isProfile);
   $("#search-filter-panel").hidden = !isSearchResults;
   $("#saved-view").hidden = !isSaved;
   document.querySelectorAll('.rail-nav a[href="#feed"], .mobile-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
@@ -376,17 +389,19 @@ function setPageView(view) {
   document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
   document.querySelectorAll('.rail-nav [data-action="saved-trips"], .mobile-nav [data-action="saved-trips"]').forEach((item) => item.classList.toggle("active", isSaved));
-  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#saved-view):not(#signup-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isSaved || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#saved-view):not(#profile-view):not(#signup-view)").forEach((section) => {
+    section.hidden = isEntry || isSettings || isSaved || isProfile || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
   $("#saved-view").hidden = !isSaved;
+  $("#profile-view").hidden = !isProfile;
   $("#signup-view").hidden = !isSignup;
   if (isSettings) renderSettings();
   if (isSaved) renderTrips();
+  if (isProfile) renderProfile();
   renderRoutes();
-  const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
+  const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isProfile ? "#profile" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -465,26 +480,7 @@ function renderTrips() {
     tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon(isSaved ? "bookmark" : state.view === "search-results" ? "search" : "calendar")}</div><h3>${esc(isSaved ? t("savedEmptyTitle") : state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(isSaved ? t("savedEmptyBody") : state.view === "search-results" ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : isSaved ? `<button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button>`}</div>`;
     return;
   }
-  tripList.innerHTML = filtered.map((trip) => {
-    const date = dateParts(trip.date);
-    const route = routeFor(trip.routeId);
-    const saved = state.savedTrips.includes(trip.id);
-    const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
-    const request = state.me?.requests.find((item) => item.trip.id === trip.id);
-    const isRequested = Boolean(request || state.requestKeys[trip.id]);
-    const ctaAction = isHost || isRequested ? "open-trip" : "join-trip";
-    const ctaLabel = isHost ? t("manageRequests") : isRequested
-      ? t(request?.status === "approved" ? "requestApproved" : request?.status === "declined" ? "requestDeclined" : "requestPending")
-      : t("requestJoin");
-    const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
-    return `<article class="trip-card">
-      <div class="post-head"><span class="post-avatar">${esc(initials(trip.hostName))}</span><div class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></div><button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
-      <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
-      <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
-      <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
-      <div class="post-actions"><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
-    </article>`;
-  }).join("");
+  tripList.innerHTML = filtered.map(tripCardMarkup).join("");
 }
 async function loadTrips() {
   const result = await api("/api/trips");
@@ -576,6 +572,49 @@ async function openTrip(id, deepLink = true) {
       <div id="requests-panel"></div>
       <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">${esc(t("reportTrip"))}</button></div></div>`);
   } catch (error) { toast(error.message || t("failed")); }
+}
+
+async function openProfile(id, deepLink = true) {
+  try {
+    const { profile, trips } = await api(`/api/profiles/${encodeURIComponent(id)}`);
+    if (state.view !== "profile") state.profileReturnView = state.view === "entry" ? "feed" : state.view;
+    state.profile = { ...profile, trips };
+    if (deepLink) setLink("profile", id);
+    setPageView("profile");
+  } catch (error) { toast(error.message || t("failed")); }
+}
+
+function tripCardMarkup(trip) {
+  const date = dateParts(trip.date);
+  const route = routeFor(trip.routeId);
+  const saved = state.savedTrips.includes(trip.id);
+  const liked = Boolean(trip.likedByViewer);
+  const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
+  const request = state.me?.requests.find((item) => item.trip.id === trip.id);
+  const isRequested = Boolean(request || state.requestKeys[trip.id]);
+  const ctaAction = isHost || isRequested || trip.availableSpots === 0 ? "open-trip" : "join-trip";
+  const ctaLabel = isHost ? t("manageRequests") : isRequested
+    ? t(request?.status === "approved" ? "requestApproved" : request?.status === "declined" ? "requestDeclined" : "requestPending")
+    : trip.availableSpots === 0 ? t("fullTrip") : t("requestJoin");
+  const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
+  const author = `<span class="post-avatar">${esc(initials(trip.hostName))}</span><span class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></span>`;
+  return `<article class="trip-card">
+    <div class="post-head">${trip.profileId ? `<button class="post-profile-link" type="button" data-action="open-profile" data-id="${esc(trip.profileId)}">${author}</button>` : `<span class="post-profile-static">${author}</span>`}<button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
+    <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
+    <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
+    <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
+    <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
+  </article>`;
+}
+
+function renderProfile() {
+  const content = $("#profile-content");
+  if (!content || !state.profile) return;
+  const { profile, trips } = { profile: state.profile, trips: state.profile.trips || [] };
+  content.innerHTML = `<section class="profile-card settings-card">
+    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${esc(initials(profile.displayName))}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t("demoProfile"))}</span><h2>${esc(profile.displayName)}</h2><small>${esc(profile.homeBase || "")} · ${esc((profile.languages || []).join(" · "))}</small></div><strong class="profile-post-count">${Number(profile.postCount) || 0} ${esc(t("posts"))}</strong></div>
+    <p class="profile-bio">${esc(profile.bio || "")}</p><div class="profile-interests">${(profile.interests || []).map((interest) => `<span>${esc(interest)}</span>`).join("")}</div>
+  </section><section class="profile-posts"><div class="feed-section-head"><h2>${esc(t("profilePosts"))}</h2></div><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>`;
 }
 
 function openCreate(selectedRoute = "") {
@@ -736,6 +775,7 @@ async function openStartupDeepLink() {
   const query = new URLSearchParams(location.search);
   if (query.has("route")) await openRoute(query.get("route"), false);
   else if (query.has("trip")) await openTrip(query.get("trip"), false);
+  else if (query.has("profile")) await openProfile(query.get("profile"), false);
 }
 
 async function authSuccess() {
@@ -799,6 +839,14 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
+  if (action === "open-profile") { await openProfile(id); return; }
+  if (action === "profile-back") {
+    const returnView = state.profileReturnView || "feed";
+    state.profile = null;
+    setLink();
+    setPageView(returnView);
+    return;
+  }
   if (action === "open-trip") openTrip(id);
   if (action === "create-trip") requireSignIn(() => openCreate(id || state.filter));
   if (action === "join-trip") requireSignIn(() => openJoin(id));
@@ -814,6 +862,21 @@ document.addEventListener("click", async (eventTarget) => {
     state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
     saveLocal("qipi:saved-trips", state.savedTrips);
     renderTrips();
+  }
+  if (action === "toggle-like") {
+    button.disabled = true;
+    try {
+      const liked = button.getAttribute("aria-pressed") !== "true";
+      const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
+      const updateTrip = (trip) => trip.id === id ? { ...trip, ...result } : trip;
+      state.trips = state.trips.map(updateTrip);
+      state.savedTripRecords = state.savedTripRecords.map(updateTrip);
+      if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map(updateTrip) };
+      renderTrips();
+      if (state.view === "profile") renderProfile();
+    } catch (error) { toast(error.message || t("failed")); }
+    finally { button.disabled = false; }
+    return;
   }
   if (action === "manage-trip") manageTrip(id);
   if (action === "open-update") requireSignIn(() => openUpdate(id));

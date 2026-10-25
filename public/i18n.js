@@ -281,4 +281,17 @@ const signupCopy = {
 };
 Object.keys(signupCopy).forEach((lang) => Object.assign(copy[lang], signupCopy[lang]));
 
+Object.assign(copy.en, {
+  profilePageTitle: "Profile", profilePosts: "Posts", demoProfile: "Demo traveler",
+  posts: "posts", like: "Like", unlike: "Unlike", noPosts: "No posts yet."
+});
+Object.assign(copy.km, {
+  profilePageTitle: "ប្រវត្តិរូប", profilePosts: "ការបង្ហោះ", demoProfile: "អ្នកធ្វើដំណើរសាកល្បង",
+  posts: "ការបង្ហោះ", like: "ចូលចិត្ត", unlike: "មិនចូលចិត្ត", noPosts: "មិនទាន់មានការបង្ហោះទេ។"
+});
+Object.assign(copy.zh, {
+  profilePageTitle: "个人资料", profilePosts: "动态", demoProfile: "示范旅行者",
+  posts: "条动态", like: "点赞", unlike: "取消点赞", noPosts: "暂无动态。"
+});
+
 export { copy };

@@ -571,3 +571,6 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"] .social-app .button-primary{color:var(--action-text)}
 .right-fab-icon,.filter-all-icon{background:var(--surface-selected);color:var(--brand-strong)}
 .mobile-create{background:var(--action-bg);color:var(--action-text)}
+:root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{color:var(--brand-strong)}
+:root[data-theme="dark"] .icon-button{color:var(--brand-strong)}
+:root[data-theme="dark"] .settings-symbol,:root[data-theme="dark"] .entry-mark{color:var(--brand-strong)}

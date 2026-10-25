@@ -240,3 +240,30 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close),
   .right-rail>.right-card{height:auto;min-height:0;flex:0 0 auto}
 }
 :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--orange);outline-offset:-3px}
+
+/* Shared interaction sizing and focus treatment */
+:root{--control-height:44px;--focus-ring:var(--orange)}
+.button{min-height:var(--control-height)}
+.rail-nav a,.rail-nav button{min-height:var(--control-height)}
+.composer-prompt{display:flex;align-items:center;min-height:var(--control-height)}
+.composer-create{height:var(--control-height);min-height:var(--control-height)}
+.feed-filter{min-height:var(--control-height)}
+.account-button,.notification-button{height:40px;min-height:40px}
+.account-avatar{width:32px;height:32px}
+.notification-button{width:40px}
+.right-fab{height:52px;min-height:52px}
+.right-fab-icon{width:34px;height:34px}
+.right-fab-icon .heroicon{width:20px;height:20px}
+button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):not(.notification-close):not(.settings-back):not(.account-button):not(.icon-button):not(.auth-switch button):not(.auth-subtle):not(.plain-button):not(.settings-signout):not(.mobile-nav button){min-height:var(--control-height)}
+:is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--focus-ring);outline-offset:-2px}
+.feed-filter:focus-within{border-color:var(--focus-ring);box-shadow:none;outline:2px solid var(--focus-ring);outline-offset:-2px}
+.feed-filter select:focus-visible{outline:none}
+.brand:focus-visible{border-radius:12px}
+@media(max-width:700px){
+  .notification-button,.account-button{height:38px;min-height:38px}
+  .notification-button{width:38px}
+  .account-button{padding:3px}
+  .mobile-nav a,.mobile-nav button{min-height:42px}
+  .mobile-nav .mobile-create{height:42px;min-height:42px}
+  .composer-create{height:36px;min-height:36px}
+}

@@ -574,3 +574,9 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{color:var(--brand-strong)}
 :root[data-theme="dark"] .icon-button{color:var(--brand-strong)}
 :root[data-theme="dark"] .settings-symbol,:root[data-theme="dark"] .entry-mark{color:var(--brand-strong)}
+
+:root[data-entry-pending="true"] .social-topbar,
+:root[data-entry-pending="true"] .app-layout,
+:root[data-entry-pending="true"] .mobile-nav {
+  visibility: hidden;
+}

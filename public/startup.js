@@ -36,11 +36,12 @@
   let recovering = false;
   try {
     recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
-    if (!recovering && !sessionStorage.getItem("qipi:entry-choice")) {
+    if (location.hash === "#signup") root.dataset.signupPending = "true";
+    if (!recovering && location.hash !== "#signup" && !sessionStorage.getItem("qipi:entry-choice")) {
       root.dataset.entryPending = "true";
     }
   } catch {
-    if (!recovering) root.dataset.entryPending = "true";
+    if (!recovering && location.hash !== "#signup") root.dataset.entryPending = "true";
   }
 
   const reveal = () => { delete root.dataset.themeBooting; };

@@ -641,6 +641,55 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .settings-card .signup-interests{margin:0 0 18px}
 .settings-card .signup-interest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:700px){.signup-open.app-layout{padding-top:20px;padding-bottom:34px}.signup-heading{gap:13px;margin-bottom:20px}.signup-heading h1{font-size:28px}.signup-heading p{font-size:12px}.signup-back{width:37px;height:37px}.signup-layout{display:block}.signup-form{min-height:0;padding:21px 17px}.signup-aside{display:none}.signup-field-grid{display:block}.signup-progress{gap:8px;margin-bottom:23px}.signup-progress-step{font-size:10px}.signup-progress-step b{width:23px;height:23px}.signup-interest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.signup-submit-row .button{min-width:0;flex:1}.signup-open ~ .mobile-nav{display:none!important}}
+
+/* Focus account screens on the form and remove repeated marketing copy. */
+.auth-dialog .dialog-frame{max-width:430px;padding:30px;background:var(--surface-card);border:1px solid var(--border-soft);border-radius:20px;color:var(--text-primary);box-shadow:var(--surface-shadow)}
+.auth-dialog .dialog-close{top:18px;right:18px;width:34px;height:34px;background:var(--surface-field);border-color:var(--border-control);color:var(--text-secondary)}
+.auth-brand-lockup{margin:0 44px 25px 0;padding:0}
+.auth-brand-lockup .brand-mark{background:#164f58}
+.auth-brand-lockup .brand-mark span:first-child{background:var(--accent-warm)}
+.auth-brand-name{color:var(--text-primary)}
+.auth-brand-tag,.auth-privacy{display:none}
+.auth-dialog .dialog-frame h2{margin:0 0 20px;font-size:30px;letter-spacing:-.045em;color:var(--text-primary)}
+.auth-dialog .auth-intro{margin:-10px 0 20px;color:var(--text-secondary);font-size:13px}
+.auth-form{gap:15px}
+.auth-form .field label{color:var(--text-secondary);font-size:12px;font-weight:700}
+.auth-form .field input{height:48px;border:1px solid var(--border-control);border-radius:var(--control-radius);background:var(--surface-field);color:var(--text-primary)}
+.auth-form .field input:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px;box-shadow:0 0 0 4px var(--focus-ring-soft)}
+.auth-forgot{color:var(--brand-strong);font-size:11px}
+.auth-form .form-submit{min-height:48px;margin-top:3px;border-radius:var(--control-radius)}
+.auth-switch{justify-content:center;margin-top:21px;padding:17px 0 0;border-top:1px solid var(--border-soft);color:var(--text-secondary);font-size:12px}
+.auth-switch button{color:var(--brand-strong);font-size:12px}
+.signup-open.app-layout{max-width:960px;padding-top:34px}
+.signup-open .feed-column{max-width:none}
+.signup-layout{display:block;max-width:660px;margin:0 auto}
+.signup-form{min-height:0;padding:28px 32px;border-radius:18px}
+.signup-heading{align-items:center;gap:15px;max-width:660px;margin:0 auto 22px}
+.signup-heading h1{margin:0;font-size:32px}
+.signup-heading p,.signup-eyebrow{display:none}
+.signup-progress{margin-bottom:23px;padding-bottom:18px}
+.signup-step h2,.signup-step-copy{display:none}
+.signup-form .field{margin-bottom:14px}
+.signup-form .field input{min-height:44px}
+.signup-privacy{display:none}
+.signup-interests{margin:4px 0 15px}
+.signup-interests p{margin:2px 0 10px}
+.signup-form .field textarea{min-height:76px}
+.signup-submit-row{margin-top:14px}
+.signup-switch{margin-top:17px}
+.signup-open .signup-back{width:38px;height:38px}
+@media(max-width:700px){
+  .auth-dialog .dialog-frame{padding:25px 21px 22px}
+  .auth-brand-lockup{margin-bottom:21px}
+  .auth-dialog .dialog-frame h2{font-size:27px;margin-bottom:18px}
+  .auth-dialog .auth-intro{margin-top:-8px;font-size:12px}
+  .signup-open.app-layout{padding-top:21px}
+  .signup-layout,.signup-heading{max-width:520px}
+  .signup-heading{margin-bottom:16px}
+  .signup-heading h1{font-size:27px}
+  .signup-form{padding:21px 18px}
+  .signup-progress{margin-bottom:19px;padding-bottom:15px}
+}
 .right-fab-icon,.filter-all-icon{background:var(--surface-selected);color:var(--brand-strong)}
 .mobile-create{background:var(--action-bg);color:var(--action-text)}
 :root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{color:var(--brand-strong)}

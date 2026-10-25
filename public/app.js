@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 22369)
+Total output lines: 909
+
 import { QipiAuth } from "./auth.js";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
@@ -122,6 +125,13 @@ Object.assign(copy.en, {
   travelThoughtfully: "Travel thoughtfully", safetyCopy: "Keep meeting areas general, check live conditions and agree on plans before you go.",
   howBody: "Browse the route, say hello to the host, then bring a useful note back for the next traveler.",
   authIntro: "Join Cambodia's weekend travel community. Browse freely; sign in to post and connect.",
+  authBrand: "CAMBODIA TRAVEL COMMUNITY", authHeadingSignIn: "Welcome back",
+  authHeadingSignUp: "Create your account", authHeadingRecover: "Recover your account",
+  authHeadingReset: "Choose a new password",
+  authDescriptionSignIn: "Sign in to share plans, find travel companions and keep your trips together.",
+  authDescriptionSignUp: "Create an account to post a trip, meet travelers and save your plans.",
+  authDescriptionRecover: "Enter your email and we’ll send you a secure password reset link.",
+  authDescriptionReset: "Set a new password to get back to your Qipi account.",
   authPrivacy: "Your email is used for sign-in and is never shown on trip posts.",
   email: "Email", password: "Password", displayName: "Name or nickname", haveAccount: "Already have an account?",
   needAccount: "New to Qipi?", forgotPassword: "Forgot password?", resetPassword: "Reset password",
@@ -151,6 +161,13 @@ Object.assign(copy.km, {
   travelThoughtfully: "ធ្វើដំណើរដោយប្រុងប្រយ័ត្ន", safetyCopy: "ជ្រើសតំបន់ជួបទូទៅ ពិនិត្យស្ថានភាពថ្មីៗ និងឯកភាពផែនការមុនចេញដំណើរ។",
   howBody: "មើលផ្លូវ សួរសុខទុក្ខអ្នករៀបចំ ហើយចែករំលែកព័ត៌មានមានប្រយោជន៍ទៅអ្នកបន្ទាប់។",
   authIntro: "ចូលរួមសហគមន៍ធ្វើដំណើរចុងសប្ដាហ៍។ អាចមើលដោយសេរី ហើយចូលគណនីដើម្បីបង្ហោះ។",
+  authBrand: "សហគមន៍ធ្វើដំណើរកម្ពុជា", authHeadingSignIn: "សូមស្វាគមន៍មកវិញ",
+  authHeadingSignUp: "បង្កើតគណនីរបស់អ្នក", authHeadingRecover: "សង្គ្រោះគណនីរបស់អ្នក",
+  authHeadingReset: "កំណត់ពាក្យសម្ងាត់ថ្មី",
+  authDescriptionSignIn: "ចូលគណនីដើម្បីចែករំលែកគម្រោង រកមិត្តរួមដំណើរ និងគ្រប់គ្រងដំណើររបស់អ្នក។",
+  authDescriptionSignUp: "បង្កើតគណនីដើម្បីបង្ហោះដំណើរ ជួបអ្នកធ្វើដំណើរ និងរក្សាទុកគម្រោង។",
+  authDescriptionRecover: "បញ្ចូលអ៊ីមែលរបស់អ្នក ដើម្បីទទួលតំណកំណត់ពាក្យសម្ងាត់ឡើងវិញ។",
+  authDescriptionReset: "កំណត់ពាក្យសម្ងាត់ថ្មី ដើម្បីចូលប្រើគណនី Qipi របស់អ្នក។",
   authPrivacy: "អ៊ីមែលរបស់អ្នកប្រើសម្រាប់ចូលគណនី ហើយមិនបង្ហាញនៅលើដំណើរឡើយ។",
   email: "អ៊ីមែល", password: "ពាក្យសម្ងាត់", displayName: "ឈ្មោះ ឬ ឈ្មោះហៅក្រៅ", haveAccount: "មានគណនីហើយ?",
   needAccount: "ថ្មីនៅ Qipi?", forgotPassword: "ភ្លេចពាក្យសម្ងាត់?", resetPassword: "កំណត់ពាក្យសម្ងាត់ថ្មី",
@@ -227,6 +244,13 @@ Object.assign(copy.zh, {
   member: "Qipi 会员", guestHost: "旅行者", tripBoardEmptyTitle: "还没有行程。",
   tripBoardEmptyBody: "有周末计划吗？分享日期和路线，邀请其他人同行。",
   signInToContinue: "请登录后继续。", authIntro: "加入柬埔寨周末旅行社区，浏览路线并结识同行者。",
+  authBrand: "柬埔寨旅行社区", authHeadingSignIn: "欢迎回来",
+  authHeadingSignUp: "创建你的账号", authHeadingRecover: "找回账号",
+  authHeadingReset: "设置新密码",
+  authDescriptionSignIn: "登录后分享计划、结识同行者并管理你的行程。",
+  authDescriptionSignUp: "创建账号，发布行程、认识旅行者并收藏计划。",
+  authDescriptionRecover: "输入邮箱，我们会发送安全的密码重置链接。",
+  authDescriptionReset: "设置新密码以重新使用你的 Qipi 账号。",
   authPrivacy: "邮箱仅用于登录，不会显示在行程帖子中。", email: "邮箱", password: "密码",
   displayName: "姓名或昵称", haveAccount: "已有账号？", needAccount: "第一次使用 Qipi？",
   forgotPassword: "忘记密码？", resetPassword: "重置密码", sendReset: "发送重置链接",
@@ -292,35 +316,7 @@ function applyTheme() {
   document.documentElement.dataset.themePreference = state.theme;
 }
 applyTheme();
-window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (state.theme === "system") applyTheme(); });
-function routeFor(id) { return state.routes.find((route) => route.id === id); }
-function dateLabel(date) {
-  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
-  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
-}
-function dateParts(date) {
-  const parsed = new Date(`${date}T00:00:00Z`);
-  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
-  return {
-    day: new Intl.DateTimeFormat(locale, { day: "2-digit", timeZone: "UTC" }).format(parsed),
-    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(parsed)
-  };
-}
-function toast(message) {
-  const element = $("#toast");
-  element.textContent = message;
-  element.classList.add("show");
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => element.classList.remove("show"), 3500);
-}
-async function api(path, { method = "GET", data, headers = {} } = {}) {
-  const accessToken = await auth.accessToken();
-  const response = await fetch(path, {
-    method,
-    headers: { ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
-    body: data ? JSON.stringify(data) : undefined
-  });
-  const result = await response.json();
+…369 tokens truncated… result = await response.json();
   if (!response.ok) throw new Error(result.error || t("failed"));
   return result;
 }
@@ -490,7 +486,7 @@ function renderFeedError() {
 async function loadFeedData() {
   if (state.feedRequestActive) return;
   state.feedRequestActive = true;
-  renderFeedLoading();
+  if ($("#route-grid").getAttribute("aria-busy") !== "true") renderFeedLoading();
   try {
     const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
     state.routes = routeResult.routes;
@@ -499,7 +495,9 @@ async function loadFeedData() {
   } catch (error) {
     renderFeedError();
     toast(error.message || t("failed"));
-  } finally { state.feedRequestActive = false; }
+  } finally {
+    state.feedRequestActive = false;
+  }
 }
 
 async function openRoute(id, deepLink = true) {
@@ -649,11 +647,18 @@ function openAuth(mode = "signin") {
   const signup = mode === "signup";
   const recover = mode === "recover";
   const reset = mode === "reset";
-  const title = signup ? t("signUp") : recover || reset ? t("resetPassword") : t("signIn");
+  const title = t(signup ? "authHeadingSignUp" : recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
+  const description = t(signup ? "authDescriptionSignUp" : recover ? "authDescriptionRecover" : reset ? "authDescriptionReset" : "authDescriptionSignIn");
+  const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
+    <div class="field">
+      <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
+      <input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required />
+    </div>`;
+  const submitLabel = signup ? t("signUp") : recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
   const form = reset
-    ? `<form id="auth-form" data-mode="reset"><div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="new-password" required /></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("resetPassword"))}</button></form>`
-    : `<form id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : `<div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${signup ? "new-password" : "current-password"}" required /></div>`}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(recover ? t("sendReset") : title)} ${icon("arrow-up-right")}</button></form>`;
-  showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("member"))}</p><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro">${esc(t("authIntro"))}</p>${form}<p class="small-copy">${esc(t("authPrivacy"))}</p>${!reset ? `<div class="auth-switch">${esc(signup ? t("haveAccount") : t("needAccount"))}<button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}${!signup && !recover && !reset ? `<button class="auth-subtle" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}`);
+    ? `<form class="auth-form" id="auth-form" data-mode="reset">${passwordField(false, "new-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
+    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(!signup, signup ? "new-password" : "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)} ${icon("arrow-up-right")}</button></form>`;
+  showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span><span class="auth-brand-tag">${esc(t("authBrand"))}</span></div><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro auth-intro">${esc(description)}</p>${form}<div class="auth-privacy">${icon("shield-check")}<span>${esc(t("authPrivacy"))}</span></div>${!reset ? `<div class="auth-switch"><span>${esc(signup ? t("haveAccount") : t("needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}`);
 }
 
 async function authSuccess() {

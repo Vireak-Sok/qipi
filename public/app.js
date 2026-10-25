@@ -918,7 +918,7 @@ async function shareTrip(id) {
 }
 
 let pendingAction = null;
-let signupReturnView = "feed";
+let signupReturnTarget = { view: "feed", dialog: null };
 function signupError(message = "") {
   const box = document.querySelector('.signup-step:not([hidden]) .error-message');
   if (box) { box.textContent = message; box.classList.toggle("show", Boolean(message)); }
@@ -945,9 +945,14 @@ function validateSignupAccount() {
   signupError();
   return true;
 }
-function openSignupPage() {
+function openSignupPage(source = null) {
   if (auth.user) { openSettings(); return; }
-  if (state.view !== "signup") signupReturnView = state.view === "search-results" ? "feed" : state.view;
+  if (state.view !== "signup") {
+    signupReturnTarget = {
+      view: state.view === "search-results" ? "feed" : state.view,
+      dialog: source === "entry" || source === "signin" ? source : null
+    };
+  }
   closeDialogs();
   document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-signup-pending");
@@ -965,7 +970,7 @@ function requireSignIn(action) {
 }
 
 function openAuth(mode = "signin") {
-  if (mode === "signup") { openSignupPage(); return; }
+  if (mode === "signup") { openSignupPage("signin"); return; }
   if (!auth.enabled) {
     showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profile"))}</h2><p class="dialog-intro">${esc(t("authUnavailable"))}</p>`);
     return;
@@ -1032,11 +1037,18 @@ document.addEventListener("click", async (eventTarget) => {
     return;
   }
   if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); await openStartupDeepLink(); return; }
-  if (action === "entry-account") { openSignupPage(); return; }
+  if (action === "entry-account") { openSignupPage("entry"); return; }
   if (action === "entry-sign-in") { saveEntryChoice("account"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); openAuth("signin"); return; }
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
   if (action === "signup-previous") { setSignupStep(1); return; }
-  if (action === "signup-exit") { setPageView(signupReturnView); return; }
+  if (action === "signup-exit") {
+    setPageView(signupReturnTarget.view);
+    if (signupReturnTarget.dialog === "entry") {
+      document.documentElement.dataset.entryPending = "true";
+      $("#entry-dialog").showModal();
+    } else if (signupReturnTarget.dialog === "signin") openAuth("signin");
+    return;
+  }
   if (action === "signup-sign-in") { setPageView("feed"); openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }

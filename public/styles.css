@@ -678,6 +678,10 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .signup-submit-row{margin-top:14px}
 .signup-switch{margin-top:17px}
 .signup-open .signup-back{width:38px;height:38px}
+.signup-step[data-signup-step="1"]{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:14px}
+.signup-step[data-signup-step="1"]>.signup-field-grid,.signup-step[data-signup-step="1"]>.error-message{grid-column:1/-1}
+.signup-step[data-signup-step="1"]>.signup-primary{grid-column:1;justify-self:start}
+.signup-step[data-signup-step="1"]>.signup-switch{grid-column:2;justify-self:end;margin:0;text-align:right}
 @media(max-width:700px){
   .auth-dialog .dialog-frame{padding:25px 21px 22px}
   .auth-brand-lockup{margin-bottom:21px}
@@ -689,6 +693,9 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
   .signup-heading h1{font-size:27px}
   .signup-form{padding:21px 18px}
   .signup-progress{margin-bottom:19px;padding-bottom:15px}
+  .signup-step[data-signup-step="1"]{column-gap:8px}
+  .signup-step[data-signup-step="1"]>.signup-primary{min-width:0;padding-inline:12px;gap:7px}
+  .signup-step[data-signup-step="1"]>.signup-switch{font-size:11px}
 }
 .right-fab-icon,.filter-all-icon{background:var(--surface-selected);color:var(--brand-strong)}
 .mobile-create{background:var(--action-bg);color:var(--action-text)}

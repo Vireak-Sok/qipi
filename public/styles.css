@@ -267,3 +267,17 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
   .mobile-nav .mobile-create{height:42px;min-height:42px}
   .composer-create{height:36px;min-height:36px}
 }
+
+/* Give the side columns room while preserving a readable feed width. */
+@media(min-width:961px){
+  .app-layout,.settings-open.app-layout{--left-column:clamp(200px,16vw,240px);--right-column:clamp(230px,19vw,280px);--column-gap:clamp(24px,3vw,44px);grid-template-columns:var(--left-column) minmax(0,1fr) var(--right-column);gap:var(--column-gap)}
+  .left-rail{left:max(24px,calc((100vw - 1480px)/2));width:var(--left-column)}
+  .right-rail,.settings-open .right-rail{right:max(24px,calc((100vw - 1480px)/2));width:var(--right-column)}
+  .right-fab{right:max(24px,calc((100vw - 1480px)/2));width:var(--right-column)}
+}
+
+/* A single inset focus ring stays visible inside clipped cards and fields. */
+:is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid transparent;outline-offset:0;box-shadow:inset 0 0 0 2px var(--focus-ring)}
+.feed-filter:focus-within{border-color:var(--focus-ring);outline:0;box-shadow:inset 0 0 0 2px var(--focus-ring)}
+.feed-filter select:focus-visible{outline:0;box-shadow:none}
+.brand:focus-visible{border-radius:10px;box-shadow:inset 0 0 0 2px var(--focus-ring)}

@@ -681,8 +681,9 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .signup-step[data-signup-step="1"]{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:14px}
 .signup-step[data-signup-step="1"]>.signup-field-grid,.signup-step[data-signup-step="1"]>.error-message,.signup-step[data-signup-step="1"]>.signup-account-divider{grid-column:1/-1}
 .signup-step[data-signup-step="1"]>.signup-account-divider{width:100%;margin:3px 0 5px;border-top:1px solid var(--border-soft)}
-.signup-step[data-signup-step="1"]>.signup-primary{grid-column:2;justify-self:end}
-.signup-step[data-signup-step="1"]>.signup-switch{grid-column:1;justify-self:start;margin:0;text-align:left}
+.signup-step[data-signup-step="1"]>.signup-action-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.signup-action-row .signup-primary{flex:none}
+.signup-action-row .signup-switch{margin:0;text-align:left}
 @media(max-width:700px){
   .auth-dialog .dialog-frame{padding:25px 21px 22px}
   .auth-brand-lockup{margin-bottom:21px}
@@ -695,8 +696,9 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
   .signup-form{padding:21px 18px}
   .signup-progress{margin-bottom:19px;padding-bottom:15px}
   .signup-step[data-signup-step="1"]{column-gap:8px}
-  .signup-step[data-signup-step="1"]>.signup-primary{min-width:0;padding-inline:12px;gap:7px}
-  .signup-step[data-signup-step="1"]>.signup-switch{font-size:11px}
+  .signup-action-row{gap:8px}
+  .signup-action-row .signup-primary{min-width:0;padding-inline:10px;gap:6px;font-size:11px}
+  .signup-action-row .signup-switch{font-size:10px;white-space:nowrap}
 }
 .right-fab-icon,.filter-all-icon{background:var(--surface-selected);color:var(--brand-strong)}
 .mobile-create{background:var(--action-bg);color:var(--action-text)}

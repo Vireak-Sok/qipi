@@ -562,6 +562,10 @@ function renderTrips() {
     (state.view === "search-results" || !state.filter || trip.routeId === state.filter) &&
     (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
     (state.view !== "search-results" || (!state.searchFilters.routeId || trip.routeId === state.searchFilters.routeId) && (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || trip.date >= dateToday())));
+  if (isSaved) {
+    const header = $("#saved-view .settings-header");
+    if (header) header.hidden = filtered.length > 0;
+  }
   tripList.setAttribute("aria-busy", "false");
   if (state.view === "search-results") $("#trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${t("searchResultCount")}`;
   else $("#trips-title").textContent = t("forYou");
@@ -861,13 +865,20 @@ async function openMyTrips() {
 }
 
 async function openSavedTrips() {
+  state.savedTripRecords = [];
   setPageView("saved");
+  const header = $("#saved-view .settings-header");
+  if (header) header.hidden = state.savedTrips.length > 0;
   renderTripListLoading("#saved-trip-list", 2);
   try {
     const { trips } = await api("/api/trips?includeClosed=true");
     state.savedTripRecords = trips.filter((trip) => state.savedTrips.includes(trip.id));
     renderTrips();
-  } catch (error) { renderLoadingError("#saved-trip-list", "retry-saved"); toast(error.message || t("failed")); }
+  } catch (error) {
+    if (header) header.hidden = false;
+    renderLoadingError("#saved-trip-list", "retry-saved");
+    toast(error.message || t("failed"));
+  }
 }
 
 function openUpdate(id) {

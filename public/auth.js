@@ -75,10 +75,15 @@ export class QipiAuth {
     return result;
   }
 
-  async signUp({ email, password, displayName }) {
+  async signUp({ email, password, displayName, homeBase = "", travelStyles = [], bio = "" }) {
     const redirect = encodeURIComponent(`${location.origin}/`);
     const result = await this.request(`/signup?redirect_to=${redirect}`, {
-      method: "POST", body: { email, password, data: { display_name: displayName } }
+      method: "POST", body: { email, password, data: {
+        display_name: displayName,
+        home_base: homeBase,
+        travel_styles: travelStyles,
+        bio
+      } }
     });
     return this.acceptSession(result);
   }
@@ -128,11 +133,17 @@ export class QipiAuth {
     this.recovery = false;
   }
 
-  async updateProfile(displayName) {
+  async updateProfile({ displayName, homeBase = "", travelStyles = [], bio = "" }) {
     const accessToken = await this.accessToken();
     if (!accessToken) throw new Error("Sign in again to update your profile");
     const user = await this.request("/user", {
-      method: "PUT", body: { data: { display_name: displayName } }, accessToken
+      method: "PUT", body: { data: {
+        ...this.user?.user_metadata,
+        display_name: displayName,
+        home_base: homeBase,
+        travel_styles: travelStyles,
+        bio
+      } }, accessToken
     });
     this.save({ ...this.session, user });
     return user;

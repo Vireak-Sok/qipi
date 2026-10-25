@@ -557,3 +557,8 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"] .icon-button{background:var(--surface-field);border-color:var(--border-soft);color:var(--brand-soft)}
 :root[data-theme="dark"] .button-primary,:root[data-theme="dark"] .composer-create,:root[data-theme="dark"] .right-fab{background:var(--brand-soft);color:#1b2c20}
 :root[data-theme="dark"] .empty-trips{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary)}
+.trend-card a{border-color:var(--border-soft)}
+.post-actions{border-color:var(--border-soft)}
+.post-actions button{color:var(--text-secondary)}
+.post-actions button:last-child{background:var(--brand-strong);color:#fff}
+:root[data-theme="dark"] .post-actions button:last-child{background:var(--brand-soft);color:#1b2c20}

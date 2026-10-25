@@ -5,32 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f7f2" />
     <meta name="description" content="Qipi is a Cambodia travel community for sharing routes, weekend plans and stories from the road." />
-    <style>
-      html { min-height: 100%; background: #F1F7F6; color-scheme: light; }
-      html[data-theme="dark"] { background: #10191B; color-scheme: dark; }
-    </style>
     <title>Qipi</title>
-    <script>
-      (() => {
-        try {
-          const preference = localStorage.getItem("qipi:theme") || "system";
-          const dark = preference === "dark" || (preference !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          const root = document.documentElement;
-          root.dataset.theme = dark ? "dark" : "light";
-          root.dataset.themePreference = preference;
-          root.style.colorScheme = dark ? "dark" : "light";
-          root.style.backgroundColor = dark ? "#10191B" : "#F1F7F6";
-          root.style.color = dark ? "#EDF4F3" : "#193238";
-          document.querySelector('meta[name="theme-color"]').content = dark ? "#10191B" : "#F1F7F6";
-          const recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
-          if (!recovering && !sessionStorage.getItem("qipi:entry-choice")) {
-            root.dataset.entryPending = "true";
-          }
-        } catch {
-          document.documentElement.dataset.theme = "light";
-        }
-      })();
-    </script>
+    <script src="/startup.js"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/app.js"></script>

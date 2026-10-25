@@ -468,7 +468,12 @@ function setPageView(view) {
   const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isProfile ? "#profile" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-profile-pending");
-  if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
+  const nextUrl = new URL(location.href);
+  if (!["profile", "entry", "signup"].includes(view)) nextUrl.searchParams.delete("profile");
+  const nextLocation = `${nextUrl.pathname}${nextUrl.search}${targetHash}`;
+  if (`${location.pathname}${location.search}${location.hash}` !== nextLocation) {
+    history.replaceState(history.state, "", nextLocation);
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1353,7 +1358,8 @@ async function initialize() {
   const signupRoute = location.hash === "#signup";
   const startupProfileId = new URLSearchParams(location.search).get("profile");
   const startupQuery = new URLSearchParams(location.search);
-  const hasStartupProfile = Boolean(startupProfileId && !startupQuery.has("route") && !startupQuery.has("trip") && !signupRoute && !auth.recovery);
+  const profileHash = !location.hash || location.hash === "#profile" || location.hash === "#entry";
+  const hasStartupProfile = Boolean(startupProfileId && profileHash && !startupQuery.has("route") && !startupQuery.has("trip") && !signupRoute && !auth.recovery);
   entryReturnView = hasStartupProfile ? "profile" : viewFromHash(location.hash);
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {

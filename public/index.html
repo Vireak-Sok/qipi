@@ -6,6 +6,19 @@
     <meta name="theme-color" content="#f5f7f2" />
     <meta name="description" content="Qipi is a Cambodia travel community for sharing routes, weekend plans and stories from the road." />
     <title>Qipi</title>
+    <script>
+      (() => {
+        try {
+          const preference = localStorage.getItem("qipi:theme") || "system";
+          const dark = preference === "dark" || (preference !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.themePreference = preference;
+          document.querySelector('meta[name="theme-color"]').content = dark ? "#10191B" : "#F1F7F6";
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css" />
     <script type="module" src="/app.js"></script>

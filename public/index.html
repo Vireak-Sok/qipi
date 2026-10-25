@@ -11,8 +11,12 @@
         try {
           const preference = localStorage.getItem("qipi:theme") || "system";
           const dark = preference === "dark" || (preference !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.dataset.theme = dark ? "dark" : "light";
-          document.documentElement.dataset.themePreference = preference;
+          const root = document.documentElement;
+          root.dataset.theme = dark ? "dark" : "light";
+          root.dataset.themePreference = preference;
+          root.style.colorScheme = dark ? "dark" : "light";
+          root.style.backgroundColor = dark ? "#10191B" : "#F1F7F6";
+          root.style.color = dark ? "#EDF4F3" : "#193238";
           document.querySelector('meta[name="theme-color"]').content = dark ? "#10191B" : "#F1F7F6";
         } catch {
           document.documentElement.dataset.theme = "light";

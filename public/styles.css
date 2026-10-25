@@ -679,9 +679,10 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .signup-switch{margin-top:17px}
 .signup-open .signup-back{width:38px;height:38px}
 .signup-step[data-signup-step="1"]{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;column-gap:14px}
-.signup-step[data-signup-step="1"]>.signup-field-grid,.signup-step[data-signup-step="1"]>.error-message{grid-column:1/-1}
-.signup-step[data-signup-step="1"]>.signup-primary{grid-column:1;justify-self:start}
-.signup-step[data-signup-step="1"]>.signup-switch{grid-column:2;justify-self:end;margin:0;text-align:right}
+.signup-step[data-signup-step="1"]>.signup-field-grid,.signup-step[data-signup-step="1"]>.error-message,.signup-step[data-signup-step="1"]>.signup-account-divider{grid-column:1/-1}
+.signup-step[data-signup-step="1"]>.signup-account-divider{width:100%;margin:3px 0 5px;border-top:1px solid var(--border-soft)}
+.signup-step[data-signup-step="1"]>.signup-primary{grid-column:2;justify-self:end}
+.signup-step[data-signup-step="1"]>.signup-switch{grid-column:1;justify-self:start;margin:0;text-align:left}
 @media(max-width:700px){
   .auth-dialog .dialog-frame{padding:25px 21px 22px}
   .auth-brand-lockup{margin-bottom:21px}

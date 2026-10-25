@@ -379,7 +379,7 @@ function renderRoutes() {
   $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => inExplore ? `
     <button type="button" class="explore-route-card ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
       <span class="explore-route-art"><span class="explore-route-index">0${index + 1}</span><span class="explore-route-mark">${icon("map-pin")}</span><span class="explore-route-kind">${esc(label(route.label))}</span></span>
-      <span class="explore-route-copy"><strong>${esc(label(route.title))}</strong><span>${esc(label(route.summary))}</span><small>${icon("clock")} ${esc(label(route.duration))} <span>·</span> ${icon("map-pin")} ${esc(label(route.mode))}</small><b>${esc(t("viewRoute"))} ${icon("arrow-right")}</b></span>
+      <span class="explore-route-copy"><strong>${esc(label(route.title))}</strong><span>${esc(label(route.summary))}</span><small>${icon("clock")} ${esc(label(route.duration))} <span>·</span> ${icon("truck")} ${esc(label(route.mode))}</small><b>${esc(t("viewRoute"))} ${icon("arrow-right")}</b></span>
     </button>` : `
     <button type="button" class="route-story ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
       <span class="story-avatar"><span class="story-art"><span class="story-road"></span><span class="story-count">0${index + 1}</span></span></span>
@@ -394,7 +394,7 @@ function renderTrips() {
   const filtered = state.trips.filter((trip) => (!state.filter || trip.routeId === state.filter) &&
     (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)));
   if (!filtered.length) {
-    $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("arrow-up-right")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
+    $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("calendar")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
     return;
   }
   $("#trip-list").innerHTML = filtered.map((trip) => {
@@ -431,7 +431,7 @@ async function openRoute(id, deepLink = true) {
     event("route_viewed", id);
     showDialog("route-dialog", `
       <p class="dialog-kicker">${esc(t("routeGuide"))} / ${esc(label(route.label))}</p><h2 id="route-dialog-title">${esc(label(route.title))}</h2><p class="dialog-intro">${esc(label(route.summary))}</p>
-      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(label(route.duration))}</span><span class="fact-pill">${icon("map-pin")} ${esc(label(route.mode))}</span><span class="fact-pill">${icon("sparkles")} ${esc(label(route.level))}</span></div>
+      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(label(route.duration))}</span><span class="fact-pill">${icon("truck")} ${esc(label(route.mode))}</span><span class="fact-pill">${icon("sparkles")} ${esc(label(route.level))}</span></div>
       <div class="dialog-section"><h3>${esc(t("routeStops"))}</h3><ol class="stop-list">${route.stops.map((stop) => `<li>${esc(label(stop))}</li>`).join("")}</ol></div>
       <div class="dialog-section"><h3>${esc(t("costChecklist"))}</h3><ul class="stop-list">${route.costChecklist.map((cost) => `<li>${esc(label(cost))}</li>`).join("")}</ul></div>
       <div class="note-box"><strong>${esc(t("routeNote"))}</strong>${esc(label(route.note))}</div>
@@ -468,7 +468,7 @@ async function openTrip(id, deepLink = true) {
             : `<button class="button button-primary" type="button" data-action="join-trip" data-id="${esc(id)}">${esc(t("joinTrip"))} ${icon("arrow-up-right")}</button>`;
     showDialog("trip-dialog", `
       <p class="dialog-kicker">${esc(label(routeFor(trip.routeId)?.title))} / ${esc(dateLabel(trip.date))}</p><h2 id="trip-dialog-title">${esc(trip.title)}</h2><p class="dialog-intro">${esc(t("hostedBy"))} ${esc(trip.hostName)} · ${esc(trip.availableSpots)} ${esc(t("spots"))}</p>
-      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(trip.departureTime)}</span><span class="fact-pill">${icon("map-pin")} ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${icon("users")} ${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div>
+      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(trip.departureTime)}</span><span class="fact-pill">${icon("truck")} ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${icon("users")} ${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div>
       <div class="dialog-section"><h3>${esc(t("meetingArea"))}</h3><p class="dialog-intro">${esc(trip.meetingArea)}</p></div>
       <div class="dialog-section"><h3>${esc(t("aboutTrip"))}</h3><p class="dialog-intro">${esc(trip.notes || "—")}</p></div>
       <div class="note-box">${esc(t("noContact"))}</div>

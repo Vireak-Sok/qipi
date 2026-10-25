@@ -1,0 +1,13 @@
+{
+  "name": "qipi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node server.mjs",
+    "test": "node --test"
+  }
+}

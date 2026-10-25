@@ -274,9 +274,9 @@ Object.assign(copy.zh, {
   notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。",
   feedLoadError: "路线和行程加载失败。请检查网络连接后重试。"
 });
-Object.assign(copy.en, { searchLabel: "Search", recentSearches: "Recent", editSearches: "Edit", doneEditingSearches: "Done", removeRecentSearch: "Remove recent search", clearSearch: "Clear search", searchRecentEmpty: "Searches you make will appear here." });
-Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "ស្វែងរកថ្មីៗ", editSearches: "កែសម្រួល", doneEditingSearches: "រួចរាល់", removeRecentSearch: "លុបការស្វែងរក", clearSearch: "សម្អាតការស្វែងរក", searchRecentEmpty: "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", navTrips: "ដំណើរខាងមុខ" });
-Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", navTrips: "即将出发" });
+Object.assign(copy.en, { searchLabel: "Search", recentSearches: "Recent", editSearches: "Edit", doneEditingSearches: "Done", removeRecentSearch: "Remove recent search", clearSearch: "Clear search", searchRecentEmpty: "Searches you make will appear here.", searchRecentNoMatch: "No recent searches match.", searchResults: "Search results", filters: "Filters", allTrips: "All trips", upcomingOnly: "Upcoming trips only", allTransport: "All transport", noSearchResults: "No trips match these filters.", searchResultCount: "trips found" });
+Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "ស្វែងរកថ្មីៗ", editSearches: "កែសម្រួល", doneEditingSearches: "រួចរាល់", removeRecentSearch: "លុបការស្វែងរក", clearSearch: "សម្អាតការស្វែងរក", searchRecentEmpty: "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", searchRecentNoMatch: "មិនមានការស្វែងរកថ្មីៗដែលត្រូវគ្នាទេ។", navTrips: "ដំណើរខាងមុខ", searchResults: "លទ្ធផលស្វែងរក", filters: "តម្រង", allTrips: "ដំណើរទាំងអស់", upcomingOnly: "តែដំណើរខាងមុខ", allTransport: "មធ្យោបាយធ្វើដំណើរទាំងអស់", noSearchResults: "មិនមានដំណើរដែលត្រូវនឹងតម្រងទាំងនេះទេ។", searchResultCount: "ដំណើរដែលរកឃើញ" });
+Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", searchRecentNoMatch: "没有匹配的最近搜索。", navTrips: "即将出发", searchResults: "搜索结果", filters: "筛选", allTrips: "全部行程", upcomingOnly: "仅显示即将出发", allTransport: "全部交通方式", noSearchResults: "没有符合这些筛选条件的行程。", searchResultCount: "条行程" });
 
 const auth = new QipiAuth();
 const state = {
@@ -287,7 +287,8 @@ const state = {
   theme: ["system", "light", "dark"].includes(localStorage.getItem("qipi:theme")) ? localStorage.getItem("qipi:theme") : "system",
   preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
   hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys"),
-  recentSearches: Array.isArray(readLocal("qipi:recent-searches")) ? readLocal("qipi:recent-searches") : [], searchEditing: false
+  recentSearches: Array.isArray(readLocal("qipi:recent-searches")) ? readLocal("qipi:recent-searches") : [], searchEditing: false,
+  searchFilters: { upcoming: false, routeId: "", transport: "" }
 };
 const $ = (selector) => document.querySelector(selector);
 const t = (key) => copy[state.lang][key] || copy.en[key] || key;
@@ -419,7 +420,7 @@ function openEnhancedSelect(select) {
   host.append(menu);
   const rect = trigger.getBoundingClientRect();
   const width = Math.min(Math.max(rect.width, 190), window.innerWidth - 24);
-  const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
   const below = window.innerHeight - rect.bottom - 12;
   const above = rect.top - 12;
   const maxHeight = Math.max(110, Math.min(280, Math.max(below, above)));
@@ -541,6 +542,18 @@ function setSearch(value) {
   renderRoutes(); renderTrips();
 }
 
+function submitSearch(value) {
+  setSearch(value);
+  saveRecentSearch(value);
+  state.filter = "";
+  state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+  syncSearchFilterControls();
+  closeDesktopSearch();
+  closeMobileSearch({ save: false });
+  setPageView("search-results");
+  renderTrips();
+}
+
 function saveRecentSearch(value) {
   const query = value.trim();
   if (!query) return;
@@ -550,12 +563,30 @@ function saveRecentSearch(value) {
 }
 
 function renderSearchRecents() {
-  const list = $("#search-recents-list");
-  if (!list) return;
-  const editButton = $("[data-action='toggle-search-edit']");
-  if (editButton) editButton.textContent = state.searchEditing ? t("doneEditingSearches") : t("editSearches");
-  list.classList.toggle("is-editing", state.searchEditing);
-  list.innerHTML = state.recentSearches.length ? `<ul class="search-recent-list">${state.recentSearches.map((query) => `<li class="search-recent-row"><button type="button" class="search-recent-select" data-action="select-recent-search" data-query="${esc(query)}"><span class="search-recent-icon">${icon("clock")}</span><span class="search-recent-text">${esc(query)}</span></button><button type="button" class="search-recent-remove" data-action="remove-recent-search" data-query="${esc(query)}" aria-label="${esc(t("removeRecentSearch"))}: ${esc(query)}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button></li>`).join("")}</ul>` : `<p class="search-recents-empty">${esc(t("searchRecentEmpty"))}</p>`;
+  document.querySelectorAll("[data-action='toggle-search-edit']").forEach((button) => { button.textContent = state.searchEditing ? t("doneEditingSearches") : t("editSearches"); });
+  const rowMarkup = (query) => `<li class="search-recent-row"><button type="button" class="search-recent-select" data-action="select-recent-search" data-query="${esc(query)}"><span class="search-recent-icon">${icon("clock")}</span><span class="search-recent-text">${esc(query)}</span></button><button type="button" class="search-recent-remove" data-action="remove-recent-search" data-query="${esc(query)}" aria-label="${esc(t("removeRecentSearch"))}: ${esc(query)}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button></li>`;
+  const desktopQuery = $("#feed-search")?.value.trim().toLocaleLowerCase() || "";
+  const mobileQuery = $("#mobile-feed-search")?.value.trim().toLocaleLowerCase() || "";
+  for (const [id, query] of [["search-recents-list", mobileQuery], ["desktop-search-recents", desktopQuery]]) {
+    const list = $(`#${id}`);
+    if (!list) continue;
+    list.classList.toggle("is-editing", state.searchEditing);
+    const recent = state.recentSearches.filter((item) => !query || item.toLocaleLowerCase().includes(query));
+    list.innerHTML = recent.length ? `<ul class="search-recent-list">${recent.map(rowMarkup).join("")}</ul>` : `<p class="search-recents-empty">${esc(query ? t("searchRecentNoMatch") : t("searchRecentEmpty"))}</p>`;
+  }
+}
+
+function openDesktopSearch() {
+  const panel = $("#desktop-search-panel");
+  if (!panel || window.matchMedia("(max-width: 700px)").matches) return;
+  const wasHidden = panel.hidden;
+  panel.hidden = false;
+  if (wasHidden) { state.searchEditing = false; renderSearchRecents(); }
+}
+
+function closeDesktopSearch() {
+  const panel = $("#desktop-search-panel");
+  if (panel) panel.hidden = true;
 }
 
 function openMobileSearch() {
@@ -593,19 +624,22 @@ function setPageView(view) {
   const settings = $("#settings-view");
   const isSettings = view === "settings";
   const isExplore = view === "explore";
+  const isSearchResults = view === "search-results";
   main.classList.toggle("settings-open", isSettings);
   main.classList.toggle("explore-open", isExplore);
+  main.classList.toggle("search-results-open", isSearchResults);
+  $("#search-filter-panel").hidden = !isSearchResults;
   document.querySelectorAll('.rail-nav a[href="#feed"], .mobile-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav a[href="#routes"], .mobile-nav a[href="#routes"]').forEach((item) => item.classList.toggle("active", isExplore));
   document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
   document.querySelectorAll(".feed-column > :not(#settings-view)").forEach((section) => {
-    section.hidden = isSettings || (isExplore && section.id !== "routes");
+    section.hidden = isSettings || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   settings.hidden = !isSettings;
   if (isSettings) renderSettings();
   renderRoutes();
-  const targetHash = isSettings ? "#settings" : isExplore ? "#routes" : view === "trips" ? "#trips" : "#feed";
+  const targetHash = isSettings ? "#settings" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -647,14 +681,36 @@ function renderFilter() {
   $("#trip-route-filter").innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
   $("#trip-route-filter").value = state.filter;
   syncEnhancedSelect($("#trip-route-filter"));
+  const searchRoute = $("#search-route-filter");
+  if (searchRoute) {
+    searchRoute.innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
+    searchRoute.value = state.searchFilters.routeId;
+    syncEnhancedSelect(searchRoute);
+  }
+  syncSearchFilterControls();
+}
+function syncSearchFilterControls() {
+  const upcoming = $("#search-upcoming-only"), route = $("#search-route-filter"), transport = $("#search-transport-filter");
+  if (upcoming) upcoming.checked = state.searchFilters.upcoming;
+  if (route) route.value = state.searchFilters.routeId;
+  if (transport) transport.value = state.searchFilters.transport;
+  if (route) syncEnhancedSelect(route);
+  if (transport) syncEnhancedSelect(transport);
+  const allButton = $(".search-filter-all");
+  const allActive = !state.searchFilters.upcoming && !state.searchFilters.routeId && !state.searchFilters.transport;
+  allButton?.classList.toggle("is-active", allActive);
+  allButton?.setAttribute("aria-pressed", String(allActive));
 }
 function renderTrips() {
   const tripList = $("#trip-list");
-  const filtered = state.trips.filter((trip) => (!state.filter || trip.routeId === state.filter) &&
-    (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)));
+  const filtered = state.trips.filter((trip) => (state.view === "search-results" || !state.filter || trip.routeId === state.filter) &&
+    (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
+    (state.view !== "search-results" || (!state.searchFilters.routeId || trip.routeId === state.searchFilters.routeId) && (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || trip.date >= dateToday())));
   tripList.setAttribute("aria-busy", "false");
+  if (state.view === "search-results") $("#trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${t("searchResultCount")}`;
+  else $("#trips-title").textContent = t("forYou");
   if (!filtered.length) {
-    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("calendar")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
+    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("search")}</div><h3>${esc(state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(state.view === "search-results" ? t("searchRecentNoMatch") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button>`}</div>`;
     return;
   }
   tripList.innerHTML = filtered.map((trip) => {
@@ -893,10 +949,11 @@ document.addEventListener("click", async (eventTarget) => {
   const { action, id, type, request, decision, mode } = button.dataset;
   if (action === "open-mobile-search") { openMobileSearch(); return; }
   if (action === "close-mobile-search") { closeMobileSearch(); return; }
-  if (action === "clear-mobile-search") { setSearch(""); $("#mobile-feed-search")?.focus(); return; }
+  if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
   if (action === "toggle-search-edit") { state.searchEditing = !state.searchEditing; renderSearchRecents(); return; }
-  if (action === "select-recent-search") { setSearch(button.dataset.query || ""); saveRecentSearch(button.dataset.query || ""); closeMobileSearch({ save: false }); return; }
+  if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
   if (action === "remove-recent-search") { state.recentSearches = state.recentSearches.filter((item) => item !== button.dataset.query); saveLocal("qipi:recent-searches", state.recentSearches); renderSearchRecents(); return; }
+  if (action === "reset-search-filters") { state.searchFilters = { upcoming: false, routeId: "", transport: "" }; syncSearchFilterControls(); renderTrips(); return; }
   if (action === "toggle-notifications") {
     const panel = $("#notifications-panel");
     panel.hidden = !panel.hidden;
@@ -1043,10 +1100,16 @@ document.addEventListener("submit", async (eventTarget) => {
 
 enhanceSelects();
 $("#trip-route-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
-$("#feed-search").addEventListener("input", (eventTarget) => setSearch(eventTarget.target.value));
-$("#feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") saveRecentSearch(eventTarget.target.value); });
-$("#mobile-feed-search").addEventListener("input", (eventTarget) => setSearch(eventTarget.target.value));
-$("#mobile-feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { saveRecentSearch(eventTarget.target.value); eventTarget.target.blur(); } });
+$("#feed-search").addEventListener("focus", openDesktopSearch);
+$("#feed-search").addEventListener("input", renderSearchRecents);
+$("#feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
+$("#mobile-feed-search").addEventListener("input", renderSearchRecents);
+$("#mobile-feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
+document.addEventListener("click", (eventTarget) => { if (!$("#desktop-search-wrap")?.contains(eventTarget.target)) closeDesktopSearch(); });
+document.addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Escape" && !$("#desktop-search-panel").hidden) { closeDesktopSearch(); $("#feed-search").blur(); } });
+$("#search-upcoming-only").addEventListener("change", (eventTarget) => { state.searchFilters.upcoming = eventTarget.target.checked; syncSearchFilterControls(); renderTrips(); });
+$("#search-route-filter").addEventListener("change", (eventTarget) => { state.searchFilters.routeId = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
+$("#search-transport-filter").addEventListener("change", (eventTarget) => { state.searchFilters.transport = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
 $("#settings-language").addEventListener("change", (eventTarget) => {
   state.lang = ["en", "km", "zh"].includes(eventTarget.target.value) ? eventTarget.target.value : "en";
   localStorage.setItem("qipi:language", state.lang);

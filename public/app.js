@@ -19,7 +19,7 @@ const state = {
   routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
   likeActorId: getLikeActorId(), profile: null, profileId: "", profileReturnView: "feed",
   profileRequestId: 0, routeRequestId: 0, tripRequestId: 0,
-  feedRequestActive: false,
+  feedRequestActive: false, pendingLikes: new Set(),
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   theme: window.qipiTheme?.getPreference() || "system",
   preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
@@ -749,6 +749,7 @@ function tripCardMarkup(trip) {
   const route = routeFor(trip.routeId);
   const saved = state.savedTrips.includes(trip.id);
   const liked = Boolean(trip.likedByViewer);
+  const likePending = state.pendingLikes.has(trip.id);
   const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
   const request = state.me?.requests.find((item) => item.trip.id === trip.id);
   const isRequested = Boolean(request || state.requestKeys[trip.id]);
@@ -763,7 +764,7 @@ function tripCardMarkup(trip) {
     <div class="post-media ${esc(route?.accent || "weekend")} ${trip.mediaPath ? "has-upload" : ""}" aria-hidden="true">${trip.mediaPath ? `<img class="post-media-image" src="${esc(storagePublicUrl(trip.mediaPath))}" alt="" loading="lazy" decoding="async" />` : `<span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span>`}</div>
     <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
     <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
-    <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
+    <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-busy="${likePending}" ${likePending ? "disabled" : ""} aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
   </article>`;
 }
 
@@ -1062,18 +1063,43 @@ document.addEventListener("click", async (eventTarget) => {
     renderTrips();
   }
   if (action === "toggle-like") {
-    button.disabled = true;
-    try {
-      const liked = button.getAttribute("aria-pressed") !== "true";
-      const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
-      const updateTrip = (trip) => trip.id === id ? { ...trip, ...result } : trip;
-      state.trips = state.trips.map(updateTrip);
-      state.savedTripRecords = state.savedTripRecords.map(updateTrip);
-      if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map(updateTrip) };
+    if (state.pendingLikes.has(id)) return;
+    const sourceTrip = state.trips.find((trip) => trip.id === id)
+      || state.savedTripRecords.find((trip) => trip.id === id)
+      || state.profile?.trips.find((trip) => trip.id === id);
+    if (!sourceTrip) return;
+    const previous = {
+      likedByViewer: Boolean(sourceTrip.likedByViewer),
+      likesCount: Number(sourceTrip.likesCount) || 0
+    };
+    const liked = !previous.likedByViewer;
+    const optimistic = {
+      likedByViewer: liked,
+      likesCount: Math.max(0, previous.likesCount + (liked ? 1 : -1))
+    };
+    const updateTrip = (trip, values) => trip.id === id ? { ...trip, ...values } : trip;
+    const updateLikeState = (values) => {
+      state.trips = state.trips.map((trip) => updateTrip(trip, values));
+      state.savedTripRecords = state.savedTripRecords.map((trip) => updateTrip(trip, values));
+      if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map((trip) => updateTrip(trip, values)) };
+    };
+    const renderLikeState = () => {
       renderTrips();
       if (state.view === "profile") renderProfile();
-    } catch (error) { toast(error.message || t("failed")); }
-    finally { button.disabled = false; }
+    };
+    updateLikeState(optimistic);
+    state.pendingLikes.add(id);
+    renderLikeState();
+    try {
+      const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
+      updateLikeState(result);
+    } catch (error) {
+      updateLikeState(previous);
+      toast(error.message || t("failed"));
+    } finally {
+      state.pendingLikes.delete(id);
+      renderLikeState();
+    }
     return;
   }
   if (action === "toggle-follow") {

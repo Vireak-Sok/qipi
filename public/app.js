@@ -195,7 +195,7 @@ Object.assign(copy.en, {
   displayLanguage: "Display language", profileName: "Profile name", saveProfile: "Save profile",
   guestProfileText: "Sign in to manage your account and profile.", backToFeed: "Back to feed",
   profileSaved: "Profile updated.", profileSaveError: "Could not update your profile. Try again.",
-  notifications: "Notifications", allCaughtUp: "You're all caught up", noNotifications: "New activity will show up here.", rightFabHint: "Share your weekend plan"
+  notifications: "Notifications", allCaughtUp: "You're all caught up", noNotifications: "New activity will show up here."
 });
 Object.assign(copy.km, {
   explore: "ស្វែងរក", seeAll: "មើលទាំងអស់", forYou: "សម្រាប់អ្នក", settings: "ការកំណត់",
@@ -204,7 +204,7 @@ Object.assign(copy.km, {
   displayLanguage: "ភាសាបង្ហាញ", profileName: "ឈ្មោះប្រវត្តិរូប", saveProfile: "រក្សាទុកប្រវត្តិរូប",
   guestProfileText: "ចូលគណនីដើម្បីគ្រប់គ្រងគណនី និង ប្រវត្តិរូប។", backToFeed: "ត្រឡប់ទៅព័ត៌មានថ្មីៗ",
   profileSaved: "បានធ្វើបច្ចុប្បន្នភាពប្រវត្តិរូប។", profileSaveError: "មិនអាចធ្វើបច្ចុប្បន្នភាពបានទេ។ សូមសាកម្តងទៀត។",
-  notifications: "ការជូនដំណឹង", allCaughtUp: "អ្នកបានមើលទាំងអស់ហើយ", noNotifications: "សកម្មភាពថ្មីៗនឹងបង្ហាញនៅទីនេះ។", rightFabHint: "ចែករំលែកគម្រោងចុងសប្ដាហ៍"
+  notifications: "ការជូនដំណឹង", allCaughtUp: "អ្នកបានមើលទាំងអស់ហើយ", noNotifications: "សកម្មភាពថ្មីៗនឹងបង្ហាញនៅទីនេះ។"
 });
 Object.assign(copy.zh, {
   home: "首页", saved: "已收藏", profile: "个人主页", signIn: "登录", signOut: "退出登录",
@@ -248,7 +248,7 @@ Object.assign(copy.zh, {
   spam: "垃圾内容", other: "其他", details: "补充说明（选填）", sendReport: "提交举报",
   loading: "加载中…", retry: "重试", copied: "链接已复制", failed: "出错了，请重试。",
   noTripsFilter: "此路线暂无即将出发的行程。", profileSaved: "资料已更新。",
-  notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。", rightFabHint: "分享你的周末计划"
+  notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。"
 });
 
 const auth = new QipiAuth();

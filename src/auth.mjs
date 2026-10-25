@@ -18,6 +18,9 @@ export class SupabaseAuthVerifier {
     if (typeof user.id !== "string" || !user.id) return null;
     const displayName = typeof user.user_metadata?.display_name === "string"
       ? user.user_metadata.display_name.trim().slice(0, 40) : "";
-    return { id: user.id, email: user.email || "", displayName };
+    const rawAvatarPath = typeof user.user_metadata?.avatar_path === "string" ? user.user_metadata.avatar_path : "";
+    const avatarPath = new RegExp(`^users/${user.id}/profile/[0-9a-f-]{36}\\.(?:jpg|png|webp)$`, "i").test(rawAvatarPath)
+      ? rawAvatarPath : "";
+    return { id: user.id, email: user.email || "", displayName, avatarPath };
   }
 }

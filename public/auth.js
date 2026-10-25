@@ -149,6 +149,19 @@ export class QipiAuth {
     return user;
   }
 
+  async updateAvatar(avatarPath) {
+    const accessToken = await this.accessToken();
+    if (!accessToken) throw new Error("Sign in again to update your profile photo");
+    const user = await this.request("/user", {
+      method: "PUT", body: { data: {
+        ...this.user?.user_metadata,
+        avatar_path: avatarPath
+      } }, accessToken
+    });
+    this.save({ ...this.session, user });
+    return user;
+  }
+
   async signOut() {
     const accessToken = await this.accessToken().catch(() => null);
     this.save(null);

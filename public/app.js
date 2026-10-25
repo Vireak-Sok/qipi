@@ -1,5 +1,5 @@
-import { QipiAuth } from "./auth.js?v=signup-profile-20261025";
-import { copy } from "./i18n.js?v=profiles-likes-20261025";
+import { QipiAuth } from "./auth.js?v=storage-uploads-20261025";
+import { copy } from "./i18n.js?v=storage-uploads-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
 
@@ -271,10 +271,49 @@ function applyLanguage() {
 function renderAccount() {
   const name = displayName();
   $("#account-label").textContent = name || t("signIn");
-  $("#account-avatar").innerHTML = name ? esc(initials(name)) : icon("user");
-  $("#rail-avatar").textContent = name ? initials(name) : "Q";
-  $("#composer-avatar").textContent = name ? initials(name) : "Q";
+  const avatarPath = auth.user?.user_metadata?.avatar_path || "";
+  $("#account-avatar").innerHTML = name ? avatarContents(name, avatarPath) : icon("user");
+  $("#rail-avatar").innerHTML = avatarContents(name || "Q", avatarPath);
+  $("#composer-avatar").innerHTML = avatarContents(name || "Q", avatarPath);
   $("#rail-user-name").textContent = name || t("guestTraveler");
+}
+
+const IMAGE_BUCKET = "qipi-images";
+const IMAGE_TYPES = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["image/webp", "webp"]]);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+function storagePublicUrl(path) {
+  if (!path || !auth.url) return "";
+  const encodedPath = path.split("/").map((part) => encodeURIComponent(part)).join("/");
+  return `${auth.url}/storage/v1/object/public/${IMAGE_BUCKET}/${encodedPath}`;
+}
+function avatarContents(name, path = "") {
+  const url = storagePublicUrl(path);
+  return url ? `<img class="avatar-image" src="${esc(url)}" alt="" loading="lazy" />` : esc(initials(name));
+}
+async function uploadImage(file, area) {
+  if (!auth.user) throw new Error(t("imageSignInRequired"));
+  const extension = IMAGE_TYPES.get(file?.type);
+  if (!extension) throw new Error(t("imageTypeError"));
+  if (file.size > MAX_IMAGE_BYTES) throw new Error(t("imageSizeError"));
+  const accessToken = await auth.accessToken();
+  if (!accessToken) throw new Error(t("imageSignInRequired"));
+  const path = `users/${auth.user.id}/${area}/${crypto.randomUUID()}.${extension}`;
+  const response = await fetch(`${auth.url}/storage/v1/object/${IMAGE_BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`, {
+    method: "POST",
+    headers: {
+      apikey: auth.key,
+      authorization: `Bearer ${accessToken}`,
+      "content-type": file.type,
+      "cache-control": "31536000",
+      "x-upsert": "false"
+    },
+    body: file
+  });
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(result.message || result.error || t("imageUploadError"));
+  }
+  return path;
 }
 
 function setSearch(value) {
@@ -354,7 +393,7 @@ function renderSettings() {
   const travelStyles = Array.isArray(metadata.travel_styles) ? metadata.travel_styles : [];
   const travelOptions = [["solo", "travelSolo"], ["backpacking", "travelBackpacking"], ["adventure", "travelAdventure"], ["motor-trips", "travelMotorTrips"], ["road-trips", "travelRoadTrips"], ["group-trips", "travelGroupTrips"]];
   content.innerHTML = auth.user
-    ? `<div class="settings-profile"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div>
+    ? `<div class="settings-profile"><span class="profile-avatar" id="settings-profile-avatar">${avatarContents(name, metadata.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small><label class="photo-upload-button" for="settings-avatar-file">${esc(t("changeProfilePhoto"))}</label><input id="settings-avatar-file" class="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" /></div></div>
       <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="field"><label for="settings-home-base">${esc(t("signupHomeBase"))}</label><input id="settings-home-base" name="homeBase" value="${esc(metadata.home_base || "")}" maxlength="80" /></div><fieldset class="signup-interests"><legend>${esc(t("signupInterests"))}</legend><p>${esc(t("signupInterestsHint"))}</p><div class="signup-interest-grid">${travelOptions.map(([value, key]) => `<label><input type="checkbox" name="travelStyle" value="${value}" ${travelStyles.includes(value) ? "checked" : ""} /><span>${esc(t(key))}</span></label>`).join("")}</div></fieldset><div class="field"><label for="settings-bio">${esc(t("signupBio"))}</label><textarea id="settings-bio" name="bio" rows="3" maxlength="160">${esc(metadata.bio || "")}</textarea></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
@@ -597,10 +636,10 @@ function tripCardMarkup(trip) {
     ? t(request?.status === "approved" ? "requestApproved" : request?.status === "declined" ? "requestDeclined" : "requestPending")
     : trip.availableSpots === 0 ? t("fullTrip") : t("requestJoin");
   const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
-  const author = `<span class="post-avatar">${esc(initials(trip.hostName))}</span><span class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></span>`;
+  const author = `<span class="post-avatar">${avatarContents(trip.hostName, trip.hostAvatarPath || "")}</span><span class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></span>`;
   return `<article class="trip-card">
     <div class="post-head">${trip.profileId ? `<button class="post-profile-link" type="button" data-action="open-profile" data-id="${esc(trip.profileId)}">${author}</button>` : `<span class="post-profile-static">${author}</span>`}<button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
-    <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
+    <div class="post-media ${esc(route?.accent || "weekend")} ${trip.mediaPath ? "has-upload" : ""}" aria-hidden="true">${trip.mediaPath ? `<img class="post-media-image" src="${esc(storagePublicUrl(trip.mediaPath))}" alt="" loading="lazy" />` : `<span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span>`}</div>
     <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
     <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
     <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
@@ -630,6 +669,7 @@ function openCreate(selectedRoute = "") {
       <div class="field"><label for="trip-seats">${esc(t("openPlaces"))}</label><input id="trip-seats" name="seats" type="number" min="1" max="12" value="3" required /></div>
       <div class="field span-2"><label for="trip-meeting">${esc(t("meetingAreaLabel"))}</label><input id="trip-meeting" name="meetingArea" minlength="3" maxlength="80" required /><small>${esc(t("meetingAreaHint"))}</small></div>
       <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own" ${state.preferences.defaultCostStyle === "own" ? "selected" : ""}>${esc(t("ownCosts"))}</option><option value="shared" ${state.preferences.defaultCostStyle === "shared" ? "selected" : ""}>${esc(t("sharedCosts"))}</option><option value="free" ${state.preferences.defaultCostStyle === "free" ? "selected" : ""}>${esc(t("freeTrip"))}</option></select></div>
+      <div class="field span-2"><label for="trip-image">${esc(t("tripPhotoLabel"))}</label><input id="trip-image" type="file" accept="image/jpeg,image/png,image/webp" /><small>${esc(t("imageUploadHint"))}</small><div id="trip-image-preview" class="trip-image-preview" hidden></div></div>
       <div class="field span-2"><label for="trip-notes">${esc(t("tripNotes"))}</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="${esc(t("tripNotesHint"))}"></textarea></div>
     </div>${state.preferences.safetyReminders ? `<div class="note-box settings-safety-note">${esc(t("safetyReminder"))}</div>` : ""}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
 }
@@ -921,6 +961,41 @@ document.addEventListener("keydown", (eventTarget) => {
 
 document.addEventListener("change", (eventTarget) => {
   const input = eventTarget.target;
+  if (input.id === "trip-image") {
+    const file = input.files?.[0];
+    const preview = $("#trip-image-preview");
+    if (!file || !preview) return;
+    const url = URL.createObjectURL(file);
+    const image = document.createElement("img");
+    image.alt = "";
+    image.onload = image.onerror = () => URL.revokeObjectURL(url);
+    image.src = url;
+    preview.replaceChildren(image);
+    preview.hidden = false;
+  }
+  if (input.id === "settings-avatar-file") {
+    const file = input.files?.[0];
+    const form = $("#settings-profile-form");
+    const uploadLabel = document.querySelector('label[for="settings-avatar-file"]');
+    if (!file || !form) return;
+    input.disabled = true;
+    uploadLabel.textContent = t("uploadingImage");
+    uploadLabel.classList.add("is-uploading");
+    uploadImage(file, "profile").then(async (path) => {
+      await auth.updateAvatar(path);
+      await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
+      renderAccount();
+      $("#settings-profile-avatar").innerHTML = avatarContents(displayName(), path);
+      await loadTrips();
+      toast(t("profilePhotoSaved"));
+    }).catch((error) => setError(form, error.message || t("imageUploadError")))
+      .finally(() => {
+        input.disabled = false;
+        input.value = "";
+        uploadLabel.textContent = t("changeProfilePhoto");
+        uploadLabel.classList.remove("is-uploading");
+      });
+  }
   if (input.matches('input[name="travelStyle"]') && input.checked) {
     const form = input.closest("form");
     if (form?.querySelectorAll('input[name="travelStyle"]:checked').length > 3) {
@@ -996,6 +1071,8 @@ document.addEventListener("submit", async (eventTarget) => {
   const values = Object.fromEntries(new FormData(form));
   try {
     if (form.id === "create-form") {
+      const image = form.querySelector("#trip-image")?.files?.[0];
+      if (image) values.mediaPath = await uploadImage(image, "trips");
       const { trip, ownerToken } = await api("/api/trips", { method: "POST", data: values });
       if (ownerToken) { state.hostKeys[trip.id] = ownerToken; saveLocal("qipi:host-keys", state.hostKeys); }
       localStorage.setItem("qipi:nickname", values.hostName);

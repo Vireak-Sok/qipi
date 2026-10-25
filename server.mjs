@@ -142,6 +142,8 @@ function publicTrip(trip, data, actorId = "") {
     costStyle: trip.costStyle,
     notes: trip.notes,
     hostName: trip.hostName,
+    hostAvatarPath: trip.hostAvatarPath || "",
+    mediaPath: trip.mediaPath || "",
     profileId: trip.demoUserId || null,
     hostVerified: Boolean(trip.hostUserId),
     likesCount: likes.length,
@@ -259,6 +261,26 @@ export function createQipiHandler({
             .map((item) => ({ id: item.id, status: item.status, trip: publicTrip(item.trip, data) }))
         });
       }
+      if (path === "/api/me/avatar" && method === "POST") {
+        const user = await userFor(req, { required: true });
+        if (!user) throw new HttpError(503, "Authentication is not configured");
+        const input = await body(req);
+        const avatarPath = input.avatarPath == null || input.avatarPath === "" ? "" : text(input.avatarPath, "avatarPath", 1, 180);
+        if (avatarPath && !new RegExp(`^users/${user.id}/profile/[0-9a-f-]{36}\\.(?:jpg|png|webp)$`, "i").test(avatarPath)) {
+          throw new HttpError(400, "Profile photo must be uploaded to your account");
+        }
+        const result = await store.mutate((data) => {
+          let updatedCount = 0;
+          for (const trip of data.trips) {
+            if (trip.hostUserId === user.id) {
+              trip.hostAvatarPath = avatarPath;
+              updatedCount += 1;
+            }
+          }
+          return { updatedCount };
+        });
+        return json(res, 200, result);
+      }
       if (path === "/api/routes" && method === "GET") return json(res, 200, { routes });
 
       const profileMatch = /^\/api\/profiles\/(demo-user-\d{3})$/.exec(path);
@@ -358,6 +380,10 @@ export function createQipiHandler({
         const user = await userFor(req, { required: true });
         const input = await body(req);
         if (!routeById.has(input.routeId)) throw new HttpError(400, "Choose a route");
+        const mediaPath = input.mediaPath == null || input.mediaPath === "" ? "" : text(input.mediaPath, "mediaPath", 1, 180);
+        if (mediaPath && (!user || !new RegExp(`^users/${user.id}/trips/[0-9a-f-]{36}\\.(?:jpg|png|webp)$`, "i").test(mediaPath))) {
+          throw new HttpError(400, "Trip image must be uploaded to your account");
+        }
         const seats = Number(input.seats);
         if (!Number.isInteger(seats) || seats < 1 || seats > 12) {
           throw new HttpError(400, "seats must be between 1 and 12");
@@ -375,6 +401,8 @@ export function createQipiHandler({
           costStyle: choice(input.costStyle, "costStyle", ["own", "shared", "free"]),
           notes: optionalText(input.notes, "notes", 500),
           hostName: text(input.hostName, "hostName", 2, 40),
+          hostAvatarPath: user?.avatarPath || "",
+          mediaPath,
           ownerTokenHash: ownerToken ? digest(ownerToken) : null,
           hostUserId: user?.id || null,
           status: "open",

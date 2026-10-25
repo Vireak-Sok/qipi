@@ -758,3 +758,16 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .profile-posts .empty-trips{padding:24px;background:var(--surface-card);border:1px dashed var(--border-soft);border-radius:14px;color:var(--text-secondary)}
 .profile-posts .empty-trips h3{margin:0;font-size:13px}
 @media(max-width:700px){.profile-card.settings-card{padding:18px 16px}.profile-avatar-large{width:56px;height:56px}.profile-identity h2{font-size:18px}.profile-overview{gap:11px}}
+
+.avatar-image{display:block;width:100%;height:100%;border-radius:inherit;object-fit:cover}
+.account-avatar,.profile-avatar,.composer-avatar,.post-avatar{overflow:hidden}
+.settings-profile>div{min-width:0}
+.photo-upload-button{display:inline-flex;margin-top:6px;padding:0;border:0;background:transparent;color:var(--text-secondary);font-size:10px;font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.photo-upload-button.is-uploading{opacity:.65;pointer-events:none;text-decoration:none}
+.visually-hidden-file{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.settings-profile>div:focus-within .photo-upload-button{outline:2px solid var(--focus-ring);outline-offset:3px}
+.trip-image-preview{margin-top:10px;width:min(100%,300px);height:150px;overflow:hidden;border:1px solid var(--border-soft);border-radius:12px;background:var(--surface-muted)}
+.trip-image-preview img{display:block;width:100%;height:100%;object-fit:cover}
+.post-media.has-upload{background:#e8efea}
+.post-media-image{display:block;width:100%;height:100%;object-fit:cover}
+:root[data-theme="dark"] .photo-upload-button{color:var(--text-secondary)}

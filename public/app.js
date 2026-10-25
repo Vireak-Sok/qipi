@@ -938,6 +938,12 @@ function openAuth(mode = "signin") {
   showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span><span class="auth-brand-tag">${esc(t("authBrand"))}</span></div><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro auth-intro">${esc(description)}</p>${form}<div class="auth-privacy">${icon("shield-check")}<span>${esc(t("authPrivacy"))}</span></div>${!reset ? `<div class="auth-switch"><span>${esc(signup ? t("haveAccount") : t("needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}`);
 }
 
+async function openStartupDeepLink() {
+  const query = new URLSearchParams(location.search);
+  if (query.has("route")) await openRoute(query.get("route"), false);
+  else if (query.has("trip")) await openTrip(query.get("trip"), false);
+}
+
 async function authSuccess() {
   await refreshMe();
   renderAccount();
@@ -947,6 +953,7 @@ async function authSuccess() {
   const action = pendingAction;
   pendingAction = null;
   if (action) action();
+  else await openStartupDeepLink();
 }
 
 document.addEventListener("click", async (eventTarget) => {
@@ -971,7 +978,7 @@ document.addEventListener("click", async (eventTarget) => {
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     return;
   }
-  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); return; }
+  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); await openStartupDeepLink(); return; }
   if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); document.documentElement.removeAttribute("data-entry-pending"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
@@ -1178,13 +1185,11 @@ async function initialize() {
   }
   await loadFeedData();
   if ($("#trip-list [data-action='retry-feed']")) return;
-  if (location.hash === "#settings") openSettings();
+  if (location.hash === "#settings") setSettingsView(true);
   else if (location.hash === "#routes") setPageView("explore");
   else if (location.hash === "#trips") setPageView("trips");
   else if (location.hash === "#saved") await openSavedTrips();
-  const query = new URLSearchParams(location.search);
-  if (query.has("route")) await openRoute(query.get("route"), false);
-  else if (query.has("trip")) await openTrip(query.get("trip"), false);
+  if (!$("#entry-dialog").open) await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");
 }
 initialize();

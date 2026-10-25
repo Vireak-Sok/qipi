@@ -578,5 +578,15 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-entry-pending="true"] .social-topbar,
 :root[data-entry-pending="true"] .app-layout,
 :root[data-entry-pending="true"] .mobile-nav {
-  visibility: hidden;
+  display: none !important;
+}
+
+html {
+  min-height: 100%;
+  background: #F1F7F6;
+}
+
+html[data-theme="dark"] {
+  background: #10191B;
+  color-scheme: dark;
 }

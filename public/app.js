@@ -284,7 +284,7 @@ const state = {
   routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
   feedRequestActive: false,
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
-  theme: ["system", "light", "dark"].includes(localStorage.getItem("qipi:theme")) ? localStorage.getItem("qipi:theme") : "system",
+  theme: window.qipiTheme?.getPreference() || "system",
   preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
   hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys"),
   recentSearches: Array.isArray(readLocal("qipi:recent-searches")) ? readLocal("qipi:recent-searches") : [], searchEditing: false,
@@ -312,16 +312,6 @@ function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)
 const ENTRY_CHOICE_KEY = "qipi:entry-choice";
 function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
-function applyTheme() {
-  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches || false;
-  const activeTheme = state.theme === "system" ? (prefersDark ? "dark" : "light") : state.theme;
-  document.documentElement.dataset.theme = activeTheme;
-  document.documentElement.dataset.themePreference = state.theme;
-  const themeColor = document.querySelector('meta[name="theme-color"]');
-  if (themeColor) themeColor.content = activeTheme === "dark" ? "#10191B" : "#F1F7F6";
-}
-applyTheme();
-window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (state.theme === "system") applyTheme(); });
 function routeFor(id) { return state.routes.find((route) => route.id === id); }
 function dateLabel(date) {
   const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
@@ -1132,8 +1122,7 @@ $("#settings-language").addEventListener("change", (eventTarget) => {
   applyLanguage();
 });
 $("#settings-theme").addEventListener("change", (eventTarget) => {
-  state.theme = ["system", "light", "dark"].includes(eventTarget.target.value) ? eventTarget.target.value : "system";
-  localStorage.setItem("qipi:theme", state.theme); applyTheme();
+  state.theme = window.qipiTheme.setPreference(eventTarget.target.value);
 });
 $("#settings-transport").addEventListener("change", (eventTarget) => {
   state.preferences.defaultTransport = ["motorbike", "car", "mixed"].includes(eventTarget.target.value) ? eventTarget.target.value : "motorbike";

@@ -107,7 +107,7 @@ const copy = {
 
 Object.assign(copy.en, {
   home: "Home", saved: "Saved", profile: "Profile", signIn: "Sign in", signOut: "Sign out",
-  signUp: "Create account", create: "Create", createPost: "Create a post", searchPlaceholder: "Search routes and trips",
+  signUp: "Create account", create: "Create", createPost: "Your next trip is better shared.", searchPlaceholder: "Search routes and trips",
   guestTraveler: "Guest traveler", joinCommunity: "Join the Qipi community",
   railNoteTitle: "Your next story starts nearby.", railNoteBody: "Plan a route, meet a crew, and make two days count.",
   feedEyebrow: "CAMBODIA TRAVEL COMMUNITY", feedTitle: "Make the weekend a story.",
@@ -136,7 +136,7 @@ Object.assign(copy.en, {
 });
 Object.assign(copy.km, {
   home: "ទំព័រដើម", saved: "បានរក្សាទុក", profile: "ប្រវត្តិរូប", signIn: "ចូលគណនី", signOut: "ចាកចេញ",
-  signUp: "បង្កើតគណនី", create: "បង្កើត", createPost: "បង្កើតការបង្ហោះ", searchPlaceholder: "ស្វែងរកផ្លូវ និង ដំណើរ",
+  signUp: "បង្កើតគណនី", create: "បង្កើត", createPost: "ដំណើររួមកាន់តែរីករាយ", searchPlaceholder: "ស្វែងរកផ្លូវ និង ដំណើរ",
   guestTraveler: "អ្នកធ្វើដំណើរថ្មី", joinCommunity: "ចូលរួមសហគមន៍ Qipi",
   railNoteTitle: "រឿងបន្ទាប់ចាប់ផ្ដើមនៅក្បែរអ្នក។", railNoteBody: "រៀបចំផ្លូវ ជួបមិត្តថ្មី និងធ្វើឱ្យពីរថ្ងៃមានន័យ។",
   feedEyebrow: "សហគមន៍ដំណើរកម្សាន្តកម្ពុជា", feedTitle: "ធ្វើឱ្យចុងសប្ដាហ៍ក្លាយជារឿងរ៉ាវ។",

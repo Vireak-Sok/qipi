@@ -567,3 +567,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .brand-word span{color:var(--accent-warm)}
 :root[data-theme="dark"] .account-avatar{background:var(--brand-strong);color:#102729}
 :root[data-theme="dark"] .post-actions button:last-child{background:var(--action-bg);color:var(--action-text)}
+.social-app .button-primary{color:var(--action-text)}
+:root[data-theme="dark"] .social-app .button-primary{color:var(--action-text)}
+.right-fab-icon,.filter-all-icon{background:var(--surface-selected);color:var(--brand-strong)}
+.mobile-create{background:var(--action-bg);color:var(--action-text)}

@@ -113,3 +113,18 @@
 .explore-route-copy small>span{margin:0 1px}
 .dialog-close{display:grid;place-items:center}
 @media(max-width:700px){.detail-facts{gap:6px;margin:14px 0 18px}.fact-pill{gap:5px;padding:7px 9px}.post-actions{gap:4px;justify-content:space-between}.post-actions button{gap:4px;padding:5px 2px;font-size:9px}.dialog-actions{gap:8px}}
+
+/* Refined navigation and feed controls */
+.rail-nav a,.rail-nav button{gap:12px;padding:11px 13px}
+.rail-nav .heroicon{width:22px;height:22px;stroke-width:1.9}
+.feed-section-head{align-items:center}
+.feed-filter{display:inline-flex;align-items:center;gap:7px;min-height:38px;margin:0;padding:0 10px;border:1px solid #dfe6dc;border-radius:10px;background:#fff;color:#4c6759;transition:border-color .16s,box-shadow .16s}
+.feed-filter:focus-within{border-color:#89a78b;box-shadow:0 0 0 3px #eaf2e5}
+.feed-filter .filter-icon{width:15px;height:15px;color:#668271}
+.feed-filter select{appearance:none;min-width:92px;max-width:min(170px,50vw);border:0;border-radius:0;background:transparent;padding:7px 0;color:#294f40;font-size:11px;font-weight:750;cursor:pointer;outline:none}
+.feed-filter .filter-chevron{width:14px;height:14px;color:#71877a}
+.composer-card{gap:12px;padding:13px 15px}
+.composer-create{height:40px;min-width:92px;justify-content:center;align-items:center;gap:8px;padding:0 14px;border:0;border-radius:12px;background:#1d493e;color:#fff;font-size:11px;font-weight:800;transition:background .16s,transform .16s}
+.composer-create:hover{background:#286052;transform:translateY(-1px)}
+.composer-create .heroicon{width:16px;height:16px}
+@media(max-width:700px){.feed-filter{min-height:36px;padding-inline:8px}.composer-card{gap:9px;padding:10px}.composer-create{width:36px;height:36px;min-width:36px;padding:0;border-radius:50%}}

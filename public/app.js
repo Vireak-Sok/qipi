@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 22369)
-Total output lines: 909
-
 import { QipiAuth } from "./auth.js";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
@@ -316,7 +313,35 @@ function applyTheme() {
   document.documentElement.dataset.themePreference = state.theme;
 }
 applyTheme();
-…369 tokens truncated… result = await response.json();
+window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (state.theme === "system") applyTheme(); });
+function routeFor(id) { return state.routes.find((route) => route.id === id); }
+function dateLabel(date) {
+  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
+  return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
+}
+function dateParts(date) {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
+  return {
+    day: new Intl.DateTimeFormat(locale, { day: "2-digit", timeZone: "UTC" }).format(parsed),
+    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(parsed)
+  };
+}
+function toast(message) {
+  const element = $("#toast");
+  element.textContent = message;
+  element.classList.add("show");
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => element.classList.remove("show"), 3500);
+}
+async function api(path, { method = "GET", data, headers = {} } = {}) {
+  const accessToken = await auth.accessToken();
+  const response = await fetch(path, {
+    method,
+    headers: { ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
+    body: data ? JSON.stringify(data) : undefined
+  });
+  const result = await response.json();
   if (!response.ok) throw new Error(result.error || t("failed"));
   return result;
 }

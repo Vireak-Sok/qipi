@@ -53,8 +53,13 @@ const ENTRY_CHOICE_KEY = "qipi:entry-choice";
 function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
 let entryReturnView = "feed";
-function viewFromHash(hash) {
-  return ({ "#routes": "explore", "#trips": "trips", "#saved": "saved" })[hash] || "feed";
+function viewFromHash(hash, hasProfile = false) {
+  const views = {
+    "#feed": "feed", "#routes": "explore", "#trips": "trips", "#saved": "saved",
+    "#settings": "settings", "#search": "search-results", "#entry": "entry", "#signup": "signup"
+  };
+  if (hash === "#profile") return hasProfile ? "profile" : "feed";
+  return views[hash] || "feed";
 }
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
@@ -429,7 +434,7 @@ function renderSettings() {
   syncEnhancedSelects();
 }
 
-function setPageView(view) {
+function setPageView(view, { preserveUrl = false } = {}) {
   state.view = view;
   const main = $("#main");
   const settings = $("#settings-view");
@@ -471,7 +476,9 @@ function setPageView(view) {
   const nextUrl = new URL(location.href);
   if (!["profile", "entry", "signup"].includes(view)) nextUrl.searchParams.delete("profile");
   const nextLocation = `${nextUrl.pathname}${nextUrl.search}${targetHash}`;
-  if (`${location.pathname}${location.search}${location.hash}` !== nextLocation) {
+  if (view === "search-results" && state.search) nextUrl.searchParams.set("q", state.search);
+  else if (view !== "search-results") nextUrl.searchParams.delete("q");
+  if (!preserveUrl && `${location.pathname}${location.search}${location.hash}` !== nextLocation) {
     history.replaceState(history.state, "", nextLocation);
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -735,7 +742,7 @@ async function openProfile(id, deepLink = true) {
   state.profileId = id;
   if (deepLink) setLink("profile", id);
   renderProfileLoading();
-  setPageView("profile");
+  setPageView("profile", { preserveUrl: !deepLink });
   try {
     const { profile, trips } = await api(`/api/profiles/${encodeURIComponent(id)}`);
     if (requestId !== state.profileRequestId) return;
@@ -967,7 +974,10 @@ async function openStartupDeepLink() {
   const query = new URLSearchParams(location.search);
   if (query.has("route")) await openRoute(query.get("route"), false);
   else if (query.has("trip")) await openTrip(query.get("trip"), false);
-  else if (query.has("profile")) await openProfile(query.get("profile"), false);
+  else if (query.has("profile") && (!location.hash || ["#profile", "#entry"].includes(location.hash))) {
+    const profileId = query.get("profile");
+    if (!state.profile || state.profile.id !== profileId) await openProfile(profileId, false);
+  }
 }
 
 async function authSuccess() {
@@ -1356,24 +1366,38 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 // Load the app state before routing to the requested screen.
 async function initialize() {
   const signupRoute = location.hash === "#signup";
-  const startupProfileId = new URLSearchParams(location.search).get("profile");
   const startupQuery = new URLSearchParams(location.search);
+  const startupProfileId = startupQuery.get("profile");
   const profileHash = !location.hash || location.hash === "#profile" || location.hash === "#entry";
   const hasStartupProfile = Boolean(startupProfileId && profileHash && !startupQuery.has("route") && !startupQuery.has("trip") && !signupRoute && !auth.recovery);
-  entryReturnView = hasStartupProfile ? "profile" : viewFromHash(location.hash);
+  entryReturnView = hasStartupProfile ? "profile" : viewFromHash(location.hash, Boolean(startupProfileId));
+  if (entryReturnView === "search-results") {
+    state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();
+    if ($("#feed-search")) $("#feed-search").value = startupQuery.get("q") || "";
+  }
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {
     document.documentElement.dataset.entryPending = "true";
   }
-  if (hasStartupProfile && !showEntryImmediately) {
-    state.profileId = startupProfileId;
-    renderProfileLoading();
-    setPageView("profile");
-  } else if (!hasStartupProfile) renderFeedLoading();
+  if (!showEntryImmediately && !signupRoute) {
+    if (hasStartupProfile) {
+      state.profileId = startupProfileId;
+      setPageView("profile", { preserveUrl: true });
+      renderProfileLoading();
+    } else {
+      setPageView(entryReturnView, { preserveUrl: true });
+      if (entryReturnView === "feed") renderFeedLoading();
+      else if (entryReturnView === "explore") renderRoutesLoading();
+      else if (["trips", "search-results"].includes(entryReturnView)) renderTripListLoading("#trip-list", 2);
+      else if (entryReturnView === "saved") renderTripListLoading("#saved-trip-list", 2);
+    }
+  }
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
+  renderAccount();
+  if (state.view === "settings" || (signupRoute && auth.user)) renderSettings();
   if (auth.user) {
     saveEntryChoice("account");
     document.documentElement.removeAttribute("data-entry-pending");
@@ -1387,11 +1411,14 @@ async function initialize() {
     document.documentElement.removeAttribute("data-signup-pending");
     if (signupRoute && auth.user) setPageView("settings");
   }
-  if (state.view !== "entry" && !hasStartupProfile) await loadFeedData();
-  if (!hasStartupProfile && $("#trip-list [data-action='retry-feed']")) return;
-  if (!hasStartupProfile && state.view !== "entry" && state.view !== "signup" && !signupRoute) {
-    if (entryReturnView === "saved") await openSavedTrips();
-    else setPageView(entryReturnView);
+  if (state.view !== "entry" && !signupRoute) {
+    if (hasStartupProfile) {
+      // openStartupDeepLink below fetches the linked profile after auth initializes.
+    } else if (entryReturnView === "saved") await openSavedTrips();
+    else if (["feed", "explore", "trips", "search-results"].includes(entryReturnView)) {
+      await loadFeedData();
+      if (entryReturnView === "explore" && $("#trip-list [data-action='retry-feed']")) renderLoadingError("#route-grid", "retry-explore");
+    }
   }
   if (state.view !== "entry") await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");

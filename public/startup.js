@@ -36,7 +36,8 @@
   let recovering = false;
   try {
     recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
-    if (new URLSearchParams(location.search).has("profile")) root.dataset.profilePending = "true";
+    const profileHash = !location.hash || ["#profile", "#entry"].includes(location.hash);
+    if (profileHash && new URLSearchParams(location.search).has("profile")) root.dataset.profilePending = "true";
     if (location.hash === "#signup") root.dataset.signupPending = "true";
     if (!recovering && location.hash !== "#signup" && !sessionStorage.getItem("qipi:entry-choice")) {
       root.dataset.entryPending = "true";

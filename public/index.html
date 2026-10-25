@@ -22,6 +22,10 @@
           root.style.backgroundColor = dark ? "#10191B" : "#F1F7F6";
           root.style.color = dark ? "#EDF4F3" : "#193238";
           document.querySelector('meta[name="theme-color"]').content = dark ? "#10191B" : "#F1F7F6";
+          const recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
+          if (!recovering && !sessionStorage.getItem("qipi:entry-choice")) {
+            root.dataset.entryPending = "true";
+          }
         } catch {
           document.documentElement.dataset.theme = "light";
         }

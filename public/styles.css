@@ -820,3 +820,11 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"]{--skeleton-base:#29352f;--skeleton-highlight:#38473f}
 @media(prefers-reduced-motion:reduce){.skeleton-dialog-line,.skeleton-dialog-block,.skeleton-settings i,.skeleton-settings b,.skeleton-field,.skeleton-profile-avatar,.skeleton-profile-title b,.skeleton-profile-title span,.skeleton-profile-stats i{animation:none}}
 @media(max-width:700px){.profile-cover{height:96px}.profile-overview{padding-inline:15px;gap:10px;flex-wrap:wrap}.profile-avatar-large{width:64px;height:64px;margin-top:-34px}.profile-identity{flex:1 1 calc(100% - 90px);padding-top:7px}.profile-identity h2{font-size:18px}.profile-actions{margin:4px 0 0 auto}.profile-stats{margin:14px 15px 0}.profile-card .profile-bio,.profile-card .profile-interests{margin-inline:15px}.profile-card .profile-interests{margin-top:-5px}}
+
+/* Align the main content with the fixed side columns on desktop page views. */
+@media(min-width:701px){
+  .app-layout:not(.entry-open):not(.signup-open){padding-top:23px}
+  .left-rail,.right-rail{top:96px}
+  .search-results-open .left-rail{padding-top:0}
+  .search-results-open .feed-trips{margin-top:0}
+}

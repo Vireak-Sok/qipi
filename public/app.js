@@ -314,8 +314,11 @@ function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); 
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
 function applyTheme() {
   const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches || false;
-  document.documentElement.dataset.theme = state.theme === "system" ? (prefersDark ? "dark" : "light") : state.theme;
+  const activeTheme = state.theme === "system" ? (prefersDark ? "dark" : "light") : state.theme;
+  document.documentElement.dataset.theme = activeTheme;
   document.documentElement.dataset.themePreference = state.theme;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.content = activeTheme === "dark" ? "#10191B" : "#F1F7F6";
 }
 applyTheme();
 window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (state.theme === "system") applyTheme(); });

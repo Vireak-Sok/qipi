@@ -661,6 +661,8 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .auth-switch{justify-content:center;margin-top:21px;padding:17px 0 0;border-top:1px solid var(--border-soft);color:var(--text-secondary);font-size:12px}
 .auth-switch button{color:var(--brand-strong);font-size:12px}
 .signup-open.app-layout{max-width:960px;padding-top:34px}
+.social-app:has(.signup-open) .social-topbar{display:none}
+:root[data-signup-pending="true"] .social-topbar{display:none!important}
 .signup-open .feed-column{max-width:none}
 .signup-layout{display:block;max-width:660px;margin:0 auto}
 .signup-form{min-height:0;padding:28px 32px;border-radius:18px}

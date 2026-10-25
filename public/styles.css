@@ -707,3 +707,25 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{color:var(--brand-strong)}
 :root[data-theme="dark"] .icon-button{color:var(--brand-strong)}
 :root[data-theme="dark"] .settings-symbol,:root[data-theme="dark"] .entry-mark{color:var(--brand-strong)}
+
+/* First visit is a page; the sign-in dialog stays layered over this page. */
+.social-app:has(.entry-open) .social-topbar{display:none}
+.entry-open.app-layout{display:block;max-width:960px;min-height:100vh;padding-block:28px}
+.entry-open .left-rail,.entry-open .right-rail{display:none!important}
+.entry-open .feed-column{display:grid;min-height:calc(100vh - 56px);place-items:center;max-width:none}
+.entry-open ~ .mobile-nav{display:none!important}
+.entry-page{width:100%;max-width:440px;padding:34px;background:var(--surface-card);border:1px solid var(--border-soft);border-radius:24px;box-shadow:var(--surface-shadow);color:var(--text-primary)}
+.entry-page[hidden]{display:none!important}
+.entry-page-brand{display:flex;align-items:center;gap:10px;margin-bottom:30px}
+.entry-page-brand .brand-word{color:var(--text-primary);font-size:24px}
+.entry-page h1{margin:0 0 26px;font-size:clamp(28px,5vw,38px);letter-spacing:-.055em;line-height:1.1}
+.entry-page-actions{display:grid;gap:11px}
+.entry-page-actions .button{width:100%;min-height:49px;border-radius:var(--control-radius)}
+.entry-guest-action{justify-self:center;margin-top:4px;padding:9px 12px;border:0;background:transparent;color:var(--brand-strong);font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.entry-guest-action:hover{color:var(--brand-strong);background:var(--surface-selected);border-radius:var(--control-radius)}
+@media(max-width:700px){
+  .entry-open.app-layout{max-width:none;min-height:100vh;padding:18px 16px}
+  .entry-open .feed-column{min-height:calc(100vh - 36px)}
+  .entry-page{max-width:420px;padding:27px 22px;border-radius:21px}
+  .entry-page-brand{margin-bottom:25px}
+}

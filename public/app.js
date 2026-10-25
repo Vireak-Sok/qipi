@@ -1,4 +1,4 @@
-import { QipiAuth } from "./auth.js?v=signup-20261025";
+import { QipiAuth } from "./auth.js?v=signup-profile-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
 
@@ -181,21 +181,21 @@ Object.assign(copy.km, {
   myIntro: "ដំណើរដែលអ្នករៀបចំ និងសំណើរបស់អ្នកបង្ហាញនៅទីនេះក្រោយចូលគណនី។"
 });
 Object.assign(copy.en, {
-  entryTitle: "Make weekends better together.", entryIntro: "Sign in to post trips and connect with travelers, or continue as a guest to explore.", entryAccount: "Sign in or create an account", entryGuest: "Continue as guest",
+  entryTitle: "Welcome to Qipi", entryGuest: "Continue as guest",
   appearanceSettings: "Appearance", appearanceSettingsIntro: "Choose how Qipi looks on this device.", themeLabel: "Theme", themeSystem: "Use device setting", themeLight: "Light", themeDark: "Dark",
   travelPreferences: "Travel preferences", travelPreferencesIntro: "Set the defaults for trips you post.", defaultTransport: "Default transport", defaultCostStyle: "Default cost preference",
   safetySettings: "Safety and privacy", safetySettingsIntro: "Choose whether to show a reminder when you post.", safetyReminderSetting: "Trip privacy reminder", safetyReminderSettingCopy: "Remind me to keep home addresses and contact details off public posts.", safetyReminder: "Safety reminder: keep home addresses and contact details off public posts. Agree on an exact meeting point privately.",
   weekendPlan: "YOUR WEEKEND, YOUR WAY", stickyCreateTitle: "Have a trip in mind?", stickyCreateCopy: "Share your route and invite people to join.", createPostAction: "Create a post"
 });
 Object.assign(copy.km, {
-  entryTitle: "ចុងសប្ដាហ៍កាន់តែរីករាយពេលទៅជាមួយគ្នា។", entryIntro: "ចូលគណនីដើម្បីបង្ហោះដំណើរ និង ជួបអ្នកធ្វើដំណើរ ឬ បន្តជាភ្ញៀវដើម្បីស្វែងរក។", entryAccount: "ចូលគណនី ឬ បង្កើតគណនី", entryGuest: "បន្តជាភ្ញៀវ",
+  entryTitle: "សូមស្វាគមន៍មកកាន់ Qipi", entryGuest: "បន្តជាភ្ញៀវ",
   appearanceSettings: "រូបរាង", appearanceSettingsIntro: "ជ្រើសរើសរូបរាង Qipi នៅលើឧបករណ៍នេះ។", themeLabel: "ស្បែក", themeSystem: "ប្រើតាមឧបករណ៍", themeLight: "ភ្លឺ", themeDark: "ងងឹត",
   travelPreferences: "ចំណូលចិត្តធ្វើដំណើរ", travelPreferencesIntro: "កំណត់ជម្រើសដើមសម្រាប់ដំណើរដែលអ្នកបង្ហោះ។", defaultTransport: "មធ្យោបាយធ្វើដំណើរដើម", defaultCostStyle: "ចំណូលចិត្តចំណាយដើម",
   safetySettings: "សុវត្ថិភាព និង ឯកជនភាព", safetySettingsIntro: "ជ្រើសរើសថាតើត្រូវបង្ហាញការរំលឹកពេលបង្ហោះឬអត់។", safetyReminderSetting: "ការរំលឹកឯកជនភាពដំណើរ", safetyReminderSettingCopy: "រំលឹកខ្ញុំកុំបង្ហោះអាសយដ្ឋានផ្ទះ និង ព័ត៌មានទំនាក់ទំនងជាសាធារណៈ។", safetyReminder: "ការរំលឹកសុវត្ថិភាព៖ កុំបង្ហោះអាសយដ្ឋានផ្ទះ ឬ ព័ត៌មានទំនាក់ទំនងជាសាធារណៈ។ ព្រមព្រៀងទីតាំងជួបជាក់លាក់ដោយឯកជន។",
   weekendPlan: "ចុងសប្ដាហ៍តាមរបៀបអ្នក", stickyCreateTitle: "មានគម្រោងដំណើរហើយឬនៅ?", stickyCreateCopy: "ចែករំលែកផ្លូវ និងអញ្ជើញអ្នកផ្សេងចូលរួម។", createPostAction: "បង្កើតប្រកាស"
 });
 Object.assign(copy.zh, {
-  entryTitle: "一起开启更精彩的周末。", entryIntro: "登录后发布行程并认识同行者，也可以访客身份继续浏览。", entryAccount: "登录或创建账号", entryGuest: "以访客身份继续",
+  entryTitle: "欢迎来到 Qipi", entryGuest: "以访客身份继续",
   appearanceSettings: "外观", appearanceSettingsIntro: "选择此设备上的 Qipi 外观。", themeLabel: "主题", themeSystem: "跟随设备设置", themeLight: "浅色", themeDark: "深色",
   travelPreferences: "旅行偏好", travelPreferencesIntro: "设置发布行程时的默认选项。", defaultTransport: "默认交通方式", defaultCostStyle: "默认费用偏好",
   safetySettings: "安全与隐私", safetySettingsIntro: "选择发布行程时是否显示提醒。", safetyReminderSetting: "行程隐私提醒", safetyReminderSettingCopy: "提醒我不要在公开行程中发布家庭住址和联系方式。", safetyReminder: "安全提醒：不要在公开行程中发布家庭住址或联系方式。具体会合地点请私下商定。",
@@ -319,6 +319,14 @@ function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)
 const ENTRY_CHOICE_KEY = "qipi:entry-choice";
 function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
+let entryReturnView = "feed";
+function viewFromHash(hash) {
+  return ({ "#settings": "settings", "#routes": "explore", "#trips": "trips", "#saved": "saved" })[hash] || "feed";
+}
+async function restoreEntryReturnView() {
+  if (entryReturnView === "saved") await openSavedTrips();
+  else setPageView(entryReturnView);
+}
 function routeFor(id) { return state.routes.find((route) => route.id === id); }
 function dateLabel(date) {
   const locale = state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en-GB";
@@ -630,11 +638,13 @@ function setPageView(view) {
   state.view = view;
   const main = $("#main");
   const settings = $("#settings-view");
+  const isEntry = view === "entry";
   const isSettings = view === "settings";
   const isExplore = view === "explore";
   const isSearchResults = view === "search-results";
   const isSaved = view === "saved";
   const isSignup = view === "signup";
+  main.classList.toggle("entry-open", isEntry);
   main.classList.toggle("settings-open", isSettings || isSaved);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
@@ -646,16 +656,18 @@ function setPageView(view) {
   document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
   document.querySelectorAll('.rail-nav [data-action="saved-trips"], .mobile-nav [data-action="saved-trips"]').forEach((item) => item.classList.toggle("active", isSaved));
-  document.querySelectorAll(".feed-column > :not(#settings-view):not(#saved-view):not(#signup-view)").forEach((section) => {
-    section.hidden = isSettings || isSaved || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#saved-view):not(#signup-view)").forEach((section) => {
+    section.hidden = isEntry || isSettings || isSaved || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
+  $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
   $("#saved-view").hidden = !isSaved;
   $("#signup-view").hidden = !isSignup;
   if (isSettings) renderSettings();
   if (isSaved) renderTrips();
   renderRoutes();
-  const targetHash = isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
+  const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
+  if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1008,6 +1020,8 @@ async function authSuccess() {
   renderAccount();
   renderSettings();
   renderTrips();
+  const wasEntryPage = state.view === "entry";
+  if (wasEntryPage) await restoreEntryReturnView();
   closeDialogs();
   const action = pendingAction;
   pendingAction = null;
@@ -1037,20 +1051,17 @@ document.addEventListener("click", async (eventTarget) => {
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     return;
   }
-  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); await openStartupDeepLink(); return; }
+  if (action === "entry-guest") { saveEntryChoice("guest"); await restoreEntryReturnView(); await openStartupDeepLink(); return; }
   if (action === "entry-account") { openSignupPage("entry"); return; }
-  if (action === "entry-sign-in") { saveEntryChoice("account"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); openAuth("signin"); return; }
+  if (action === "entry-sign-in") { saveEntryChoice("account"); openAuth("signin"); return; }
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
   if (action === "signup-previous") { setSignupStep(1); return; }
   if (action === "signup-exit") {
     setPageView(signupReturnTarget.view);
-    if (signupReturnTarget.dialog === "entry") {
-      document.documentElement.dataset.entryPending = "true";
-      $("#entry-dialog").showModal();
-    } else if (signupReturnTarget.dialog === "signin") openAuth("signin");
+    if (signupReturnTarget.dialog === "signin") openAuth("signin");
     return;
   }
-  if (action === "signup-sign-in") { setPageView("feed"); openAuth("signin"); return; }
+  if (action === "signup-sign-in") { openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
@@ -1257,20 +1268,19 @@ document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventLis
 }));
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (eventTarget) => {
-    if (eventTarget.target === dialog && dialog.id !== "entry-dialog") {
+    if (eventTarget.target === dialog) {
       if (dialog.id === "search-dialog") closeMobileSearch();
       else { dialog.close(); setLink(); }
     }
   });
-  if (dialog.id === "entry-dialog") dialog.addEventListener("cancel", (eventTarget) => eventTarget.preventDefault());
 });
 
 async function initialize() {
   const signupRoute = location.hash === "#signup";
+  entryReturnView = viewFromHash(location.hash);
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {
     document.documentElement.dataset.entryPending = "true";
-    $("#entry-dialog").showModal();
   }
   renderFeedLoading();
   try {
@@ -1279,10 +1289,9 @@ async function initialize() {
   } catch (error) { toast(error.message || t("failed")); }
   if (auth.user) {
     saveEntryChoice("account");
-    if ($("#entry-dialog").open) $("#entry-dialog").close();
     document.documentElement.removeAttribute("data-entry-pending");
   } else if (!signupRoute && !auth.recovery && !entryChoice()) {
-    if (!$("#entry-dialog").open) $("#entry-dialog").showModal();
+    setPageView("entry");
   } else {
     document.documentElement.removeAttribute("data-entry-pending");
   }
@@ -1293,11 +1302,11 @@ async function initialize() {
   }
   await loadFeedData();
   if ($("#trip-list [data-action='retry-feed']")) return;
-  if (location.hash === "#settings") setSettingsView(true);
-  else if (location.hash === "#routes") setPageView("explore");
-  else if (location.hash === "#trips") setPageView("trips");
-  else if (location.hash === "#saved") await openSavedTrips();
-  if (!$("#entry-dialog").open) await openStartupDeepLink();
+  if (state.view !== "entry" && state.view !== "signup" && !signupRoute) {
+    if (entryReturnView === "saved") await openSavedTrips();
+    else if (entryReturnView !== "feed") setPageView(entryReturnView);
+  }
+  if (state.view !== "entry") await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");
 }
 initialize();

@@ -6,10 +6,10 @@
     <meta name="theme-color" content="#10191B" />
     <meta name="description" content="Qipi is a Cambodia travel community for sharing routes, weekend plans and stories from the road." />
     <title>Qipi</title>
-    <script src="/startup.js?v=signup-20261025" blocking="render"></script>
+    <script src="/startup.js?v=entry-screen-20261025" blocking="render"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/styles.css?v=signup-no-header-20261025" blocking="render" />
-    <script type="module" src="/app.js?v=signup-design-20261025"></script>
+    <link rel="stylesheet" href="/styles.css?v=entry-screen-20261025" blocking="render" />
+    <script type="module" src="/app.js?v=entry-screen-20261025"></script>
   </head>
   <body class="social-app">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -38,6 +38,17 @@
       </aside>
 
       <main class="feed-column" id="feed">
+        <section class="entry-page" id="entry-view" aria-labelledby="entry-title" hidden>
+          <div class="entry-page-card">
+            <div class="entry-page-brand" aria-label="Qipi"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="brand-word">qi<span>pi</span></span></div>
+            <h1 id="entry-title" data-i18n="entryTitle">Welcome to Qipi</h1>
+            <div class="entry-page-actions">
+              <button class="button button-primary" type="button" data-action="entry-account" data-i18n="signUp">Create account</button>
+              <button class="button button-ghost" type="button" data-action="entry-sign-in" data-i18n="signIn">Sign in</button>
+              <button class="entry-guest-action" type="button" data-action="entry-guest" data-i18n="entryGuest">Continue as guest</button>
+            </div>
+          </div>
+        </section>
         <section class="stories-section" id="routes" aria-labelledby="routes-title"><div class="feed-section-head"><h2 id="routes-title" data-i18n="explore">Explore</h2><a class="text-link" href="#trips" data-i18n="seeAll">See all</a></div><p class="explore-description" data-i18n="routesSubtitle" hidden>Route guides to help plan your trip. Check live conditions before you leave.</p><div id="route-grid" class="route-grid story-list" aria-live="polite"></div></section>
 
         <section class="composer-card" aria-label="Create a trip"><span class="composer-avatar" id="composer-avatar">Q</span><button class="composer-prompt" type="button" data-action="create-trip" data-i18n="composerPrompt">Where are you going this weekend?</button><button class="composer-create" type="button" data-action="create-trip"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#plus"></use></svg><span data-i18n="create">Create</span></button></section>
@@ -82,7 +93,6 @@
 
     <nav class="mobile-nav" aria-label="Mobile navigation"><a href="#feed"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#home"></use></svg><small data-i18n="home">Home</small></a><a href="#routes"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#compass"></use></svg><small data-i18n="explore">Explore</small></a><button type="button" data-action="create-trip" class="mobile-create" aria-label="Post a trip"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#plus"></use></svg></button><a href="#trips"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#calendar"></use></svg><small data-i18n="navTrips">Upcoming trips</small></a><button type="button" data-action="saved-trips"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#bookmark"></use></svg><small data-i18n="saved">Saved</small></button><button type="button" data-action="open-settings"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#settings"></use></svg><small data-i18n="settings">Settings</small></button></nav>
 
-    <dialog class="panel-dialog entry-dialog" id="entry-dialog" aria-labelledby="entry-title"><div class="dialog-frame"><span class="entry-mark"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#compass"></use></svg></span><p class="dialog-kicker">QIPI / WEEKEND TRAVEL</p><h2 id="entry-title" data-i18n="entryTitle">Make weekends better together.</h2><p class="dialog-intro" data-i18n="entryIntro">Sign in to post trips and connect with travelers, or continue as a guest to explore.</p><div class="entry-actions"><button class="button button-dark" type="button" data-action="entry-account" data-i18n="signUp">Create account</button><button class="button button-ghost" type="button" data-action="entry-sign-in" data-i18n="signIn">Sign in</button><button class="button button-ghost" type="button" data-action="entry-guest" data-i18n="entryGuest">Continue as guest</button></div></div></dialog>
     <dialog class="panel-dialog" id="route-dialog" aria-labelledby="route-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button><div id="route-dialog-content"></div></div></dialog>
     <dialog class="panel-dialog" id="trip-dialog" aria-labelledby="trip-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button><div id="trip-dialog-content"></div></div></dialog>
     <dialog class="panel-dialog" id="create-dialog" aria-labelledby="create-dialog-title"><div class="dialog-frame"><button type="button" class="dialog-close" data-action="close-dialog" aria-label="Close"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button><div id="create-dialog-content"></div></div></dialog>

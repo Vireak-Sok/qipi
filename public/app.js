@@ -1026,7 +1026,10 @@ async function authSuccess() {
   const action = pendingAction;
   pendingAction = null;
   if (action) action();
-  else await openStartupDeepLink();
+  else {
+    if (wasEntryPage) await loadFeedData();
+    await openStartupDeepLink();
+  }
 }
 
 document.addEventListener("click", async (eventTarget) => {
@@ -1051,7 +1054,14 @@ document.addEventListener("click", async (eventTarget) => {
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     return;
   }
-  if (action === "entry-guest") { saveEntryChoice("guest"); await restoreEntryReturnView(); await openStartupDeepLink(); return; }
+  if (action === "entry-guest") {
+    button.disabled = true;
+    saveEntryChoice("guest");
+    await restoreEntryReturnView();
+    await loadFeedData();
+    await openStartupDeepLink();
+    return;
+  }
   if (action === "entry-account") { openSignupPage("entry"); return; }
   if (action === "entry-sign-in") { saveEntryChoice("account"); openAuth("signin"); return; }
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
@@ -1300,7 +1310,7 @@ async function initialize() {
     document.documentElement.removeAttribute("data-signup-pending");
     if (signupRoute && auth.user) setPageView("settings");
   }
-  await loadFeedData();
+  if (state.view !== "entry") await loadFeedData();
   if ($("#trip-list [data-action='retry-feed']")) return;
   if (state.view !== "entry" && state.view !== "signup" && !signupRoute) {
     if (entryReturnView === "saved") await openSavedTrips();

@@ -18,6 +18,7 @@ const staticFiles = new Map([
   ["/auth.js", ["auth.js", "text/javascript; charset=utf-8"]],
   ["/admin.html", ["admin.html", "text/html; charset=utf-8"]],
   ["/admin.js", ["admin.js", "text/javascript; charset=utf-8"]],
+  ["/icons.svg", ["icons.svg", "image/svg+xml"]],
   ["/favicon.svg", ["favicon.svg", "image/svg+xml"]]
 ]);
 

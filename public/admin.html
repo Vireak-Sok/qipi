@@ -10,7 +10,7 @@
     <script type="module" src="/admin.js"></script>
   </head>
   <body class="admin-body">
-    <header class="site-header"><div class="shell header-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="brand-word">qi<span>pi</span></span></a><a class="button button-ghost" href="/">← Back to Qipi</a></div></header>
+    <header class="site-header"><div class="shell header-inner"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="brand-word">qi<span>pi</span></span></a><a class="button button-ghost" href="/"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-left"></use></svg>Back to Qipi</a></div></header>
     <main class="shell admin-main">
       <p class="section-kicker">LOCAL DEMO / ADMIN</p>
       <h1>Moderation desk</h1>
@@ -18,7 +18,7 @@
       <form id="admin-login" class="admin-card" style="max-width:480px;margin-top:28px">
         <h2>Enter your local admin token</h2>
         <div class="field"><label for="admin-token">Admin token</label><input id="admin-token" type="password" autocomplete="off" required /></div>
-        <button class="button button-primary" type="submit">Open moderation →</button>
+        <button class="button button-primary" type="submit">Open moderation <svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-right"></use></svg></button>
         <p id="admin-login-error" class="error-message" role="alert"></p>
       </form>
       <section id="admin-dashboard" hidden>

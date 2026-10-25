@@ -1,5 +1,7 @@
 import { QipiAuth } from "./auth.js";
 
+const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
+
 const copy = {
   en: {
     navRoutes: "Routes", navTrips: "Upcoming trips", navHow: "How it works", myTrips: "My trips", postTrip: "Post a trip",
@@ -112,7 +114,7 @@ Object.assign(copy.en, {
   guestTraveler: "Guest traveler", joinCommunity: "Join the Qipi community",
   railNoteTitle: "Your next story starts nearby.", railNoteBody: "Plan a route, meet a crew, and make two days count.",
   feedEyebrow: "CAMBODIA TRAVEL COMMUNITY", feedTitle: "Make the weekend a story.",
-  feedIntro: "Find your next route and the people heading your way.", exploreFeed: "Explore the feed ↗",
+  feedIntro: "Find your next route and the people heading your way.", exploreFeed: "Explore the feed",
   composerPrompt: "Where are you going this weekend?", feedFilterLabel: "See plans from the community",
   weekendLabel: "THE QIPI IDEA", weekendStory: "Qi is seven in Chinese. Pi is two in Khmer. The weekend is yours to explore.",
   days: "days", daysToGo: "days to go.",
@@ -141,7 +143,7 @@ Object.assign(copy.km, {
   guestTraveler: "អ្នកធ្វើដំណើរថ្មី", joinCommunity: "ចូលរួមសហគមន៍ Qipi",
   railNoteTitle: "រឿងបន្ទាប់ចាប់ផ្ដើមនៅក្បែរអ្នក។", railNoteBody: "រៀបចំផ្លូវ ជួបមិត្តថ្មី និងធ្វើឱ្យពីរថ្ងៃមានន័យ។",
   feedEyebrow: "សហគមន៍ដំណើរកម្សាន្តកម្ពុជា", feedTitle: "ធ្វើឱ្យចុងសប្ដាហ៍ក្លាយជារឿងរ៉ាវ។",
-  feedIntro: "ស្វែងរកផ្លូវ និង អ្នកដែលធ្វើដំណើរទៅទិសដៅដូចគ្នា។", exploreFeed: "មើលដំណើរ ↗",
+  feedIntro: "ស្វែងរកផ្លូវ និង អ្នកដែលធ្វើដំណើរទៅទិសដៅដូចគ្នា។", exploreFeed: "មើលដំណើរ",
   composerPrompt: "ចុងសប្ដាហ៍នេះអ្នកទៅណា?", feedFilterLabel: "មើលគម្រោងពីសហគមន៍",
   weekendLabel: "គំនិត QIPI", weekendStory: "Qi មានន័យថា ប្រាំពីរ ជាភាសាចិន។ Pi មានន័យថា ពីរ ជាភាសាខ្មែរ។ ចុងសប្ដាហ៍ជាពេលចេញដំណើរ។",
   days: "ថ្ងៃ", daysToGo: "ថ្ងៃសម្រាប់ចេញដំណើរ",
@@ -305,8 +307,6 @@ function applyLanguage() {
   document.documentElement.lang = state.lang === "zh" ? "zh-Hans" : state.lang;
   document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = t(node.dataset.i18n); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
-  $("#language-button").textContent = state.lang === "km" ? "KH" : state.lang === "zh" ? "中文" : "EN";
-  $("#language-button").setAttribute("aria-label", t("languageSettings"));
   if ($("#settings-language")) $("#settings-language").value = state.lang;
   renderAccount(); renderRoutes(); renderFilter(); renderTrips();
   if (state.view === "settings") renderSettings();
@@ -315,7 +315,7 @@ function applyLanguage() {
 function renderAccount() {
   const name = displayName();
   $("#account-label").textContent = name || t("signIn");
-  $("#account-avatar").textContent = name ? initials(name) : "☺";
+  $("#account-avatar").innerHTML = name ? esc(initials(name)) : icon("user");
   $("#rail-avatar").textContent = name ? initials(name) : "Q";
   $("#composer-avatar").textContent = name ? initials(name) : "Q";
   $("#rail-user-name").textContent = name || t("guestTraveler");
@@ -332,20 +332,30 @@ function renderSettings() {
   $("#settings-language").value = state.lang;
 }
 
-function setSettingsView(open) {
-  state.view = open ? "settings" : "feed";
+function setPageView(view) {
+  state.view = view;
   const main = $("#main");
   const settings = $("#settings-view");
-  main.classList.toggle("settings-open", open);
-  document.querySelectorAll('.rail-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", !open));
-  document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", open));
-  document.querySelectorAll(".feed-column > :not(#settings-view)").forEach((section) => { section.hidden = open; });
-  settings.hidden = !open;
-  if (open) renderSettings();
-  const targetHash = open ? "#settings" : "#feed";
+  const isSettings = view === "settings";
+  const isExplore = view === "explore";
+  main.classList.toggle("settings-open", isSettings);
+  main.classList.toggle("explore-open", isExplore);
+  document.querySelectorAll('.rail-nav a[href="#feed"], .mobile-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
+  document.querySelectorAll('.rail-nav a[href="#routes"], .mobile-nav a[href="#routes"]').forEach((item) => item.classList.toggle("active", isExplore));
+  document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
+  document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
+  document.querySelectorAll(".feed-column > :not(#settings-view)").forEach((section) => {
+    section.hidden = isSettings || (isExplore && section.id !== "routes");
+  });
+  settings.hidden = !isSettings;
+  if (isSettings) renderSettings();
+  renderRoutes();
+  const targetHash = isSettings ? "#settings" : isExplore ? "#routes" : view === "trips" ? "#trips" : "#feed";
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
 
 function openSettings() {
   closeDialogs();
@@ -360,7 +370,17 @@ async function refreshMe() {
 
 function renderRoutes() {
   const visible = state.routes.filter((route) => !state.search || `${label(route.title)} ${label(route.summary)}`.toLowerCase().includes(state.search));
-  $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => `
+  const inExplore = state.view === "explore";
+  const routeSection = $("#routes");
+  routeSection.classList.toggle("explore-mode", inExplore);
+  $("#routes-title").textContent = inExplore ? t("exploreRoutes") : t("explore");
+  $("#routes .text-link").hidden = inExplore;
+  $("#routes .explore-description").hidden = !inExplore;
+  $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => inExplore ? `
+    <button type="button" class="explore-route-card ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
+      <span class="explore-route-art"><span class="explore-route-index">0${index + 1}</span><span class="explore-route-mark">${icon("map-pin")}</span><span class="explore-route-kind">${esc(label(route.label))}</span></span>
+      <span class="explore-route-copy"><strong>${esc(label(route.title))}</strong><span>${esc(label(route.summary))}</span><small>${icon("clock")} ${esc(label(route.duration))} <span>·</span> ${icon("map-pin")} ${esc(label(route.mode))}</small><b>${esc(t("viewRoute"))} ${icon("arrow-right")}</b></span>
+    </button>` : `
     <button type="button" class="route-story ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
       <span class="story-avatar"><span class="story-art"><span class="story-road"></span><span class="story-count">0${index + 1}</span></span></span>
       <span class="story-name">${esc(label(route.title))}</span>
@@ -374,7 +394,7 @@ function renderTrips() {
   const filtered = state.trips.filter((trip) => (!state.filter || trip.routeId === state.filter) &&
     (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)));
   if (!filtered.length) {
-    $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon" aria-hidden="true">↗</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ↗</button></div>`;
+    $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("arrow-up-right")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
     return;
   }
   $("#trip-list").innerHTML = filtered.map((trip) => {
@@ -390,11 +410,11 @@ function renderTrips() {
       : t("requestJoin");
     const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
     return `<article class="trip-card">
-      <div class="post-head"><span class="post-avatar">${esc(initials(trip.hostName))}</span><div class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">✳</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></div><button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${saved ? "♥" : "♡"}</button></div>
+      <div class="post-head"><span class="post-avatar">${esc(initials(trip.hostName))}</span><div class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></div><button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
       <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
       <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
       <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
-      <div class="post-actions"><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">↗ ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">◎ ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} →</button></div>
+      <div class="post-actions"><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
     </article>`;
   }).join("");
 }
@@ -411,13 +431,13 @@ async function openRoute(id, deepLink = true) {
     event("route_viewed", id);
     showDialog("route-dialog", `
       <p class="dialog-kicker">${esc(t("routeGuide"))} / ${esc(label(route.label))}</p><h2 id="route-dialog-title">${esc(label(route.title))}</h2><p class="dialog-intro">${esc(label(route.summary))}</p>
-      <div class="detail-facts"><span class="fact-pill">◷ ${esc(label(route.duration))}</span><span class="fact-pill">↗ ${esc(label(route.mode))}</span><span class="fact-pill">✳ ${esc(label(route.level))}</span></div>
+      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(label(route.duration))}</span><span class="fact-pill">${icon("map-pin")} ${esc(label(route.mode))}</span><span class="fact-pill">${icon("sparkles")} ${esc(label(route.level))}</span></div>
       <div class="dialog-section"><h3>${esc(t("routeStops"))}</h3><ol class="stop-list">${route.stops.map((stop) => `<li>${esc(label(stop))}</li>`).join("")}</ol></div>
       <div class="dialog-section"><h3>${esc(t("costChecklist"))}</h3><ul class="stop-list">${route.costChecklist.map((cost) => `<li>${esc(label(cost))}</li>`).join("")}</ul></div>
       <div class="note-box"><strong>${esc(t("routeNote"))}</strong>${esc(label(route.note))}</div>
-      <p class="source-line">${esc(t("reviewed"))}: ${esc(dateLabel(route.reviewedAt))} · <a href="${esc(route.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("routeSource"))} ↗</a></p>
-      <div class="dialog-actions"><a class="button button-ghost" href="${esc(route.mapUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("openMap"))} ↗</a><button class="button button-primary" type="button" data-action="show-route-trips" data-id="${esc(id)}">${esc(t("findTripsHere"))} ↗</button></div>
-      <div class="dialog-section"><h3>${esc(t("recentNotes"))}</h3><div class="updates-list">${updates.length ? updates.map((update) => `<div class="update-item"><strong>${esc(update.nickname)}</strong><small>${esc(dateLabel(update.visitedOn))} · ${esc(t(update.condition === "mixed" ? "mixedCondition" : update.condition))}</small><p>${esc(update.note)}</p></div>`).join("") : `<p class="small-copy">${esc(t("noNotes"))}</p>`}</div><div class="dialog-actions"><button class="plain-button" type="button" data-action="open-update" data-id="${esc(id)}">${esc(t("addRouteNote"))} ↗</button><button class="plain-button danger-link" type="button" data-action="open-report" data-type="route" data-id="${esc(id)}">${esc(t("reportRoute"))}</button></div></div>
+      <p class="source-line">${esc(t("reviewed"))}: ${esc(dateLabel(route.reviewedAt))} · <a href="${esc(route.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("routeSource"))} ${icon("arrow-up-right")}</a></p>
+      <div class="dialog-actions"><a class="button button-ghost" href="${esc(route.mapUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("openMap"))} ${icon("arrow-up-right")}</a><button class="button button-primary" type="button" data-action="show-route-trips" data-id="${esc(id)}">${esc(t("findTripsHere"))} ${icon("arrow-right")}</button></div>
+      <div class="dialog-section"><h3>${esc(t("recentNotes"))}</h3><div class="updates-list">${updates.length ? updates.map((update) => `<div class="update-item"><strong>${esc(update.nickname)}</strong><small>${esc(dateLabel(update.visitedOn))} · ${esc(t(update.condition === "mixed" ? "mixedCondition" : update.condition))}</small><p>${esc(update.note)}</p></div>`).join("") : `<p class="small-copy">${esc(t("noNotes"))}</p>`}</div><div class="dialog-actions"><button class="plain-button" type="button" data-action="open-update" data-id="${esc(id)}">${esc(t("addRouteNote"))} ${icon("arrow-up-right")}</button><button class="plain-button danger-link" type="button" data-action="open-report" data-type="route" data-id="${esc(id)}">${esc(t("reportRoute"))}</button></div></div>
       <p class="small-copy">${esc(t("routeNotLive"))}</p>`);
   } catch (error) { toast(error.message || t("failed")); }
 }
@@ -438,21 +458,21 @@ async function openTrip(id, deepLink = true) {
     const isHost = Boolean(state.hostKeys[id] || state.me?.trips.some((owned) => owned.id === id));
     const statusText = requestStatus ? t(requestStatus === "approved" ? "requestApproved" : requestStatus === "declined" ? "requestDeclined" : "requestPending") : "";
     const primary = isHost
-      ? `<button class="button button-primary" type="button" data-action="manage-trip" data-id="${esc(id)}">${esc(t("manageRequests"))} ↗</button>`
+      ? `<button class="button button-primary" type="button" data-action="manage-trip" data-id="${esc(id)}">${esc(t("manageRequests"))} ${icon("arrow-up-right")}</button>`
       : requestStatus
         ? `<span class="status-chip ${esc(requestStatus)}">${esc(statusText)}</span>`
         : trip.status === "closed"
           ? `<span class="status-chip closed">${esc(t("closedTrip"))}</span>`
           : trip.availableSpots === 0
             ? `<span class="status-chip closed">${esc(t("fullTrip"))}</span>`
-            : `<button class="button button-primary" type="button" data-action="join-trip" data-id="${esc(id)}">${esc(t("joinTrip"))} ↗</button>`;
+            : `<button class="button button-primary" type="button" data-action="join-trip" data-id="${esc(id)}">${esc(t("joinTrip"))} ${icon("arrow-up-right")}</button>`;
     showDialog("trip-dialog", `
       <p class="dialog-kicker">${esc(label(routeFor(trip.routeId)?.title))} / ${esc(dateLabel(trip.date))}</p><h2 id="trip-dialog-title">${esc(trip.title)}</h2><p class="dialog-intro">${esc(t("hostedBy"))} ${esc(trip.hostName)} · ${esc(trip.availableSpots)} ${esc(t("spots"))}</p>
-      <div class="detail-facts"><span class="fact-pill">◷ ${esc(trip.departureTime)}</span><span class="fact-pill">↗ ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div>
+      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(trip.departureTime)}</span><span class="fact-pill">${icon("map-pin")} ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${icon("users")} ${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div>
       <div class="dialog-section"><h3>${esc(t("meetingArea"))}</h3><p class="dialog-intro">${esc(trip.meetingArea)}</p></div>
       <div class="dialog-section"><h3>${esc(t("aboutTrip"))}</h3><p class="dialog-intro">${esc(trip.notes || "—")}</p></div>
       <div class="note-box">${esc(t("noContact"))}</div>
-      <div class="dialog-actions">${primary}<button class="button button-ghost" type="button" data-action="share-trip" data-id="${esc(id)}">${esc(t("shareTrip"))} ↗</button></div>
+      <div class="dialog-actions">${primary}<button class="button button-ghost" type="button" data-action="share-trip" data-id="${esc(id)}">${esc(t("shareTrip"))} ${icon("arrow-up-right")}</button></div>
       <div id="requests-panel"></div>
       <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">${esc(t("reportTrip"))}</button></div></div>`);
   } catch (error) { toast(error.message || t("failed")); }
@@ -472,10 +492,10 @@ function openCreate(selectedRoute = "") {
       <div class="field span-2"><label for="trip-meeting">${esc(t("meetingAreaLabel"))}</label><input id="trip-meeting" name="meetingArea" minlength="3" maxlength="80" required /><small>${esc(t("meetingAreaHint"))}</small></div>
       <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own">${esc(t("ownCosts"))}</option><option value="shared">${esc(t("sharedCosts"))}</option><option value="free">${esc(t("freeTrip"))}</option></select></div>
       <div class="field span-2"><label for="trip-notes">${esc(t("tripNotes"))}</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="${esc(t("tripNotesHint"))}"></textarea></div>
-    </div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ↗</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
+    </div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
 }
 function openJoin(id) {
-  showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ↗</button></form>`);
+  showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ${icon("arrow-up-right")}</button></form>`);
 }
 async function manageTrip(id) {
   try {
@@ -505,8 +525,8 @@ async function openMyTrips() {
     const requests = [...(state.me?.requests || []).map(({ trip, status }) => ({ trip, status })), ...legacyRequests.filter(Boolean)]
       .filter((item, index, all) => all.findIndex((entry) => entry.trip.id === item.trip.id) === index);
     showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("myTrips"))}</p><h2 id="my-dialog-title">${esc(t("myTitle"))}</h2><p class="dialog-intro">${esc(t("myIntro"))}</p>
-      <div class="dialog-section"><h3>${esc(t("hosting"))}</h3><div class="my-list">${hosted.length ? hosted.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(t(trip.status))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noHosted"))}</p>`}</div></div>
-      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
+      <div class="dialog-section"><h3>${esc(t("hosting"))}</h3><div class="my-list">${hosted.length ? hosted.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(t(trip.status))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noHosted"))}</p>`}</div></div>
+      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
   } catch (error) { toast(error.message || t("failed")); }
 }
 
@@ -514,15 +534,15 @@ async function openSavedTrips() {
   try {
     const { trips } = await api("/api/trips?includeClosed=true");
     const saved = trips.filter((trip) => state.savedTrips.includes(trip.id));
-    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("saved"))}</p><h2 id="my-dialog-title">${esc(t("savedTrips"))}</h2><div class="my-list">${saved.length ? saved.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(label(routeFor(trip.routeId)?.title))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ↗</button></div>`).join("") : `<p class="small-copy">${esc(t("noSaved"))}</p>`}</div>`);
+    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("saved"))}</p><h2 id="my-dialog-title">${esc(t("savedTrips"))}</h2><div class="my-list">${saved.length ? saved.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(label(routeFor(trip.routeId)?.title))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noSaved"))}</p>`}</div>`);
   } catch (error) { toast(error.message || t("failed")); }
 }
 
 function openUpdate(id) {
-  showDialog("update-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("addRouteNote"))}</p><h2 id="update-dialog-title">${esc(t("updateTitle"))}</h2><p class="dialog-intro">${esc(t("updateIntro"))}</p><form id="update-form" data-route-id="${esc(id)}"><div class="form-grid"><div class="field"><label for="update-name">${esc(t("yourName"))}</label><input id="update-name" name="nickname" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="update-date">${esc(t("visitDate"))}</label><input id="update-date" type="date" name="visitedOn" max="${dateToday()}" required /></div><div class="field span-2"><label for="update-condition">${esc(t("condition"))}</label><select id="update-condition" name="condition"><option value="good">${esc(t("good"))}</option><option value="mixed">${esc(t("mixedCondition"))}</option><option value="caution">${esc(t("caution"))}</option></select></div><div class="field span-2"><label for="update-note">${esc(t("routeUpdateNote"))}</label><textarea id="update-note" name="note" minlength="10" maxlength="500" required></textarea></div></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("submitUpdate"))} ↗</button></form>`);
+  showDialog("update-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("addRouteNote"))}</p><h2 id="update-dialog-title">${esc(t("updateTitle"))}</h2><p class="dialog-intro">${esc(t("updateIntro"))}</p><form id="update-form" data-route-id="${esc(id)}"><div class="form-grid"><div class="field"><label for="update-name">${esc(t("yourName"))}</label><input id="update-name" name="nickname" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="update-date">${esc(t("visitDate"))}</label><input id="update-date" type="date" name="visitedOn" max="${dateToday()}" required /></div><div class="field span-2"><label for="update-condition">${esc(t("condition"))}</label><select id="update-condition" name="condition"><option value="good">${esc(t("good"))}</option><option value="mixed">${esc(t("mixedCondition"))}</option><option value="caution">${esc(t("caution"))}</option></select></div><div class="field span-2"><label for="update-note">${esc(t("routeUpdateNote"))}</label><textarea id="update-note" name="note" minlength="10" maxlength="500" required></textarea></div></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("submitUpdate"))} ${icon("arrow-up-right")}</button></form>`);
 }
 function openReport(type, id) {
-  showDialog("report-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("reportTitle"))}</p><h2 id="report-dialog-title">${esc(t("reportTitle"))}</h2><p class="dialog-intro">${esc(t("reportIntro"))}</p><form id="report-form" data-target-type="${esc(type)}" data-target-id="${esc(id)}"><div class="field"><label for="report-reason">${esc(t("reason"))}</label><select id="report-reason" name="reason"><option value="inaccurate">${esc(t("inaccurate"))}</option><option value="unsafe">${esc(t("unsafe"))}</option><option value="spam">${esc(t("spam"))}</option><option value="other">${esc(t("other"))}</option></select></div><div class="field"><label for="report-details">${esc(t("details"))}</label><textarea id="report-details" name="details" maxlength="500"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendReport"))} ↗</button></form>`);
+  showDialog("report-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("reportTitle"))}</p><h2 id="report-dialog-title">${esc(t("reportTitle"))}</h2><p class="dialog-intro">${esc(t("reportIntro"))}</p><form id="report-form" data-target-type="${esc(type)}" data-target-id="${esc(id)}"><div class="field"><label for="report-reason">${esc(t("reason"))}</label><select id="report-reason" name="reason"><option value="inaccurate">${esc(t("inaccurate"))}</option><option value="unsafe">${esc(t("unsafe"))}</option><option value="spam">${esc(t("spam"))}</option><option value="other">${esc(t("other"))}</option></select></div><div class="field"><label for="report-details">${esc(t("details"))}</label><textarea id="report-details" name="details" maxlength="500"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendReport"))} ${icon("arrow-up-right")}</button></form>`);
 }
 async function shareTrip(id) {
   const url = new URL(location.origin + "/");
@@ -554,7 +574,7 @@ function openAuth(mode = "signin") {
   const title = signup ? t("signUp") : recover || reset ? t("resetPassword") : t("signIn");
   const form = reset
     ? `<form id="auth-form" data-mode="reset"><div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="new-password" required /></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("resetPassword"))}</button></form>`
-    : `<form id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : `<div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${signup ? "new-password" : "current-password"}" required /></div>`}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(recover ? t("sendReset") : title)} ↗</button></form>`;
+    : `<form id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : `<div class="field"><label for="auth-password">${esc(t("password"))}</label><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${signup ? "new-password" : "current-password"}" required /></div>`}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(recover ? t("sendReset") : title)} ${icon("arrow-up-right")}</button></form>`;
   showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("member"))}</p><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro">${esc(t("authIntro"))}</p>${form}<p class="small-copy">${esc(t("authPrivacy"))}</p>${!reset ? `<div class="auth-switch">${esc(signup ? t("haveAccount") : t("needAccount"))}<button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}${!signup && !recover && !reset ? `<button class="auth-subtle" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}`);
 }
 
@@ -696,8 +716,15 @@ $("#settings-language").addEventListener("change", (eventTarget) => {
   localStorage.setItem("qipi:language", state.lang);
   applyLanguage();
 });
-document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", () => {
-  if (state.view === "settings") setSettingsView(false);
+document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
+  const target = anchor.getAttribute("href");
+  if (target === "#routes") { eventTarget.preventDefault(); setPageView("explore"); }
+  else if (target === "#feed") { eventTarget.preventDefault(); setPageView("feed"); }
+  else if (target === "#trips") {
+    eventTarget.preventDefault();
+    setPageView("trips");
+    requestAnimationFrame(() => $("#trips").scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 }));
 document.querySelectorAll("dialog").forEach((dialog) => dialog.addEventListener("click", (eventTarget) => {
   if (eventTarget.target === dialog) { dialog.close(); setLink(); }
@@ -714,6 +741,8 @@ async function initialize() {
     state.trips = tripResult.trips;
     applyLanguage();
     if (location.hash === "#settings") openSettings();
+    else if (location.hash === "#routes") setPageView("explore");
+    else if (location.hash === "#trips") setPageView("trips");
     const query = new URLSearchParams(location.search);
     if (query.has("route")) await openRoute(query.get("route"), false);
     else if (query.has("trip")) await openTrip(query.get("trip"), false);

@@ -321,7 +321,7 @@ function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); 
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
 let entryReturnView = "feed";
 function viewFromHash(hash) {
-  return ({ "#settings": "settings", "#routes": "explore", "#trips": "trips", "#saved": "saved" })[hash] || "feed";
+  return ({ "#routes": "explore", "#trips": "trips", "#saved": "saved" })[hash] || "feed";
 }
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
@@ -1304,7 +1304,7 @@ async function initialize() {
   if ($("#trip-list [data-action='retry-feed']")) return;
   if (state.view !== "entry" && state.view !== "signup" && !signupRoute) {
     if (entryReturnView === "saved") await openSavedTrips();
-    else if (entryReturnView !== "feed") setPageView(entryReturnView);
+    else setPageView(entryReturnView);
   }
   if (state.view !== "entry") await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");

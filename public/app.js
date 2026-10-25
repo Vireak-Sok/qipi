@@ -1169,7 +1169,10 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 
 async function initialize() {
   const showEntryImmediately = !auth.session && !auth.recovery && !entryChoice();
-  if (showEntryImmediately) $("#entry-dialog").showModal();
+  if (showEntryImmediately) {
+    document.documentElement.dataset.entryPending = "true";
+    $("#entry-dialog").showModal();
+  }
   renderFeedLoading();
   try {
     await auth.initialize();

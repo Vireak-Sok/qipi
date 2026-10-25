@@ -1014,6 +1014,16 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
   if (action === "remove-recent-search") { state.recentSearches = state.recentSearches.filter((item) => item !== button.dataset.query); saveLocal("qipi:recent-searches", state.recentSearches); renderSearchRecents(); return; }
   if (action === "reset-search-filters") { state.searchFilters = { upcoming: false, routeId: "", transport: "" }; syncSearchFilterControls(); renderTrips(); return; }
+  if (action === "close-search-results") {
+    state.filter = "";
+    state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+    setSearch("");
+    syncSearchFilterControls();
+    closeDesktopSearch();
+    closeMobileSearch({ save: false });
+    await openFeedPage();
+    return;
+  }
   if (action === "toggle-notifications") {
     const panel = $("#notifications-panel");
     panel.hidden = !panel.hidden;

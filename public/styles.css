@@ -409,8 +409,8 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .search-recent-icon{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:50%;background:var(--surface-field);color:var(--text-secondary)}
 .search-recent-icon .heroicon{width:19px;height:19px}
 .search-recent-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-.search-recent-remove{display:none;place-items:center;width:36px;height:36px;flex:none;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text-secondary)}
-#search-recents-list.is-editing .search-recent-remove{display:grid}
+.search-recent-remove{display:grid;place-items:center;width:36px;height:36px;flex:none;padding:0;border:0;border-radius:50%;background:transparent;color:var(--text-secondary)}
+#search-recents-list.is-editing .search-recent-remove{background:var(--surface-field);color:var(--text-primary)}
 .search-recent-remove .heroicon{width:17px;height:17px}
 .search-recents-empty{margin:13px 0;color:var(--text-secondary);font-size:13px}
 .top-search input:focus-visible,.search-screen-field input:focus-visible{outline:none;box-shadow:none}

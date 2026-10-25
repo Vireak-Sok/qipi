@@ -285,9 +285,12 @@ export function createQipiHandler({
 
       const profileMatch = /^\/api\/profiles\/([a-z0-9-]{1,64})$/i.exec(path);
       if (profileMatch && method === "GET") {
+        const user = await userFor(req);
         const data = await store.read();
         const actorId = req.headers["x-qipi-actor"] || "";
         const id = profileMatch[1];
+        const followerId = user ? `user:${user.id}` : actorId ? `device:${actorId}` : "";
+        const follows = data.follows || [];
         const demoProfile = (data.demoUsers || []).find((item) => item.id === id);
         const memberTrips = demoProfile ? [] : data.trips
           .filter((trip) => trip.hostUserId === id && !trip.hidden)
@@ -317,10 +320,44 @@ export function createQipiHandler({
             bio: profile.bio || "",
             isDemo: Boolean(demoProfile),
             postCount: trips.length,
-            routeCount: new Set(trips.map((trip) => trip.routeId)).size
+            routeCount: new Set(trips.map((trip) => trip.routeId)).size,
+            followerCount: follows.filter((follow) => follow.targetId === id).length,
+            followedByViewer: Boolean(followerId && follows.some((follow) => follow.targetId === id && follow.followerId === followerId))
           },
           trips
         });
+      }
+
+      const followMatch = /^\/api\/profiles\/([a-z0-9-]{1,64})\/follow$/i.exec(path);
+      if (followMatch && method === "POST") {
+        const user = await userFor(req);
+        const input = await body(req);
+        const actorId = req.headers["x-qipi-actor"];
+        if (!user && (typeof actorId !== "string" || !/^[0-9a-f-]{36}$/i.test(actorId))) {
+          throw new HttpError(400, "A valid viewer id is required");
+        }
+        if (typeof input.following !== "boolean") throw new HttpError(400, "following must be true or false");
+        const targetId = followMatch[1];
+        if (user?.id === targetId) throw new HttpError(400, "You cannot follow your own profile");
+        const followerId = user ? `user:${user.id}` : `device:${actorId}`;
+        const result = await store.mutate((data) => {
+          const isDemoProfile = (data.demoUsers || []).some((profile) => profile.id === targetId);
+          const isMemberProfile = data.trips.some((trip) => trip.hostUserId === targetId && !trip.hidden);
+          if (!isDemoProfile && !isMemberProfile) throw new HttpError(404, "Profile not found");
+          data.follows ||= [];
+          const existingIndex = data.follows.findIndex((follow) => follow.targetId === targetId && follow.followerId === followerId);
+          if (input.following && existingIndex === -1) {
+            data.follows.push({ targetId, followerId, createdAt: new Date().toISOString() });
+          } else if (!input.following && existingIndex !== -1) {
+            data.follows.splice(existingIndex, 1);
+          }
+          return {
+            following: input.following,
+            followerCount: data.follows.filter((follow) => follow.targetId === targetId).length,
+            followedByViewer: input.following
+          };
+        });
+        return json(res, 200, result);
       }
 
       const routeMatch = /^\/api\/routes\/([a-z0-9-]+)$/.exec(path);

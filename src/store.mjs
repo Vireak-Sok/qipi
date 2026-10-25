@@ -2,11 +2,16 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 
-const emptyStore = () => ({ trips: [], joinRequests: [], routeUpdates: [], reports: [], events: [] });
+const emptyStore = () => ({ trips: [], joinRequests: [], routeUpdates: [], reports: [], events: [], likes: [], follows: [] });
 
 function validateStore(data) {
-  for (const key of Object.keys(emptyStore())) {
-    if (!Array.isArray(data?.[key])) throw new Error(`Store field ${key} is missing or invalid`);
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Store data is missing or invalid");
+  for (const key of ["trips", "joinRequests", "routeUpdates", "reports", "events"]) {
+    if (!Array.isArray(data[key])) throw new Error(`Store field ${key} is missing or invalid`);
+  }
+  for (const key of ["likes", "follows"]) {
+    if (data[key] === undefined) data[key] = [];
+    if (!Array.isArray(data[key])) throw new Error(`Store field ${key} is missing or invalid`);
   }
   return data;
 }

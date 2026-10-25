@@ -1,5 +1,5 @@
 import { QipiAuth } from "./auth.js?v=profile-loading-20261025";
-import { copy } from "./i18n.js?v=profile-loading-20261025";
+import { copy } from "./i18n.js?v=follow-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
 
@@ -782,11 +782,13 @@ function renderProfile() {
   const routeCount = Number(profile.routeCount) || new Set(trips.map((trip) => trip.routeId)).size;
   const location = [profile.homeBase, ...(profile.languages || [])].filter(Boolean).join(" · ");
   const styles = profile.interests || [];
+  const isFollowing = Boolean(profile.followedByViewer);
+  const canFollow = auth.user?.id !== profile.id;
   content.setAttribute("aria-busy", "false");
   content.innerHTML = `<section class="profile-card settings-card">
     <div class="profile-cover ${profile.isDemo ? "is-demo" : "is-member"}"><span class="profile-cover-mark">Qipi</span></div>
-    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t(profile.isDemo ? "demoProfile" : "profileMember"))}</span><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${location ? `<small>${esc(location)}</small>` : ""}</div><button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}">${icon("share")}<span>${esc(t("shareProfile"))}</span></button></div>
-    <div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${routeCount}</strong><span>${esc(t("profileRoutes"))}</span></div><div><strong>${trips.filter((trip) => trip.date >= dateToday()).length}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>
+    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t(profile.isDemo ? "demoProfile" : "profileMember"))}</span><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${location ? `<small>${esc(location)}</small>` : ""}</div><div class="profile-actions">${canFollow ? `<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>` : ""}<button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}">${icon("share")}<span>${esc(t("shareProfile"))}</span></button></div></div>
+    <div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${routeCount}</strong><span>${esc(t("profileRoutes"))}</span></div><div><strong>${trips.filter((trip) => trip.date >= dateToday()).length}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>
     ${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interest)}</span>`).join("")}</div>` : ""}
   </section><section class="profile-posts"><div class="feed-section-head"><h2>${esc(t("profilePosts"))}</h2></div><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>`;
 }
@@ -1072,6 +1074,20 @@ document.addEventListener("click", async (eventTarget) => {
       if (state.view === "profile") renderProfile();
     } catch (error) { toast(error.message || t("failed")); }
     finally { button.disabled = false; }
+    return;
+  }
+  if (action === "toggle-follow") {
+    if (!state.profile || state.profile.id !== id) return;
+    button.disabled = true;
+    try {
+      const following = button.getAttribute("aria-pressed") !== "true";
+      const result = await api(`/api/profiles/${encodeURIComponent(id)}/follow`, { method: "POST", data: { following } });
+      if (state.profile?.id === id) {
+        state.profile = { ...state.profile, ...result };
+        renderProfile();
+      }
+    } catch (error) { toast(error.message || t("failed")); }
+    finally { if (button.isConnected) button.disabled = false; }
     return;
   }
   if (action === "manage-trip") manageTrip(id);

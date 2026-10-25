@@ -124,10 +124,11 @@ function json(res, status, value) {
   res.end(JSON.stringify(value));
 }
 
-function publicTrip(trip, data) {
+function publicTrip(trip, data, actorId = "") {
   const approvedCount = data.joinRequests.filter(
     (request) => request.tripId === trip.id && request.status === "approved"
   ).length;
+  const likes = (data.likes || []).filter((like) => like.tripId === trip.id);
   return {
     id: trip.id,
     routeId: trip.routeId,
@@ -141,7 +142,10 @@ function publicTrip(trip, data) {
     costStyle: trip.costStyle,
     notes: trip.notes,
     hostName: trip.hostName,
+    profileId: trip.demoUserId || null,
     hostVerified: Boolean(trip.hostUserId),
+    likesCount: likes.length,
+    likedByViewer: Boolean(actorId && likes.some((like) => like.actorId === actorId)),
     status: trip.status,
     createdAt: trip.createdAt
   };
@@ -257,6 +261,31 @@ export function createQipiHandler({
       }
       if (path === "/api/routes" && method === "GET") return json(res, 200, { routes });
 
+      const profileMatch = /^\/api\/profiles\/(demo-user-\d{3})$/.exec(path);
+      if (profileMatch && method === "GET") {
+        const data = await store.read();
+        const profile = (data.demoUsers || []).find((item) => item.id === profileMatch[1]);
+        if (!profile) throw new HttpError(404, "Profile not found");
+        const actorId = req.headers["x-qipi-actor"] || "";
+        const trips = data.trips
+          .filter((trip) => trip.demoUserId === profile.id && !trip.hidden)
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .map((trip) => publicTrip(trip, data, actorId));
+        return json(res, 200, {
+          profile: {
+            id: profile.id,
+            displayName: profile.displayName,
+            homeBase: profile.homeBase,
+            languages: profile.languages,
+            interests: profile.interests,
+            bio: profile.bio,
+            isDemo: true,
+            postCount: trips.length
+          },
+          trips
+        });
+      }
+
       const routeMatch = /^\/api\/routes\/([a-z0-9-]+)$/.exec(path);
       if (routeMatch && method === "GET") {
         const route = routeById.get(routeMatch[1]);
@@ -290,6 +319,7 @@ export function createQipiHandler({
 
       if (path === "/api/trips" && method === "GET") {
         const data = await store.read();
+        const actorId = req.headers["x-qipi-actor"] || "";
         const routeId = url.searchParams.get("route");
         const includeClosed = url.searchParams.get("includeClosed") === "true";
         const today = todayInCambodia();
@@ -297,8 +327,31 @@ export function createQipiHandler({
           .filter((trip) => !trip.hidden && (includeClosed || (trip.status === "open" && trip.date >= today)))
           .filter((trip) => !routeId || trip.routeId === routeId)
           .sort((a, b) => a.date.localeCompare(b.date) || a.departureTime.localeCompare(b.departureTime))
-          .map((trip) => publicTrip(trip, data));
+          .map((trip) => publicTrip(trip, data, actorId));
         return json(res, 200, { trips });
+      }
+
+      const likeMatch = /^\/api\/trips\/([0-9a-f-]+)\/like$/.exec(path);
+      if (likeMatch && method === "POST") {
+        const input = await body(req);
+        const actorId = req.headers["x-qipi-actor"];
+        if (typeof actorId !== "string" || !/^[0-9a-f-]{36}$/.test(actorId)) {
+          throw new HttpError(400, "A valid viewer id is required");
+        }
+        if (typeof input.liked !== "boolean") throw new HttpError(400, "liked must be true or false");
+        const result = await store.mutate((data) => {
+          const trip = findTrip(data, likeMatch[1]);
+          data.likes ||= [];
+          const existingIndex = data.likes.findIndex((like) => like.tripId === trip.id && like.actorId === actorId);
+          if (input.liked && existingIndex === -1) {
+            data.likes.push({ tripId: trip.id, actorId, createdAt: new Date().toISOString() });
+          } else if (!input.liked && existingIndex !== -1) {
+            data.likes.splice(existingIndex, 1);
+          }
+          const likesCount = data.likes.filter((like) => like.tripId === trip.id).length;
+          return { likedByViewer: input.liked, likesCount };
+        });
+        return json(res, 200, result);
       }
 
       if (path === "/api/trips" && method === "POST") {
@@ -339,7 +392,7 @@ export function createQipiHandler({
       const tripMatch = /^\/api\/trips\/([0-9a-f-]+)$/.exec(path);
       if (tripMatch && method === "GET") {
         const data = await store.read();
-        return json(res, 200, { trip: publicTrip(findTrip(data, tripMatch[1]), data) });
+        return json(res, 200, { trip: publicTrip(findTrip(data, tripMatch[1]), data, req.headers["x-qipi-actor"] || "") });
       }
 
       const closeMatch = /^\/api\/trips\/([0-9a-f-]+)\/close$/.exec(path);

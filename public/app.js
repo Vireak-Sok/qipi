@@ -254,7 +254,6 @@ function renderAccount() {
   $("#rail-avatar").textContent = name ? initials(name) : "Q";
   $("#composer-avatar").textContent = name ? initials(name) : "Q";
   $("#rail-user-name").textContent = name || t("guestTraveler");
-  $("#rail-user-caption").textContent = name ? t("memberSince") : t("joinCommunity");
 }
 
 async function refreshMe() {
@@ -269,7 +268,7 @@ function renderRoutes() {
     <article class="route-card ${esc(route.accent)}">
       <button type="button" class="route-card-button" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
         <div class="route-card-visual"><span class="route-card-tag">${esc(label(route.label))}</span><span class="road"></span><span class="pin"></span><span class="pin end"></span><span class="visual-number">0${index + 1}</span></div>
-        <div class="route-card-body"><div class="route-meta">${esc(label(route.duration))} · ${esc(label(route.mode))}</div><h3>${esc(label(route.title))}</h3><p>${esc(label(route.summary))}</p><div class="route-card-footer"><span>${esc(t("viewRoute"))}</span><span class="round-arrow" aria-hidden="true">↗</span></div></div>
+        <div class="route-card-body"><div class="route-meta">${esc(label(route.duration))} · ${esc(label(route.mode))}</div><h3>${esc(label(route.title))}</h3><div class="route-card-footer"><span>${esc(t("viewRoute"))}</span><span class="round-arrow" aria-hidden="true">↗</span></div></div>
       </button>
     </article>`).join("") : `<p class="small-copy">${esc(t("routeFilterEmpty"))}</p>`;
 }

@@ -853,3 +853,11 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .settings-back{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--border-soft);border-radius:12px;background:var(--surface-card);color:var(--brand-strong);transition:background .16s,border-color .16s,box-shadow .16s}
 .settings-back:hover{background:var(--surface-selected);border-color:var(--border-control)}
 .settings-back:focus-visible,.search-results-back:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+
+/* Quiet, consistent back navigation controls. */
+.search-results-title-row{flex-direction:column;align-items:flex-start;gap:9px}
+.search-results-back{display:inline-flex;align-items:center;gap:8px;flex:none;min-height:32px;padding:0 2px;border:0;border-radius:8px;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:color .16s}
+.search-results-back:hover{color:var(--brand-strong)}
+.search-results-back .heroicon{box-sizing:border-box;width:28px;height:28px;padding:6px;border:1px solid var(--border-soft);border-radius:50%;background:var(--surface-card);color:var(--brand-strong);transition:background .16s,border-color .16s}
+.search-results-back:hover .heroicon{background:var(--surface-selected);border-color:var(--border-control)}
+.settings-back{border-radius:50%}

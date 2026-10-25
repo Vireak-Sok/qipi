@@ -95,6 +95,13 @@
 :root[data-theme="dark"] .icon-button{background:#222d26;border-color:#303c34;color:#d5e7ce}
 :root[data-theme="dark"] .right-fab{border-color:#355e4c;background:linear-gradient(115deg,#253d30,#315540)}
 :root[data-theme="dark"] .right-fab-copy small{color:#d0e0d1}
+
+/* Keep side cards content-sized and show focus rings inside clipping containers. */
+@media(min-width:961px){
+  .right-rail,.settings-open .right-rail{display:flex;height:auto;max-height:calc(100vh - 112px);bottom:auto;align-content:flex-start;align-items:stretch}
+  .right-rail>.right-card{height:auto;min-height:0;flex:0 0 auto}
+}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--orange);outline-offset:-3px}
 .rail-nav button.active{background:#f0f4ee;color:#1a493e}.mobile-nav button.active{color:#1a493e}
 .heroicon{display:inline-block;width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
 .top-search>.heroicon{width:18px;height:18px}

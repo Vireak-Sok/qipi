@@ -31,7 +31,10 @@ const $ = (selector) => document.querySelector(selector);
 const t = (key) => copy[state.lang][key] || copy.en[key] || key;
 const label = (value) => value?.[state.lang] || value?.en || "";
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-const initials = (value) => String(value || "Q").trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
+const initials = (value) => {
+  const parts = String(value || "Q").match(/[\p{L}\p{N}]+/gu) || [];
+  return parts.slice(0, 2).map((part) => Array.from(part)[0] || "").join("").toUpperCase() || "Q";
+};
 const displayName = () => auth.user?.user_metadata?.display_name?.trim() || auth.user?.email?.split("@")[0] || "";
 const dateToday = () => {
   const parts = new Intl.DateTimeFormat("en-US", {

@@ -299,7 +299,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close),
 .right-fab{height:52px;min-height:52px}
 .right-fab-icon{width:34px;height:34px}
 .right-fab-icon .heroicon{width:20px;height:20px}
-button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):not(.notification-close):not(.settings-back):not(.account-button):not(.icon-button):not(.auth-switch button):not(.auth-forgot):not(.auth-subtle):not(.plain-button):not(.settings-signout):not(.mobile-nav button){min-height:var(--control-height)}
+button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):not(.notification-close):not(.settings-back):not(.account-button):not(.icon-button):not(.auth-switch button):not(.auth-forgot):not(.auth-subtle):not(.plain-button):not(.settings-signout):not(.mobile-nav button):not(.post-utility-action){min-height:var(--control-height)}
 @media(max-width:700px){
   .notification-button,.account-button{height:38px;min-height:38px}
   .notification-button{width:38px}
@@ -861,3 +861,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .search-results-back .heroicon{box-sizing:border-box;width:28px;height:28px;padding:6px;border:1px solid var(--border-soft);border-radius:50%;background:var(--surface-card);color:var(--brand-strong);transition:background .16s,border-color .16s}
 .search-results-back:hover .heroicon{background:var(--surface-selected);border-color:var(--border-control)}
 .settings-back{border-radius:50%}
+
+.post-actions .post-utility-action{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:36px;height:36px;min-height:36px;padding:6px;border-radius:10px}
+.post-actions .post-utility-action.post-like{width:auto;min-width:42px;padding-inline:7px}
+.post-actions .post-utility-action:not(.post-like):hover{background:var(--surface-selected)}

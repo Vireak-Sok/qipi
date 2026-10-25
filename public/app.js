@@ -467,6 +467,7 @@ function setPageView(view) {
   renderRoutes();
   const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isProfile ? "#profile" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
+  document.documentElement.removeAttribute("data-profile-pending");
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -973,7 +974,8 @@ async function authSuccess() {
   pendingAction = null;
   if (action) action();
   else {
-    if (wasEntryPage) await loadFeedData();
+    // Shared profile links resume on that profile without fetching the feed first.
+    if (wasEntryPage && entryReturnView !== "profile") await loadFeedData();
     await openStartupDeepLink();
   }
 }
@@ -1005,7 +1007,8 @@ document.addEventListener("click", async (eventTarget) => {
     button.disabled = true;
     saveEntryChoice("guest");
     await restoreEntryReturnView();
-    await loadFeedData();
+    // Profile links use their own loading state and data request.
+    if (entryReturnView !== "profile") await loadFeedData();
     await openStartupDeepLink();
     return;
   }
@@ -1306,12 +1309,19 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 // Load the app state before routing to the requested screen.
 async function initialize() {
   const signupRoute = location.hash === "#signup";
-  entryReturnView = viewFromHash(location.hash);
+  const startupProfileId = new URLSearchParams(location.search).get("profile");
+  const startupQuery = new URLSearchParams(location.search);
+  const hasStartupProfile = Boolean(startupProfileId && !startupQuery.has("route") && !startupQuery.has("trip") && !signupRoute && !auth.recovery);
+  entryReturnView = hasStartupProfile ? "profile" : viewFromHash(location.hash);
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {
     document.documentElement.dataset.entryPending = "true";
   }
-  renderFeedLoading();
+  if (hasStartupProfile && !showEntryImmediately) {
+    state.profileId = startupProfileId;
+    renderProfileLoading();
+    setPageView("profile");
+  } else if (!hasStartupProfile) renderFeedLoading();
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
@@ -1329,9 +1339,9 @@ async function initialize() {
     document.documentElement.removeAttribute("data-signup-pending");
     if (signupRoute && auth.user) setPageView("settings");
   }
-  if (state.view !== "entry") await loadFeedData();
-  if ($("#trip-list [data-action='retry-feed']")) return;
-  if (state.view !== "entry" && state.view !== "signup" && !signupRoute) {
+  if (state.view !== "entry" && !hasStartupProfile) await loadFeedData();
+  if (!hasStartupProfile && $("#trip-list [data-action='retry-feed']")) return;
+  if (!hasStartupProfile && state.view !== "entry" && state.view !== "signup" && !signupRoute) {
     if (entryReturnView === "saved") await openSavedTrips();
     else setPageView(entryReturnView);
   }

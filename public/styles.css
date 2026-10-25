@@ -274,6 +274,8 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 /* Keyboard focus */
 :root{--focus-ring:#b94f32;--focus-ring-soft:rgba(221,114,84,.22)}
 :where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+/* The left rail scrolls, so keep its focus ring inside the scrollport. */
+.left-rail :focus-visible{outline-offset:-3px}
 :where(.feed-filter):focus-within{border-color:var(--focus-ring);outline:2px solid var(--focus-ring);outline-offset:2px;box-shadow:0 0 0 4px var(--focus-ring-soft)}
 :where(.feed-filter select):focus-visible{outline:none}
 .stories-section{overflow:visible}

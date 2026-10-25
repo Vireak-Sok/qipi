@@ -1,4 +1,4 @@
-import { QipiAuth } from "./auth.js";
+import { QipiAuth } from "./auth.js?v=signup-20261025";
 
 const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
 
@@ -277,6 +277,13 @@ Object.assign(copy.zh, {
 Object.assign(copy.en, { searchLabel: "Search", recentSearches: "Recent", editSearches: "Edit", doneEditingSearches: "Done", removeRecentSearch: "Remove recent search", clearSearch: "Clear search", searchRecentEmpty: "Searches you make will appear here.", searchRecentNoMatch: "No recent searches match.", searchResults: "Search results", filters: "Filters", allTrips: "All trips", upcomingOnly: "Upcoming trips only", allTransport: "All transport", noSearchResults: "No trips match these filters.", searchTryAnother: "Try another search or adjust your filters.", searchResultCount: "trips found", savedIntro: "Your bookmarked trips, all in one place.", savedEmptyTitle: "Nothing saved yet", savedEmptyBody: "Bookmark a trip to keep it here." });
 Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "ស្វែងរកថ្មីៗ", editSearches: "កែសម្រួល", doneEditingSearches: "រួចរាល់", removeRecentSearch: "លុបការស្វែងរក", clearSearch: "សម្អាតការស្វែងរក", searchRecentEmpty: "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", searchRecentNoMatch: "មិនមានការស្វែងរកថ្មីៗដែលត្រូវគ្នាទេ។", navTrips: "ដំណើរខាងមុខ", searchResults: "លទ្ធផលស្វែងរក", filters: "តម្រង", allTrips: "ដំណើរទាំងអស់", upcomingOnly: "តែដំណើរខាងមុខ", allTransport: "មធ្យោបាយធ្វើដំណើរទាំងអស់", noSearchResults: "មិនមានដំណើរដែលត្រូវនឹងតម្រងទាំងនេះទេ។", searchTryAnother: "សាកស្វែងរកពាក្យផ្សេង ឬ កែតម្រង។", searchResultCount: "ដំណើរដែលរកឃើញ", savedIntro: "ដំណើរដែលអ្នកបានរក្សាទុកនៅកន្លែងតែមួយ។", savedEmptyTitle: "មិនទាន់មានដំណើរដែលបានរក្សាទុកទេ", savedEmptyBody: "ចុចសញ្ញាចំណាំលើដំណើរដើម្បីរក្សាទុកនៅទីនេះ។" });
 Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", searchRecentNoMatch: "没有匹配的最近搜索。", navTrips: "即将出发", searchResults: "搜索结果", filters: "筛选", allTrips: "全部行程", upcomingOnly: "仅显示即将出发", allTransport: "全部交通方式", noSearchResults: "没有符合这些筛选条件的行程。", searchTryAnother: "试试其他关键词或调整筛选条件。", searchResultCount: "条行程", savedIntro: "收藏的行程都在这里。", savedEmptyTitle: "还没有收藏行程", savedEmptyBody: "点击行程上的书签，即可将它保存在这里。" });
+
+const signupCopy = {
+  en: { signupEyebrow: "JOIN THE COMMUNITY", signupTitle: "Create your Qipi account", signupIntro: "Tell us a little about yourself and how you like to travel.", signupStepAccount: "Account", signupStepTravel: "Travel profile", signupAccountHeading: "Start with your account", signupAccountCopy: "Your name or nickname will appear on trips you share.", signupConfirmPassword: "Confirm password", signupContinue: "Continue", signupTravelHeading: "Make it your travel profile", signupTravelCopy: "Choose the kinds of trips you enjoy. You can edit these later in Settings.", signupHomeBase: "Home base (city or province)", signupHomeBasePlaceholder: "For example, Phnom Penh", signupHomeBaseHint: "Share a general area, not your address.", signupInterests: "Your travel styles", signupInterestsHint: "Choose up to three.", signupBio: "A short intro (optional)", signupBioPlaceholder: "Where would you like to go next?", signupBioHint: "A few words are enough. Keep contact details private.", signupBack: "Back", signupCheckEmailTitle: "Check your email", signupAsideTitle: "Find your kind of weekend.", signupAsideCopy: "Save routes, share plans, and meet people headed your way.", signupPasswordMismatch: "Passwords do not match.", signupChooseStyle: "Choose at least one travel style.", signupStyleLimit: "Choose up to three travel styles.", travelSolo: "Solo", travelBackpacking: "Backpacking", travelAdventure: "Adventure", travelMotorTrips: "Motor trips", travelRoadTrips: "Road trips", travelGroupTrips: "Group trips" },
+  km: { signupEyebrow: "ចូលរួមសហគមន៍", signupTitle: "បង្កើតគណនី Qipi", signupIntro: "ប្រាប់យើងបន្តិចអំពីអ្នក និងរបៀបធ្វើដំណើរដែលអ្នកចូលចិត្ត។", signupStepAccount: "គណនី", signupStepTravel: "ប្រវត្តិដំណើរ", signupAccountHeading: "ចាប់ផ្តើមពីគណនីរបស់អ្នក", signupAccountCopy: "ឈ្មោះ ឬឈ្មោះហៅក្រៅរបស់អ្នកនឹងបង្ហាញលើដំណើរដែលអ្នកចែករំលែក។", signupConfirmPassword: "បញ្ជាក់ពាក្យសម្ងាត់", signupContinue: "បន្ត", signupTravelHeading: "បង្កើតប្រវត្តិដំណើររបស់អ្នក", signupTravelCopy: "ជ្រើសរើសប្រភេទដំណើរដែលអ្នកចូលចិត្ត។ អ្នកអាចកែប្រែពេលក្រោយក្នុងការកំណត់។", signupHomeBase: "ទីក្រុង ឬខេត្តដែលអ្នកនៅ", signupHomeBasePlaceholder: "ឧទាហរណ៍ ភ្នំពេញ", signupHomeBaseHint: "ប្រាប់តែតំបន់ទូទៅ កុំបញ្ចូលអាសយដ្ឋាន។", signupInterests: "របៀបធ្វើដំណើរ", signupInterestsHint: "ជ្រើសរើសបានរហូតដល់បី។", signupBio: "ណែនាំខ្លួនខ្លីៗ (មិនបាច់បំពេញ)", signupBioPlaceholder: "អ្នកចង់ទៅទីណាបន្ទាប់?", signupBioHint: "សរសេរខ្លីៗបានហើយ។ រក្សាព័ត៌មានទំនាក់ទំនងជាឯកជន។", signupBack: "ត្រឡប់", signupCheckEmailTitle: "ពិនិត្យអ៊ីមែលរបស់អ្នក", signupAsideTitle: "ស្វែងរកចុងសប្ដាហ៍ដែលសមនឹងអ្នក។", signupAsideCopy: "រក្សាទុកផ្លូវ ចែករំលែកគម្រោង និងជួបអ្នកធ្វើដំណើរទៅទិសដៅដូចគ្នា។", signupPasswordMismatch: "ពាក្យសម្ងាត់មិនត្រូវគ្នា។", signupChooseStyle: "ជ្រើសរើសរបៀបធ្វើដំណើរយ៉ាងហោចណាស់មួយ។", signupStyleLimit: "ជ្រើសរើសបានរហូតដល់បី។", travelSolo: "ម្នាក់ឯង", travelBackpacking: "ស្ពាយកាបូប", travelAdventure: "ផ្សងព្រេង", travelMotorTrips: "ដំណើរម៉ូតូ", travelRoadTrips: "ដំណើរតាមផ្លូវ", travelGroupTrips: "ដំណើរជាក្រុម" },
+  zh: { signupEyebrow: "加入社区", signupTitle: "创建 Qipi 账号", signupIntro: "介绍一下你自己和喜欢的旅行方式。", signupStepAccount: "账号", signupStepTravel: "旅行资料", signupAccountHeading: "先创建账号", signupAccountCopy: "你的姓名或昵称会显示在分享的行程中。", signupConfirmPassword: "确认密码", signupContinue: "继续", signupTravelHeading: "完善旅行资料", signupTravelCopy: "选择你喜欢的旅行方式。之后可以在设置中修改。", signupHomeBase: "常住城市或省份", signupHomeBasePlaceholder: "例如：金边", signupHomeBaseHint: "只填写大致地区，不要填写详细地址。", signupInterests: "旅行方式", signupInterestsHint: "最多选三项。", signupBio: "简短介绍（选填）", signupBioPlaceholder: "下一站想去哪里？", signupBioHint: "写几句即可。请保护联系方式。", signupBack: "返回", signupCheckEmailTitle: "请查收邮件", signupAsideTitle: "找到适合你的周末。", signupAsideCopy: "收藏路线，分享计划，结识同路人。", signupPasswordMismatch: "两次输入的密码不一致。", signupChooseStyle: "请至少选择一种旅行方式。", signupStyleLimit: "最多选择三种旅行方式。", travelSolo: "独自旅行", travelBackpacking: "背包旅行", travelAdventure: "探险", travelMotorTrips: "摩托骑行", travelRoadTrips: "公路旅行", travelGroupTrips: "结伴旅行" }
+};
+Object.keys(signupCopy).forEach((lang) => Object.assign(copy[lang], signupCopy[lang]));
 
 const auth = new QipiAuth();
 const state = {
@@ -604,9 +611,12 @@ function renderSettings() {
   const content = $("#settings-account-content");
   if (!content) return;
   const name = displayName();
+  const metadata = auth.user?.user_metadata || {};
+  const travelStyles = Array.isArray(metadata.travel_styles) ? metadata.travel_styles : [];
+  const travelOptions = [["solo", "travelSolo"], ["backpacking", "travelBackpacking"], ["adventure", "travelAdventure"], ["motor-trips", "travelMotorTrips"], ["road-trips", "travelRoadTrips"], ["group-trips", "travelGroupTrips"]];
   content.innerHTML = auth.user
     ? `<div class="settings-profile"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div>
-      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
+      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="field"><label for="settings-home-base">${esc(t("signupHomeBase"))}</label><input id="settings-home-base" name="homeBase" value="${esc(metadata.home_base || "")}" maxlength="80" /></div><fieldset class="signup-interests"><legend>${esc(t("signupInterests"))}</legend><p>${esc(t("signupInterestsHint"))}</p><div class="signup-interest-grid">${travelOptions.map(([value, key]) => `<label><input type="checkbox" name="travelStyle" value="${value}" ${travelStyles.includes(value) ? "checked" : ""} /><span>${esc(t(key))}</span></label>`).join("")}</div></fieldset><div class="field"><label for="settings-bio">${esc(t("signupBio"))}</label><textarea id="settings-bio" name="bio" rows="3" maxlength="160">${esc(metadata.bio || "")}</textarea></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
   $("#settings-theme").value = state.theme;
@@ -624,7 +634,9 @@ function setPageView(view) {
   const isExplore = view === "explore";
   const isSearchResults = view === "search-results";
   const isSaved = view === "saved";
+  const isSignup = view === "signup";
   main.classList.toggle("settings-open", isSettings || isSaved);
+  main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
   $("#search-filter-panel").hidden = !isSearchResults;
@@ -634,15 +646,16 @@ function setPageView(view) {
   document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
   document.querySelectorAll('.rail-nav [data-action="saved-trips"], .mobile-nav [data-action="saved-trips"]').forEach((item) => item.classList.toggle("active", isSaved));
-  document.querySelectorAll(".feed-column > :not(#settings-view):not(#saved-view)").forEach((section) => {
-    section.hidden = isSettings || isSaved || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll(".feed-column > :not(#settings-view):not(#saved-view):not(#signup-view)").forEach((section) => {
+    section.hidden = isSettings || isSaved || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   settings.hidden = !isSettings;
   $("#saved-view").hidden = !isSaved;
+  $("#signup-view").hidden = !isSignup;
   if (isSettings) renderSettings();
   if (isSaved) renderTrips();
   renderRoutes();
-  const targetHash = isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
+  const targetHash = isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -905,6 +918,46 @@ async function shareTrip(id) {
 }
 
 let pendingAction = null;
+let signupReturnView = "feed";
+function signupError(message = "") {
+  const box = document.querySelector('.signup-step:not([hidden]) .error-message');
+  if (box) { box.textContent = message; box.classList.toggle("show", Boolean(message)); }
+}
+function setSignupStep(step) {
+  document.querySelectorAll("[data-signup-step]").forEach((section) => { section.hidden = Number(section.dataset.signupStep) !== step; });
+  document.querySelectorAll("[data-signup-progress]").forEach((item) => {
+    const number = Number(item.dataset.signupProgress);
+    item.classList.toggle("is-current", number === step);
+    item.classList.toggle("is-complete", number < step);
+  });
+  signupError();
+}
+function validateSignupAccount() {
+  for (const input of document.querySelectorAll('[data-signup-step="1"] input')) {
+    if (!input.checkValidity()) { setSignupStep(1); input.reportValidity(); input.focus(); return false; }
+  }
+  if ($("#signup-password").value !== $("#signup-confirm-password").value) {
+    setSignupStep(1);
+    signupError(t("signupPasswordMismatch"));
+    $("#signup-confirm-password").focus();
+    return false;
+  }
+  signupError();
+  return true;
+}
+function openSignupPage() {
+  if (auth.user) { openSettings(); return; }
+  if (state.view !== "signup") signupReturnView = state.view === "search-results" ? "feed" : state.view;
+  closeDialogs();
+  document.documentElement.removeAttribute("data-entry-pending");
+  document.documentElement.removeAttribute("data-signup-pending");
+  saveEntryChoice("account");
+  $("#signup-form").reset();
+  $("#signup-confirmation").hidden = true;
+  $("#signup-form .signup-progress").hidden = false;
+  setSignupStep(1);
+  setPageView("signup");
+}
 function requireSignIn(action) {
   if (!auth.enabled || auth.user) { action(); return; }
   pendingAction = action;
@@ -912,6 +965,7 @@ function requireSignIn(action) {
 }
 
 function openAuth(mode = "signin") {
+  if (mode === "signup") { openSignupPage(); return; }
   if (!auth.enabled) {
     showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profile"))}</h2><p class="dialog-intro">${esc(t("authUnavailable"))}</p>`);
     return;
@@ -921,21 +975,20 @@ function openAuth(mode = "signin") {
     showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profileTitle"))}</h2><div class="profile-summary"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div><div class="dialog-actions"><button class="button button-primary" type="button" data-action="my-trips">${esc(t("myTrips"))}</button><button class="button button-ghost" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div>`);
     return;
   }
-  const signup = mode === "signup";
   const recover = mode === "recover";
   const reset = mode === "reset";
-  const title = t(signup ? "authHeadingSignUp" : recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
-  const description = t(signup ? "authDescriptionSignUp" : recover ? "authDescriptionRecover" : reset ? "authDescriptionReset" : "authDescriptionSignIn");
+  const title = t(recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
+  const description = t(recover ? "authDescriptionRecover" : reset ? "authDescriptionReset" : "authDescriptionSignIn");
   const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
     <div class="field">
       <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
       <input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required />
     </div>`;
-  const submitLabel = signup ? t("signUp") : recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
+  const submitLabel = recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
   const form = reset
     ? `<form class="auth-form" id="auth-form" data-mode="reset">${passwordField(false, "new-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
-    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}">${signup ? `<div class="field"><label for="auth-name">${esc(t("displayName"))}</label><input id="auth-name" name="displayName" minlength="2" maxlength="40" autocomplete="name" required /></div>` : ""}<div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(!signup, signup ? "new-password" : "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)} ${icon("arrow-up-right")}</button></form>`;
-  showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span><span class="auth-brand-tag">${esc(t("authBrand"))}</span></div><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro auth-intro">${esc(description)}</p>${form}<div class="auth-privacy">${icon("shield-check")}<span>${esc(t("authPrivacy"))}</span></div>${!reset ? `<div class="auth-switch"><span>${esc(signup ? t("haveAccount") : t("needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${signup ? "signin" : "signup"}">${esc(signup ? t("signIn") : t("signUp"))}</button></div>` : ""}`);
+    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}"><div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(true, "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)} ${icon("arrow-up-right")}</button></form>`;
+  showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span><span class="auth-brand-tag">${esc(t("authBrand"))}</span></div><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro auth-intro">${esc(description)}</p>${form}<div class="auth-privacy">${icon("shield-check")}<span>${esc(t("authPrivacy"))}</span></div>${!reset ? `<div class="auth-switch"><span>${esc(t("needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="signup">${esc(t("signUp"))}</button></div>` : ""}`);
 }
 
 async function openStartupDeepLink() {
@@ -979,7 +1032,12 @@ document.addEventListener("click", async (eventTarget) => {
     return;
   }
   if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); await openStartupDeepLink(); return; }
-  if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); document.documentElement.removeAttribute("data-entry-pending"); return; }
+  if (action === "entry-account") { openSignupPage(); return; }
+  if (action === "entry-sign-in") { saveEntryChoice("account"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); openAuth("signin"); return; }
+  if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
+  if (action === "signup-previous") { setSignupStep(1); return; }
+  if (action === "signup-exit") { setPageView(signupReturnView); return; }
+  if (action === "signup-sign-in") { setPageView("feed"); openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
@@ -1040,15 +1098,50 @@ document.addEventListener("keydown", (eventTarget) => {
   }
 });
 
+document.addEventListener("change", (eventTarget) => {
+  const input = eventTarget.target;
+  if (input.matches('input[name="travelStyle"]') && input.checked) {
+    const form = input.closest("form");
+    if (form?.querySelectorAll('input[name="travelStyle"]:checked').length > 3) {
+      input.checked = false;
+      if (form.id === "signup-form") signupError(t("signupStyleLimit"));
+      else setError(form, t("signupStyleLimit"));
+    } else if (form?.id === "signup-form") signupError();
+  }
+});
+
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "signup-form") {
+    eventTarget.preventDefault();
+    if (!validateSignupAccount()) return;
+    const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
+    if (!travelStyles.length) { signupError(t("signupChooseStyle")); return; }
+    if (travelStyles.length > 3) { signupError(t("signupStyleLimit")); return; }
+    const submit = form.querySelector('[data-signup-step="2"] button[type="submit"]');
+    submit.disabled = true;
+    const values = Object.fromEntries(new FormData(form));
+    try {
+      const signedIn = await auth.signUp({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
+      if (signedIn) { await authSuccess(); setPageView("feed"); toast(t("profileSaved")); }
+      else {
+        form.querySelectorAll(".signup-step").forEach((step) => { step.hidden = true; });
+        form.querySelector(".signup-progress").hidden = true;
+        $("#signup-confirmation").hidden = false;
+      }
+    } catch (error) { signupError(error.message || t("failed")); }
+    finally { submit.disabled = false; }
+    return;
+  }
   if (form.id === "settings-profile-form") {
     eventTarget.preventDefault();
     const submit = form.querySelector("button[type=submit]");
     submit.disabled = true;
     try {
       const values = Object.fromEntries(new FormData(form));
-      await auth.updateProfile(values.displayName.trim());
+      const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
+      if (travelStyles.length > 3) throw new Error(t("signupStyleLimit"));
+      await auth.updateProfile({ displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
       renderAccount(); renderSettings(); toast(t("profileSaved"));
     } catch (error) { setError(form, error.message || t("profileSaveError")); }
     finally { submit.disabled = false; }
@@ -1060,11 +1153,7 @@ document.addEventListener("submit", async (eventTarget) => {
     submit.disabled = true;
     const values = Object.fromEntries(new FormData(form));
     try {
-      if (form.dataset.mode === "signup") {
-        const signedIn = await auth.signUp(values);
-        if (signedIn) await authSuccess();
-        else form.insertAdjacentHTML("beforeend", `<p class="auth-status">${esc(t("checkEmail"))}</p>`);
-      } else if (form.dataset.mode === "signin") {
+      if (form.dataset.mode === "signin") {
         await auth.signIn(values);
         await authSuccess();
       } else if (form.dataset.mode === "recover") {
@@ -1164,7 +1253,8 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 });
 
 async function initialize() {
-  const showEntryImmediately = !auth.session && !auth.recovery && !entryChoice();
+  const signupRoute = location.hash === "#signup";
+  const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {
     document.documentElement.dataset.entryPending = "true";
     $("#entry-dialog").showModal();
@@ -1178,10 +1268,15 @@ async function initialize() {
     saveEntryChoice("account");
     if ($("#entry-dialog").open) $("#entry-dialog").close();
     document.documentElement.removeAttribute("data-entry-pending");
-  } else if (!auth.recovery && !entryChoice()) {
+  } else if (!signupRoute && !auth.recovery && !entryChoice()) {
     if (!$("#entry-dialog").open) $("#entry-dialog").showModal();
   } else {
     document.documentElement.removeAttribute("data-entry-pending");
+  }
+  if (signupRoute && !auth.user) openSignupPage();
+  else {
+    document.documentElement.removeAttribute("data-signup-pending");
+    if (signupRoute && auth.user) setPageView("settings");
   }
   await loadFeedData();
   if ($("#trip-list [data-action='retry-feed']")) return;

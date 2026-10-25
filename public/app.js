@@ -195,7 +195,8 @@ Object.assign(copy.en, {
   displayLanguage: "Display language", profileName: "Profile name", saveProfile: "Save profile",
   guestProfileText: "Sign in to manage your account and profile.", backToFeed: "Back to feed",
   profileSaved: "Profile updated.", profileSaveError: "Could not update your profile. Try again.",
-  notifications: "Notifications", allCaughtUp: "You're all caught up", noNotifications: "New activity will show up here."
+  notifications: "Notifications", allCaughtUp: "You're all caught up", noNotifications: "New activity will show up here.",
+  feedLoadError: "Trips and routes could not load. Check your connection and try again."
 });
 Object.assign(copy.km, {
   explore: "ស្វែងរក", seeAll: "មើលទាំងអស់", forYou: "សម្រាប់អ្នក", settings: "ការកំណត់",
@@ -204,7 +205,8 @@ Object.assign(copy.km, {
   displayLanguage: "ភាសាបង្ហាញ", profileName: "ឈ្មោះប្រវត្តិរូប", saveProfile: "រក្សាទុកប្រវត្តិរូប",
   guestProfileText: "ចូលគណនីដើម្បីគ្រប់គ្រងគណនី និង ប្រវត្តិរូប។", backToFeed: "ត្រឡប់ទៅព័ត៌មានថ្មីៗ",
   profileSaved: "បានធ្វើបច្ចុប្បន្នភាពប្រវត្តិរូប។", profileSaveError: "មិនអាចធ្វើបច្ចុប្បន្នភាពបានទេ។ សូមសាកម្តងទៀត។",
-  notifications: "ការជូនដំណឹង", allCaughtUp: "អ្នកបានមើលទាំងអស់ហើយ", noNotifications: "សកម្មភាពថ្មីៗនឹងបង្ហាញនៅទីនេះ។"
+  notifications: "ការជូនដំណឹង", allCaughtUp: "អ្នកបានមើលទាំងអស់ហើយ", noNotifications: "សកម្មភាពថ្មីៗនឹងបង្ហាញនៅទីនេះ។",
+  feedLoadError: "មិនអាចទាញយកដំណើរ និង ផ្លូវបានទេ។ សូមពិនិត្យការតភ្ជាប់ រួចសាកម្ដងទៀត។"
 });
 Object.assign(copy.zh, {
   home: "首页", saved: "已收藏", profile: "个人主页", signIn: "登录", signOut: "退出登录",
@@ -248,13 +250,15 @@ Object.assign(copy.zh, {
   spam: "垃圾内容", other: "其他", details: "补充说明（选填）", sendReport: "提交举报",
   loading: "加载中…", retry: "重试", copied: "链接已复制", failed: "出错了，请重试。",
   noTripsFilter: "此路线暂无即将出发的行程。", profileSaved: "资料已更新。",
-  notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。"
+  notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。",
+  feedLoadError: "路线和行程加载失败。请检查网络连接后重试。"
 });
 
 const auth = new QipiAuth();
 const state = {
   lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
   routes: [], trips: [], filter: "", search: "", me: null, view: "feed",
+  feedRequestActive: false,
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   theme: ["system", "light", "dark"].includes(localStorage.getItem("qipi:theme")) ? localStorage.getItem("qipi:theme") : "system",
   preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
@@ -410,6 +414,7 @@ async function refreshMe() {
 }
 
 function renderRoutes() {
+  const routeGrid = $("#route-grid");
   const visible = state.routes.filter((route) => !state.search || `${label(route.title)} ${label(route.summary)}`.toLowerCase().includes(state.search));
   const inExplore = state.view === "explore";
   const routeSection = $("#routes");
@@ -417,7 +422,8 @@ function renderRoutes() {
   $("#routes-title").textContent = inExplore ? t("exploreRoutes") : t("explore");
   $("#routes .text-link").hidden = inExplore;
   $("#routes .explore-description").hidden = !inExplore;
-  $("#route-grid").innerHTML = visible.length ? visible.map((route, index) => inExplore ? `
+  routeGrid.setAttribute("aria-busy", "false");
+  routeGrid.innerHTML = visible.length ? visible.map((route, index) => inExplore ? `
     <button type="button" class="explore-route-card ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
       <span class="explore-route-art"><span class="explore-route-index">0${index + 1}</span><span class="explore-route-mark">${icon("map-pin")}</span><span class="explore-route-kind">${esc(label(route.label))}</span></span>
       <span class="explore-route-copy"><strong>${esc(label(route.title))}</strong><span>${esc(label(route.summary))}</span><small>${icon("clock")} ${esc(label(route.duration))} <span>·</span> ${icon("truck")} ${esc(label(route.mode))}</small><b>${esc(t("viewRoute"))} ${icon("arrow-right")}</b></span>
@@ -432,13 +438,15 @@ function renderFilter() {
   $("#trip-route-filter").value = state.filter;
 }
 function renderTrips() {
+  const tripList = $("#trip-list");
   const filtered = state.trips.filter((trip) => (!state.filter || trip.routeId === state.filter) &&
     (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)));
+  tripList.setAttribute("aria-busy", "false");
   if (!filtered.length) {
-    $("#trip-list").innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("calendar")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
+    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("calendar")}</div><h3>${esc(state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(t("tripBoardEmptyBody"))}</p><button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button></div>`;
     return;
   }
-  $("#trip-list").innerHTML = filtered.map((trip) => {
+  tripList.innerHTML = filtered.map((trip) => {
     const date = dateParts(trip.date);
     const route = routeFor(trip.routeId);
     const saved = state.savedTrips.includes(trip.id);
@@ -463,6 +471,35 @@ async function loadTrips() {
   const result = await api("/api/trips");
   state.trips = result.trips;
   renderTrips();
+}
+
+function renderFeedLoading() {
+  $("#route-grid").setAttribute("aria-busy", "true");
+  $("#trip-list").setAttribute("aria-busy", "true");
+  $("#route-grid").innerHTML = `<div class="skeleton-routes" aria-hidden="true">${Array.from({ length: 3 }, () => `<span class="skeleton-story"><i></i><b></b></span>`).join("")}</div>`;
+  $("#trip-list").innerHTML = `<div class="skeleton-posts" aria-hidden="true">${Array.from({ length: 2 }, () => `<article class="skeleton-post"><span class="skeleton-post-head"><i></i><b></b></span><span class="skeleton-media"></span><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></article>`).join("")}</div>`;
+}
+
+function renderFeedError() {
+  $("#route-grid").setAttribute("aria-busy", "false");
+  $("#route-grid").replaceChildren();
+  $("#trip-list").setAttribute("aria-busy", "false");
+  $("#trip-list").innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-feed">${esc(t("retry"))}</button></div>`;
+}
+
+async function loadFeedData() {
+  if (state.feedRequestActive) return;
+  state.feedRequestActive = true;
+  renderFeedLoading();
+  try {
+    const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
+    state.routes = routeResult.routes;
+    state.trips = tripResult.trips;
+    applyLanguage();
+  } catch (error) {
+    renderFeedError();
+    toast(error.message || t("failed"));
+  } finally { state.feedRequestActive = false; }
 }
 
 async function openRoute(id, deepLink = true) {
@@ -647,6 +684,7 @@ document.addEventListener("click", async (eventTarget) => {
   }
   if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); return; }
   if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); return; }
+  if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
   if (action === "open-trip") openTrip(id);
@@ -821,24 +859,21 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 });
 
 async function initialize() {
+  renderFeedLoading();
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
   if (auth.user) saveEntryChoice("account");
   else if (!auth.recovery && !entryChoice()) $("#entry-dialog").showModal();
-  try {
-    const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
-    state.routes = routeResult.routes;
-    state.trips = tripResult.trips;
-    applyLanguage();
-    if (location.hash === "#settings") openSettings();
-    else if (location.hash === "#routes") setPageView("explore");
-    else if (location.hash === "#trips") setPageView("trips");
-    const query = new URLSearchParams(location.search);
-    if (query.has("route")) await openRoute(query.get("route"), false);
-    else if (query.has("trip")) await openTrip(query.get("trip"), false);
-    if (auth.recovery) openAuth("reset");
-  } catch (error) { toast(error.message || t("failed")); }
+  await loadFeedData();
+  if ($("#trip-list [data-action='retry-feed']")) return;
+  if (location.hash === "#settings") openSettings();
+  else if (location.hash === "#routes") setPageView("explore");
+  else if (location.hash === "#trips") setPageView("trips");
+  const query = new URLSearchParams(location.search);
+  if (query.has("route")) await openRoute(query.get("route"), false);
+  else if (query.has("trip")) await openTrip(query.get("trip"), false);
+  if (auth.recovery) openAuth("reset");
 }
 initialize();

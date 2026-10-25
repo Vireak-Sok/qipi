@@ -981,8 +981,8 @@ document.addEventListener("click", async (eventTarget) => {
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     return;
   }
-  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); return; }
-  if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); return; }
+  if (action === "entry-guest") { saveEntryChoice("guest"); $("#entry-dialog").close(); document.documentElement.removeAttribute("data-entry-pending"); return; }
+  if (action === "entry-account") { saveEntryChoice("account"); $("#entry-dialog").close(); openAuth(auth.user ? "profile" : "signin"); document.documentElement.removeAttribute("data-entry-pending"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
@@ -1168,13 +1168,22 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 });
 
 async function initialize() {
+  const showEntryImmediately = !auth.session && !auth.recovery && !entryChoice();
+  if (showEntryImmediately) $("#entry-dialog").showModal();
   renderFeedLoading();
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
-  if (auth.user) saveEntryChoice("account");
-  else if (!auth.recovery && !entryChoice()) $("#entry-dialog").showModal();
+  if (auth.user) {
+    saveEntryChoice("account");
+    if ($("#entry-dialog").open) $("#entry-dialog").close();
+    document.documentElement.removeAttribute("data-entry-pending");
+  } else if (!auth.recovery && !entryChoice()) {
+    if (!$("#entry-dialog").open) $("#entry-dialog").showModal();
+  } else {
+    document.documentElement.removeAttribute("data-entry-pending");
+  }
   await loadFeedData();
   if ($("#trip-list [data-action='retry-feed']")) return;
   if (location.hash === "#settings") openSettings();

@@ -122,7 +122,7 @@ Object.assign(copy.en, {
   travelThoughtfully: "Travel thoughtfully", safetyCopy: "Keep meeting areas general, check live conditions and agree on plans before you go.",
   howBody: "Browse the route, say hello to the host, then bring a useful note back for the next traveler.",
   authIntro: "Join Cambodia's weekend travel community. Browse freely; sign in to post and connect.",
-  authBrand: "CAMBODIA TRAVEL COMMUNITY", authHeadingSignIn: "Welcome back",
+  authBrand: "Qipi", authHeadingSignIn: "Sign in",
   authHeadingSignUp: "Create your account", authHeadingRecover: "Recover your account",
   authHeadingReset: "Choose a new password",
   authDescriptionSignIn: "Sign in to share plans, find travel companions and keep your trips together.",
@@ -132,7 +132,7 @@ Object.assign(copy.en, {
   authPrivacy: "Your email is used for sign-in and is never shown on trip posts.",
   email: "Email", password: "Password", displayName: "Name or nickname", haveAccount: "Already have an account?",
   needAccount: "New to Qipi?", forgotPassword: "Forgot password?", resetPassword: "Reset password",
-  sendReset: "Send reset link", checkEmail: "Check your email for a confirmation link, then return to Qipi.",
+  sendReset: "Send reset link", checkEmail: "Use the link we sent to confirm your account.",
   resetSent: "If this email has an account, a reset link is on its way.", passwordUpdated: "Password updated. You can keep exploring.",
   profileTitle: "Your Qipi profile", memberSince: "Signed in to the travel community",
   authUnavailable: "Sign-in is not configured for this local demo.", savedTrips: "Saved trips",
@@ -158,7 +158,7 @@ Object.assign(copy.km, {
   travelThoughtfully: "ធ្វើដំណើរដោយប្រុងប្រយ័ត្ន", safetyCopy: "ជ្រើសតំបន់ជួបទូទៅ ពិនិត្យស្ថានភាពថ្មីៗ និងឯកភាពផែនការមុនចេញដំណើរ។",
   howBody: "មើលផ្លូវ សួរសុខទុក្ខអ្នករៀបចំ ហើយចែករំលែកព័ត៌មានមានប្រយោជន៍ទៅអ្នកបន្ទាប់។",
   authIntro: "ចូលរួមសហគមន៍ធ្វើដំណើរចុងសប្ដាហ៍។ អាចមើលដោយសេរី ហើយចូលគណនីដើម្បីបង្ហោះ។",
-  authBrand: "សហគមន៍ធ្វើដំណើរកម្ពុជា", authHeadingSignIn: "សូមស្វាគមន៍មកវិញ",
+  authBrand: "Qipi", authHeadingSignIn: "ចូលគណនី",
   authHeadingSignUp: "បង្កើតគណនីរបស់អ្នក", authHeadingRecover: "សង្គ្រោះគណនីរបស់អ្នក",
   authHeadingReset: "កំណត់ពាក្យសម្ងាត់ថ្មី",
   authDescriptionSignIn: "ចូលគណនីដើម្បីចែករំលែកគម្រោង រកមិត្តរួមដំណើរ និងគ្រប់គ្រងដំណើររបស់អ្នក។",
@@ -168,7 +168,7 @@ Object.assign(copy.km, {
   authPrivacy: "អ៊ីមែលរបស់អ្នកប្រើសម្រាប់ចូលគណនី ហើយមិនបង្ហាញនៅលើដំណើរឡើយ។",
   email: "អ៊ីមែល", password: "ពាក្យសម្ងាត់", displayName: "ឈ្មោះ ឬ ឈ្មោះហៅក្រៅ", haveAccount: "មានគណនីហើយ?",
   needAccount: "ថ្មីនៅ Qipi?", forgotPassword: "ភ្លេចពាក្យសម្ងាត់?", resetPassword: "កំណត់ពាក្យសម្ងាត់ថ្មី",
-  sendReset: "ផ្ញើតំណកំណត់ឡើងវិញ", checkEmail: "ពិនិត្យអ៊ីមែលដើម្បីបញ្ជាក់គណនី រួចត្រឡប់មក Qipi។",
+  sendReset: "ផ្ញើតំណកំណត់ឡើងវិញ", checkEmail: "ប្រើតំណដែលយើងបានផ្ញើ ដើម្បីបញ្ជាក់គណនី។",
   resetSent: "បើអ៊ីមែលនេះមានគណនី តំណកំណត់ឡើងវិញកំពុងផ្ញើទៅអ្នក។", passwordUpdated: "ពាក្យសម្ងាត់បានធ្វើបច្ចុប្បន្នភាព។",
   profileTitle: "ប្រវត្តិរូប Qipi", memberSince: "បានចូលក្នុងសហគមន៍ដំណើរ",
   authUnavailable: "ការចូលគណនីមិនទាន់បានកំណត់សម្រាប់គំរូមូលដ្ឋាននេះទេ។", savedTrips: "ដំណើរដែលបានរក្សាទុក",
@@ -241,7 +241,7 @@ Object.assign(copy.zh, {
   member: "Qipi 会员", guestHost: "旅行者", tripBoardEmptyTitle: "还没有行程。",
   tripBoardEmptyBody: "有周末计划吗？分享日期和路线，邀请其他人同行。",
   signInToContinue: "请登录后继续。", authIntro: "加入柬埔寨周末旅行社区，浏览路线并结识同行者。",
-  authBrand: "柬埔寨旅行社区", authHeadingSignIn: "欢迎回来",
+  authBrand: "Qipi", authHeadingSignIn: "登录",
   authHeadingSignUp: "创建你的账号", authHeadingRecover: "找回账号",
   authHeadingReset: "设置新密码",
   authDescriptionSignIn: "登录后分享计划、结识同行者并管理你的行程。",
@@ -251,7 +251,7 @@ Object.assign(copy.zh, {
   authPrivacy: "邮箱仅用于登录，不会显示在行程帖子中。", email: "邮箱", password: "密码",
   displayName: "姓名或昵称", haveAccount: "已有账号？", needAccount: "第一次使用 Qipi？",
   forgotPassword: "忘记密码？", resetPassword: "重置密码", sendReset: "发送重置链接",
-  checkEmail: "请查看邮箱并点击确认链接，然后返回 Qipi。", resetSent: "如果该邮箱已注册，重置链接即将发送。",
+  checkEmail: "使用我们发送的链接确认账号。", resetSent: "如果该邮箱已注册，重置链接即将发送。",
   passwordUpdated: "密码已更新。", profileTitle: "你的 Qipi 个人资料", savedTrips: "已收藏的行程",
   save: "收藏", unsave: "已收藏", routeFilterEmpty: "没有找到符合条件的路线。",
   createTitle: "发布你的行程", createIntro: "告诉大家你计划去哪里、何时出发。",
@@ -279,9 +279,9 @@ Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "
 Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", searchRecentNoMatch: "没有匹配的最近搜索。", navTrips: "即将出发", searchResults: "搜索结果", filters: "筛选", allTrips: "全部行程", upcomingOnly: "仅显示即将出发", allTransport: "全部交通方式", noSearchResults: "没有符合这些筛选条件的行程。", searchTryAnother: "试试其他关键词或调整筛选条件。", searchResultCount: "条行程", savedIntro: "收藏的行程都在这里。", savedEmptyTitle: "还没有收藏行程", savedEmptyBody: "点击行程上的书签，即可将它保存在这里。" });
 
 const signupCopy = {
-  en: { signupEyebrow: "JOIN THE COMMUNITY", signupTitle: "Create your Qipi account", signupIntro: "Tell us a little about yourself and how you like to travel.", signupStepAccount: "Account", signupStepTravel: "Travel profile", signupAccountHeading: "Start with your account", signupAccountCopy: "Your name or nickname will appear on trips you share.", signupConfirmPassword: "Confirm password", signupContinue: "Continue", signupTravelHeading: "Make it your travel profile", signupTravelCopy: "Choose the kinds of trips you enjoy. You can edit these later in Settings.", signupHomeBase: "Home base (city or province)", signupHomeBasePlaceholder: "For example, Phnom Penh", signupHomeBaseHint: "Share a general area, not your address.", signupInterests: "Your travel styles", signupInterestsHint: "Choose up to three.", signupBio: "A short intro (optional)", signupBioPlaceholder: "Where would you like to go next?", signupBioHint: "A few words are enough. Keep contact details private.", signupBack: "Back", signupCheckEmailTitle: "Check your email", signupAsideTitle: "Find your kind of weekend.", signupAsideCopy: "Save routes, share plans, and meet people headed your way.", signupPasswordMismatch: "Passwords do not match.", signupChooseStyle: "Choose at least one travel style.", signupStyleLimit: "Choose up to three travel styles.", travelSolo: "Solo", travelBackpacking: "Backpacking", travelAdventure: "Adventure", travelMotorTrips: "Motor trips", travelRoadTrips: "Road trips", travelGroupTrips: "Group trips" },
-  km: { signupEyebrow: "ចូលរួមសហគមន៍", signupTitle: "បង្កើតគណនី Qipi", signupIntro: "ប្រាប់យើងបន្តិចអំពីអ្នក និងរបៀបធ្វើដំណើរដែលអ្នកចូលចិត្ត។", signupStepAccount: "គណនី", signupStepTravel: "ប្រវត្តិដំណើរ", signupAccountHeading: "ចាប់ផ្តើមពីគណនីរបស់អ្នក", signupAccountCopy: "ឈ្មោះ ឬឈ្មោះហៅក្រៅរបស់អ្នកនឹងបង្ហាញលើដំណើរដែលអ្នកចែករំលែក។", signupConfirmPassword: "បញ្ជាក់ពាក្យសម្ងាត់", signupContinue: "បន្ត", signupTravelHeading: "បង្កើតប្រវត្តិដំណើររបស់អ្នក", signupTravelCopy: "ជ្រើសរើសប្រភេទដំណើរដែលអ្នកចូលចិត្ត។ អ្នកអាចកែប្រែពេលក្រោយក្នុងការកំណត់។", signupHomeBase: "ទីក្រុង ឬខេត្តដែលអ្នកនៅ", signupHomeBasePlaceholder: "ឧទាហរណ៍ ភ្នំពេញ", signupHomeBaseHint: "ប្រាប់តែតំបន់ទូទៅ កុំបញ្ចូលអាសយដ្ឋាន។", signupInterests: "របៀបធ្វើដំណើរ", signupInterestsHint: "ជ្រើសរើសបានរហូតដល់បី។", signupBio: "ណែនាំខ្លួនខ្លីៗ (មិនបាច់បំពេញ)", signupBioPlaceholder: "អ្នកចង់ទៅទីណាបន្ទាប់?", signupBioHint: "សរសេរខ្លីៗបានហើយ។ រក្សាព័ត៌មានទំនាក់ទំនងជាឯកជន។", signupBack: "ត្រឡប់", signupCheckEmailTitle: "ពិនិត្យអ៊ីមែលរបស់អ្នក", signupAsideTitle: "ស្វែងរកចុងសប្ដាហ៍ដែលសមនឹងអ្នក។", signupAsideCopy: "រក្សាទុកផ្លូវ ចែករំលែកគម្រោង និងជួបអ្នកធ្វើដំណើរទៅទិសដៅដូចគ្នា។", signupPasswordMismatch: "ពាក្យសម្ងាត់មិនត្រូវគ្នា។", signupChooseStyle: "ជ្រើសរើសរបៀបធ្វើដំណើរយ៉ាងហោចណាស់មួយ។", signupStyleLimit: "ជ្រើសរើសបានរហូតដល់បី។", travelSolo: "ម្នាក់ឯង", travelBackpacking: "ស្ពាយកាបូប", travelAdventure: "ផ្សងព្រេង", travelMotorTrips: "ដំណើរម៉ូតូ", travelRoadTrips: "ដំណើរតាមផ្លូវ", travelGroupTrips: "ដំណើរជាក្រុម" },
-  zh: { signupEyebrow: "加入社区", signupTitle: "创建 Qipi 账号", signupIntro: "介绍一下你自己和喜欢的旅行方式。", signupStepAccount: "账号", signupStepTravel: "旅行资料", signupAccountHeading: "先创建账号", signupAccountCopy: "你的姓名或昵称会显示在分享的行程中。", signupConfirmPassword: "确认密码", signupContinue: "继续", signupTravelHeading: "完善旅行资料", signupTravelCopy: "选择你喜欢的旅行方式。之后可以在设置中修改。", signupHomeBase: "常住城市或省份", signupHomeBasePlaceholder: "例如：金边", signupHomeBaseHint: "只填写大致地区，不要填写详细地址。", signupInterests: "旅行方式", signupInterestsHint: "最多选三项。", signupBio: "简短介绍（选填）", signupBioPlaceholder: "下一站想去哪里？", signupBioHint: "写几句即可。请保护联系方式。", signupBack: "返回", signupCheckEmailTitle: "请查收邮件", signupAsideTitle: "找到适合你的周末。", signupAsideCopy: "收藏路线，分享计划，结识同路人。", signupPasswordMismatch: "两次输入的密码不一致。", signupChooseStyle: "请至少选择一种旅行方式。", signupStyleLimit: "最多选择三种旅行方式。", travelSolo: "独自旅行", travelBackpacking: "背包旅行", travelAdventure: "探险", travelMotorTrips: "摩托骑行", travelRoadTrips: "公路旅行", travelGroupTrips: "结伴旅行" }
+  en: { signupEyebrow: "", signupTitle: "Create account", signupIntro: "", signupStepAccount: "Account", signupStepTravel: "Travel profile", signupAccountHeading: "", signupAccountCopy: "", signupConfirmPassword: "Confirm password", signupContinue: "Continue", signupTravelHeading: "", signupTravelCopy: "", signupHomeBase: "Home base (optional)", signupHomeBasePlaceholder: "City or province", signupHomeBaseHint: "", signupInterests: "Travel styles", signupInterestsHint: "Choose up to three.", signupBio: "Short intro (optional)", signupBioPlaceholder: "", signupBioHint: "", signupBack: "Back", signupCheckEmailTitle: "Check your email", signupAsideTitle: "", signupAsideCopy: "", signupPasswordMismatch: "Passwords do not match.", signupChooseStyle: "Choose at least one travel style.", signupStyleLimit: "Choose up to three travel styles.", travelSolo: "Solo", travelBackpacking: "Backpacking", travelAdventure: "Adventure", travelMotorTrips: "Motor trips", travelRoadTrips: "Road trips", travelGroupTrips: "Group trips" },
+  km: { signupEyebrow: "", signupTitle: "បង្កើតគណនី", signupIntro: "", signupStepAccount: "គណនី", signupStepTravel: "របៀបធ្វើដំណើរ", signupAccountHeading: "", signupAccountCopy: "", signupConfirmPassword: "បញ្ជាក់ពាក្យសម្ងាត់", signupContinue: "បន្ត", signupTravelHeading: "", signupTravelCopy: "", signupHomeBase: "ទីក្រុង ឬខេត្ត (មិនបាច់បំពេញ)", signupHomeBasePlaceholder: "ទីក្រុង ឬខេត្ត", signupHomeBaseHint: "", signupInterests: "របៀបធ្វើដំណើរ", signupInterestsHint: "ជ្រើសរើសរហូតដល់បី។", signupBio: "ណែនាំខ្លួនខ្លីៗ (មិនបាច់បំពេញ)", signupBioPlaceholder: "", signupBioHint: "", signupBack: "ត្រឡប់", signupCheckEmailTitle: "ពិនិត្យអ៊ីមែល", signupAsideTitle: "", signupAsideCopy: "", signupPasswordMismatch: "ពាក្យសម្ងាត់មិនត្រូវគ្នា។", signupChooseStyle: "ជ្រើសរើសរបៀបធ្វើដំណើរមួយយ៉ាងតិច។", signupStyleLimit: "ជ្រើសរើសរហូតដល់បី។", travelSolo: "ម្នាក់ឯង", travelBackpacking: "ស្ពាយកាបូប", travelAdventure: "ផ្សងព្រេង", travelMotorTrips: "ដំណើរម៉ូតូ", travelRoadTrips: "ដំណើរតាមផ្លូវ", travelGroupTrips: "ដំណើរជាក្រុម" },
+  zh: { signupEyebrow: "", signupTitle: "创建账号", signupIntro: "", signupStepAccount: "账号", signupStepTravel: "旅行偏好", signupAccountHeading: "", signupAccountCopy: "", signupConfirmPassword: "确认密码", signupContinue: "继续", signupTravelHeading: "", signupTravelCopy: "", signupHomeBase: "常住城市或省份（选填）", signupHomeBasePlaceholder: "城市或省份", signupHomeBaseHint: "", signupInterests: "旅行方式", signupInterestsHint: "最多选三项。", signupBio: "简短介绍（选填）", signupBioPlaceholder: "", signupBioHint: "", signupBack: "返回", signupCheckEmailTitle: "请查收邮件", signupAsideTitle: "", signupAsideCopy: "", signupPasswordMismatch: "两次输入的密码不一致。", signupChooseStyle: "请至少选择一种旅行方式。", signupStyleLimit: "最多选择三种旅行方式。", travelSolo: "独自旅行", travelBackpacking: "背包旅行", travelAdventure: "探险", travelMotorTrips: "摩托骑行", travelRoadTrips: "公路旅行", travelGroupTrips: "结伴旅行" }
 };
 Object.keys(signupCopy).forEach((lang) => Object.assign(copy[lang], signupCopy[lang]));
 
@@ -983,7 +983,7 @@ function openAuth(mode = "signin") {
   const recover = mode === "recover";
   const reset = mode === "reset";
   const title = t(recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
-  const description = t(recover ? "authDescriptionRecover" : reset ? "authDescriptionReset" : "authDescriptionSignIn");
+  const description = recover ? t("authDescriptionRecover") : "";
   const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
     <div class="field">
       <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
@@ -992,8 +992,9 @@ function openAuth(mode = "signin") {
   const submitLabel = recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
   const form = reset
     ? `<form class="auth-form" id="auth-form" data-mode="reset">${passwordField(false, "new-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
-    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}"><div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(true, "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)} ${icon("arrow-up-right")}</button></form>`;
-  showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span><span class="auth-brand-tag">${esc(t("authBrand"))}</span></div><h2 id="auth-dialog-title">${esc(title)}</h2><p class="dialog-intro auth-intro">${esc(description)}</p>${form}<div class="auth-privacy">${icon("shield-check")}<span>${esc(t("authPrivacy"))}</span></div>${!reset ? `<div class="auth-switch"><span>${esc(t("needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="signup">${esc(t("signUp"))}</button></div>` : ""}`);
+    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}"><div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(true, "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`;
+  const switcher = reset ? "" : `<div class="auth-switch"><span>${esc(t(recover ? "haveAccount" : "needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${recover ? "signin" : "signup"}">${esc(t(recover ? "signIn" : "signUp"))}</button></div>`;
+  showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span></div><h2 id="auth-dialog-title">${esc(title)}</h2>${description ? `<p class="dialog-intro auth-intro">${esc(description)}</p>` : ""}${form}${switcher}`);
 }
 
 async function openStartupDeepLink() {

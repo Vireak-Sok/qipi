@@ -515,16 +515,16 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 
 /* Clearer semantic colors across light, dark, and system themes */
 :root{
-  --surface-canvas:#f3f6f2;--surface-card:#ffffff;--surface-field:#f5f7f4;--surface-selected:#e5efdf;
-  --text-primary:#18271f;--text-secondary:#52665a;--text-tertiary:#74847a;
-  --border-soft:#d8e2d8;--border-control:#c2d1c4;--focus-ring:#24694d;--focus-ring-soft:rgba(36,105,77,.18);
-  --brand-strong:#1c493a;--brand-soft:#d5ee91;--accent-warm:#b95c45;--surface-shadow:0 12px 30px rgba(23,45,31,.07);
+  --surface-canvas:#F1F7F6;--surface-card:#FFFFFF;--surface-field:#F6FAF9;--surface-selected:#E2F0EE;
+  --text-primary:#193238;--text-secondary:#526D70;--text-tertiary:#71868A;
+  --border-soft:#D2E2E1;--border-control:#BDD3D2;--focus-ring:#1F6570;--focus-ring-soft:rgba(31,101,112,.2);
+  --brand-strong:#1F6570;--brand-soft:#DCEDEC;--action-bg:#1F6570;--action-text:#FFFFFF;--accent-warm:#E58C70;--accent-ink:#9B5947;--surface-shadow:0 12px 30px rgba(24,66,70,.08);
 }
 :root[data-theme="dark"]{
-  --surface-canvas:#101713;--surface-card:#1b241e;--surface-field:#141c16;--surface-selected:#2b3d31;
-  --text-primary:#f0f5ef;--text-secondary:#bdc9c0;--text-tertiary:#93a197;
-  --border-soft:#2d3b32;--border-control:#405045;--focus-ring:#b6e77f;--focus-ring-soft:rgba(182,231,127,.2);
-  --brand-strong:#294a36;--brand-soft:#c7e987;--accent-warm:#efa082;--surface-shadow:0 14px 34px rgba(0,0,0,.25);
+  --surface-canvas:#10191B;--surface-card:#1B292B;--surface-field:#162224;--surface-selected:#263A3C;
+  --text-primary:#EDF4F3;--text-secondary:#B3C5C5;--text-tertiary:#8FA5A5;
+  --border-soft:#34474A;--border-control:#455B5D;--focus-ring:#84C8C3;--focus-ring-soft:rgba(132,200,195,.22);
+  --brand-strong:#84C8C3;--brand-soft:#284345;--action-bg:#84C8C3;--action-text:#102729;--accent-warm:#ED9A7C;--accent-ink:#ED9A7C;--surface-shadow:0 14px 34px rgba(0,0,0,.28);
 }
 .social-app{background:var(--surface-canvas);color:var(--text-primary)}
 .social-topbar,.stories-section,.composer-card,.right-card,.settings-card,.social-app .trip-card{background:var(--surface-card);border-color:var(--border-soft);color:var(--text-primary)}
@@ -540,7 +540,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 .account-button{background:var(--surface-selected);color:var(--brand-strong)}
 .account-avatar{background:var(--brand-strong);color:#fff}
 .icon-button{background:var(--surface-field);border-color:var(--border-soft);color:var(--brand-strong)}
-.button-primary,.composer-create,.right-fab{background:var(--brand-soft);border-color:transparent;color:#213b2b}
+.button-primary,.composer-create,.right-fab{background:var(--action-bg);border-color:transparent;color:var(--action-text)}
 .right-fab:hover,.button-primary:hover,.composer-create:hover{filter:brightness(.96)}
 .post-journey,.settings-symbol,.entry-mark{background:var(--surface-selected);border-color:var(--border-soft);color:var(--brand-strong)}
 .select-options,.desktop-search-panel,.notification-panel{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary);box-shadow:var(--surface-shadow)}
@@ -555,10 +555,15 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 :root[data-theme="dark"] .rail-nav a.active,:root[data-theme="dark"] .rail-nav button.active,:root[data-theme="dark"] .rail-nav a:hover,:root[data-theme="dark"] .rail-nav button:hover{background:var(--surface-selected);color:var(--brand-soft)}
 :root[data-theme="dark"] .account-button{background:var(--surface-selected);color:var(--text-primary)}
 :root[data-theme="dark"] .icon-button{background:var(--surface-field);border-color:var(--border-soft);color:var(--brand-soft)}
-:root[data-theme="dark"] .button-primary,:root[data-theme="dark"] .composer-create,:root[data-theme="dark"] .right-fab{background:var(--brand-soft);color:#1b2c20}
+:root[data-theme="dark"] .button-primary,:root[data-theme="dark"] .composer-create,:root[data-theme="dark"] .right-fab{background:var(--action-bg);color:var(--action-text)}
 :root[data-theme="dark"] .empty-trips{background:var(--surface-card);border-color:var(--border-control);color:var(--text-primary)}
 .trend-card a{border-color:var(--border-soft)}
 .post-actions{border-color:var(--border-soft)}
 .post-actions button{color:var(--text-secondary)}
-.post-actions button:last-child{background:var(--brand-strong);color:#fff}
-:root[data-theme="dark"] .post-actions button:last-child{background:var(--brand-soft);color:#1b2c20}
+.post-actions button:last-child{background:var(--action-bg);color:var(--action-text)}
+.trend-card a>span{color:var(--accent-ink)}
+.brand-mark{background:#164F58}
+.brand-mark span:first-child{background:var(--accent-warm)}
+.brand-word span{color:var(--accent-warm)}
+:root[data-theme="dark"] .account-avatar{background:var(--brand-strong);color:#102729}
+:root[data-theme="dark"] .post-actions button:last-child{background:var(--action-bg);color:var(--action-text)}

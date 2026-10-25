@@ -9,7 +9,7 @@
     <script src="/startup.js?v=route-refresh-20261025" blocking="render"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/styles.css?v=follow-20261025" blocking="render" />
-    <script type="module" src="/app.js?v=saved-cards-no-heading-20261025"></script>
+    <script type="module" src="/app.js?v=saved-page-no-header-20261025"></script>
   </head>
   <body class="social-app">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -55,7 +55,7 @@
 
         <section class="feed-trips" id="trips" aria-labelledby="trips-title"><div class="feed-section-head"><h2 id="trips-title" data-i18n="forYou">For you</h2><div class="feed-filter"><svg class="heroicon filter-icon" aria-hidden="true"><use href="/icons.svg#funnel"></use></svg><span class="visually-hidden" id="trip-route-filter-label" data-i18n="filterByRoute">Filter by route</span><select id="trip-route-filter" aria-labelledby="trip-route-filter-label"><option value="" data-i18n="allRoutes">All routes</option></select></div></div><div id="trip-list" class="trip-list" aria-live="polite"></div></section>
 
-        <section class="saved-page settings-page" id="saved-view" aria-labelledby="saved-title" hidden><header class="settings-header"><button type="button" class="settings-back" data-action="back-to-feed" aria-label="Back to feed" data-i18n-aria-label="backToFeed"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-left"></use></svg></button><span class="settings-symbol"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#bookmark"></use></svg></span><div><h1 id="saved-title" data-i18n="savedTrips">Saved trips</h1><p class="saved-intro" data-i18n="savedIntro">Trips you bookmark will be easy to find here.</p></div></header><div id="saved-trip-list" class="trip-list" aria-live="polite"></div></section>
+        <section class="saved-page settings-page" id="saved-view" aria-label="Saved trips" data-i18n-aria-label="savedTrips" hidden><div id="saved-trip-list" class="trip-list" aria-live="polite"></div></section>
 
         <section class="profile-page settings-page" id="profile-view" aria-labelledby="profile-page-title" hidden>
           <header class="settings-header"><button type="button" class="settings-back" data-action="profile-back" aria-label="Back to feed" data-i18n-aria-label="backToFeed"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-left"></use></svg></button><h1 id="profile-page-title" data-i18n="profilePageTitle">Profile</h1></header>

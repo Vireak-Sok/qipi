@@ -274,14 +274,14 @@ Object.assign(copy.zh, {
   notifications: "通知", allCaughtUp: "你已查看所有通知", noNotifications: "新动态会显示在这里。",
   feedLoadError: "路线和行程加载失败。请检查网络连接后重试。"
 });
-Object.assign(copy.en, { searchLabel: "Search", recentSearches: "Recent", editSearches: "Edit", doneEditingSearches: "Done", removeRecentSearch: "Remove recent search", clearSearch: "Clear search", searchRecentEmpty: "Searches you make will appear here.", searchRecentNoMatch: "No recent searches match.", searchResults: "Search results", filters: "Filters", allTrips: "All trips", upcomingOnly: "Upcoming trips only", allTransport: "All transport", noSearchResults: "No trips match these filters.", searchTryAnother: "Try another search or adjust your filters.", searchResultCount: "trips found" });
-Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "ស្វែងរកថ្មីៗ", editSearches: "កែសម្រួល", doneEditingSearches: "រួចរាល់", removeRecentSearch: "លុបការស្វែងរក", clearSearch: "សម្អាតការស្វែងរក", searchRecentEmpty: "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", searchRecentNoMatch: "មិនមានការស្វែងរកថ្មីៗដែលត្រូវគ្នាទេ។", navTrips: "ដំណើរខាងមុខ", searchResults: "លទ្ធផលស្វែងរក", filters: "តម្រង", allTrips: "ដំណើរទាំងអស់", upcomingOnly: "តែដំណើរខាងមុខ", allTransport: "មធ្យោបាយធ្វើដំណើរទាំងអស់", noSearchResults: "មិនមានដំណើរដែលត្រូវនឹងតម្រងទាំងនេះទេ។", searchTryAnother: "សាកស្វែងរកពាក្យផ្សេង ឬ កែតម្រង។", searchResultCount: "ដំណើរដែលរកឃើញ" });
-Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", searchRecentNoMatch: "没有匹配的最近搜索。", navTrips: "即将出发", searchResults: "搜索结果", filters: "筛选", allTrips: "全部行程", upcomingOnly: "仅显示即将出发", allTransport: "全部交通方式", noSearchResults: "没有符合这些筛选条件的行程。", searchTryAnother: "试试其他关键词或调整筛选条件。", searchResultCount: "条行程" });
+Object.assign(copy.en, { searchLabel: "Search", recentSearches: "Recent", editSearches: "Edit", doneEditingSearches: "Done", removeRecentSearch: "Remove recent search", clearSearch: "Clear search", searchRecentEmpty: "Searches you make will appear here.", searchRecentNoMatch: "No recent searches match.", searchResults: "Search results", filters: "Filters", allTrips: "All trips", upcomingOnly: "Upcoming trips only", allTransport: "All transport", noSearchResults: "No trips match these filters.", searchTryAnother: "Try another search or adjust your filters.", searchResultCount: "trips found", savedIntro: "Trips you bookmark will be easy to find here." });
+Object.assign(copy.km, { searchLabel: "ស្វែងរក", recentSearches: "ស្វែងរកថ្មីៗ", editSearches: "កែសម្រួល", doneEditingSearches: "រួចរាល់", removeRecentSearch: "លុបការស្វែងរក", clearSearch: "សម្អាតការស្វែងរក", searchRecentEmpty: "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។", searchRecentNoMatch: "មិនមានការស្វែងរកថ្មីៗដែលត្រូវគ្នាទេ។", navTrips: "ដំណើរខាងមុខ", searchResults: "លទ្ធផលស្វែងរក", filters: "តម្រង", allTrips: "ដំណើរទាំងអស់", upcomingOnly: "តែដំណើរខាងមុខ", allTransport: "មធ្យោបាយធ្វើដំណើរទាំងអស់", noSearchResults: "មិនមានដំណើរដែលត្រូវនឹងតម្រងទាំងនេះទេ។", searchTryAnother: "សាកស្វែងរកពាក្យផ្សេង ឬ កែតម្រង។", searchResultCount: "ដំណើរដែលរកឃើញ", savedIntro: "ដំណើរដែលអ្នកបានរក្សាទុកនឹងបង្ហាញនៅទីនេះ។" });
+Object.assign(copy.zh, { searchLabel: "搜索", recentSearches: "最近搜索", editSearches: "编辑", doneEditingSearches: "完成", removeRecentSearch: "删除最近搜索", clearSearch: "清除搜索", searchRecentEmpty: "你的搜索记录会显示在这里。", searchRecentNoMatch: "没有匹配的最近搜索。", navTrips: "即将出发", searchResults: "搜索结果", filters: "筛选", allTrips: "全部行程", upcomingOnly: "仅显示即将出发", allTransport: "全部交通方式", noSearchResults: "没有符合这些筛选条件的行程。", searchTryAnother: "试试其他关键词或调整筛选条件。", searchResultCount: "条行程", savedIntro: "收藏的行程会显示在这里。" });
 
 const auth = new QipiAuth();
 const state = {
   lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
-  routes: [], trips: [], filter: "", search: "", me: null, view: "feed",
+  routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
   feedRequestActive: false,
   savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
   theme: ["system", "light", "dark"].includes(localStorage.getItem("qipi:theme")) ? localStorage.getItem("qipi:theme") : "system",
@@ -625,21 +625,26 @@ function setPageView(view) {
   const isSettings = view === "settings";
   const isExplore = view === "explore";
   const isSearchResults = view === "search-results";
-  main.classList.toggle("settings-open", isSettings);
+  const isSaved = view === "saved";
+  main.classList.toggle("settings-open", isSettings || isSaved);
   main.classList.toggle("explore-open", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
   $("#search-filter-panel").hidden = !isSearchResults;
+  $("#saved-view").hidden = !isSaved;
   document.querySelectorAll('.rail-nav a[href="#feed"], .mobile-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav a[href="#routes"], .mobile-nav a[href="#routes"]').forEach((item) => item.classList.toggle("active", isExplore));
   document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
-  document.querySelectorAll(".feed-column > :not(#settings-view)").forEach((section) => {
-    section.hidden = isSettings || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll('.rail-nav [data-action="saved-trips"], .mobile-nav [data-action="saved-trips"]').forEach((item) => item.classList.toggle("active", isSaved));
+  document.querySelectorAll(".feed-column > :not(#settings-view):not(#saved-view)").forEach((section) => {
+    section.hidden = isSettings || isSaved || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   settings.hidden = !isSettings;
+  $("#saved-view").hidden = !isSaved;
   if (isSettings) renderSettings();
+  if (isSaved) renderTrips();
   renderRoutes();
-  const targetHash = isSettings ? "#settings" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
+  const targetHash = isSettings ? "#settings" : isSaved ? "#saved" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -702,15 +707,18 @@ function syncSearchFilterControls() {
   allButton?.setAttribute("aria-pressed", String(allActive));
 }
 function renderTrips() {
-  const tripList = $("#trip-list");
-  const filtered = state.trips.filter((trip) => (state.view === "search-results" || !state.filter || trip.routeId === state.filter) &&
+  const isSaved = state.view === "saved";
+  const tripList = $(isSaved ? "#saved-trip-list" : "#trip-list");
+  const sourceTrips = isSaved ? state.savedTripRecords : state.trips;
+  const filtered = sourceTrips.filter((trip) => isSaved ? state.savedTrips.includes(trip.id) :
+    (state.view === "search-results" || !state.filter || trip.routeId === state.filter) &&
     (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
     (state.view !== "search-results" || (!state.searchFilters.routeId || trip.routeId === state.searchFilters.routeId) && (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || trip.date >= dateToday())));
   tripList.setAttribute("aria-busy", "false");
   if (state.view === "search-results") $("#trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${t("searchResultCount")}`;
   else $("#trips-title").textContent = t("forYou");
   if (!filtered.length) {
-    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon("search")}</div><h3>${esc(state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(state.view === "search-results" ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button>`}</div>`;
+    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon(isSaved ? "bookmark" : state.view === "search-results" ? "search" : "calendar")}</div><h3>${esc(isSaved ? t("noSaved") : state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(isSaved ? t("savedIntro") : state.view === "search-results" ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : isSaved ? `<button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button>`}</div>`;
     return;
   }
   tripList.innerHTML = filtered.map((trip) => {
@@ -880,8 +888,8 @@ async function openMyTrips() {
 async function openSavedTrips() {
   try {
     const { trips } = await api("/api/trips?includeClosed=true");
-    const saved = trips.filter((trip) => state.savedTrips.includes(trip.id));
-    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("saved"))}</p><h2 id="my-dialog-title">${esc(t("savedTrips"))}</h2><div class="my-list">${saved.length ? saved.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(label(routeFor(trip.routeId)?.title))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noSaved"))}</p>`}</div>`);
+    state.savedTripRecords = trips.filter((trip) => state.savedTrips.includes(trip.id));
+    setPageView("saved");
   } catch (error) { toast(error.message || t("failed")); }
 }
 
@@ -1164,6 +1172,7 @@ async function initialize() {
   if (location.hash === "#settings") openSettings();
   else if (location.hash === "#routes") setPageView("explore");
   else if (location.hash === "#trips") setPageView("trips");
+  else if (location.hash === "#saved") await openSavedTrips();
   const query = new URLSearchParams(location.search);
   if (query.has("route")) await openRoute(query.get("route"), false);
   else if (query.has("trip")) await openTrip(query.get("trip"), false);

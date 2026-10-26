@@ -1,5 +1,5 @@
-const $ = (selector) => document.querySelector(selector);
-const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
+import { $, esc } from "./js/core.js";
+
 let token = sessionStorage.getItem("qipi:admin-token") || "";
 
 async function call(path, method = "GET", data) {

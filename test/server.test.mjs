@@ -86,7 +86,10 @@ test("access tokens are checked against Supabase Auth, not trusted from the brow
       return Response.json({ id: "user-id", email: "rider@example.test", user_metadata: { display_name: "  Rider  " } });
     }
   });
-  assert.deepEqual(await verifier.verify(token), { id: "user-id", email: "rider@example.test", displayName: "Rider" });
+  assert.deepEqual(await verifier.verify(token), {
+    id: "user-id", email: "rider@example.test", displayName: "Rider",
+    avatarPath: "", homeBase: "", interests: [], bio: ""
+  });
   assert.equal(await verifier.verify("short"), null);
 });
 

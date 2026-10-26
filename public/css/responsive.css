@@ -1,0 +1,83 @@
+/* Shared responsive component rules. Desktop geometry remains in pages.css. */
+.profile-tabs {
+  display: flex;
+  gap: 8px;
+  margin-block: 16px;
+  padding: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: var(--surface-card);
+}
+.profile-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.profile-tab.is-active {
+  color: var(--brand-strong);
+  background: var(--surface-selected);
+  font-weight: 700;
+}
+.profile-tab .heroicon { width: 20px; height: 20px; flex-shrink: 0; }
+.profile-tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+#profile-tab-panel { min-width: 0; }
+.profile-identity h2, .post-title, .post-note { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .mobile-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .mobile-nav > a, .mobile-nav > button { min-width: 0; min-height: 48px; }
+  .mobile-nav small { white-space: normal; text-align: center; line-height: 1.2; }
+  .social-app { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .feed-column, .settings-card, .profile-overview, .signup-form { min-width: 0; }
+  .settings-preference-grid, .signup-field-grid { grid-template-columns: minmax(0, 1fr); }
+  .field input, .field textarea, .field select, .search-screen-field input { font-size: 16px; }
+  .post-actions { flex-wrap: wrap; gap: 4px; }
+  .post-actions .post-utility-action, .post-actions .post-utility-action.post-like { min-width: 44px; min-height: 44px; }
+  .post-actions > button:last-child { min-height: 44px; margin-left: auto; }
+  .post-byline, .post-route { min-width: 0; }
+  .post-byline strong, .post-route strong, .post-route small { overflow-wrap: anywhere; }
+  .notification-panel { max-width: calc(100vw - 24px); }
+  .profile-actions { flex-wrap: wrap; }
+  .profile-actions .button { min-height: 44px; }
+  .profile-tab { padding-inline: 6px; gap: 5px; }
+  .panel-dialog { max-height: calc(100dvh - 24px); }
+}
+@media (max-width: 360px) {
+  .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .profile-stats > div:nth-child(2) { border-right: 0; }
+  .profile-tab { font-size: 12px; }
+  .profile-tab .heroicon { width: 18px; height: 18px; }
+  .signup-action-row { flex-wrap: wrap; gap: 16px; }
+}
+@media (max-width: 700px) {
+  .mobile-nav .mobile-create { width: 44px; height: 44px; min-height: 44px; }
+  .top-actions .icon-button, .top-actions .account-button { min-height: 44px; }
+  .post-note { font-size: 14px; line-height: 1.5; }
+  .post-byline small, .post-route small { font-size: 12px; line-height: 1.4; }
+}
+
+@media (max-width: 700px) {
+  .search-results-open .left-rail { margin-bottom: 16px; }
+}
+/* Keep primary actions on the active theme, including hover. */
+.social-app .button-primary:hover {
+  background: var(--action-bg);
+  color: var(--action-text);
+  box-shadow: var(--surface-shadow);
+}
+#profile-tab-panel > .profile-posts { margin-top: 16px; }
+@media (max-width: 700px) {
+  .mobile-nav small { font-size: 10px; }
+  .signup-action-row .signup-switch { font-size: 12px; white-space: normal; }
+  .signup-action-row .signup-primary { font-size: 13px; }
+}

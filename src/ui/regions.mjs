@@ -1,0 +1,17 @@
+import { entry } from "./pages/entry.mjs";
+import { explore } from "./pages/explore.mjs";
+import { composer } from "./pages/composer.mjs";
+import { feed } from "./pages/feed.mjs";
+import { profile } from "./pages/profile.mjs";
+import { settings } from "./pages/settings.mjs";
+import { signup } from "./pages/signup.mjs";
+import { skipLink } from "./components/skipLink.mjs";
+import { topbar } from "./components/topbar.mjs";
+import { mobileSearch } from "./components/mobileSearch.mjs";
+import { mobileNav } from "./components/mobileNav.mjs";
+import { toast } from "./components/toast.mjs";
+import { leftRail } from "./components/leftRail.mjs";
+import { rightRail } from "./components/rightRail.mjs";
+import { dialog, dialogNames } from "./components/dialog.mjs";
+export const pageRegions = [entry, explore, composer, feed, profile, settings, signup];
+export const shellRegions = { skipLink, topbar, leftRail, rightRail, mobileSearch, mobileNav, toast, dialogs: dialogNames.map(dialog) };

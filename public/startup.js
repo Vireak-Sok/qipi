@@ -36,12 +36,20 @@
   let recovering = false;
   try {
     recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
-    if (location.hash === "#signup") root.dataset.signupPending = "true";
-    if (!recovering && location.hash !== "#signup" && !sessionStorage.getItem("qipi:entry-choice")) {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const reservedPaths = new Set(["feed", "explore", "routes", "trips", "saved", "settings", "search", "entry", "signup", "profile", "post", "media", "api", "admin", "index.html"]);
+    const segments = path.split("/").filter(Boolean);
+    const profilePath = segments.length === 1 && !reservedPaths.has(segments[0].toLowerCase());
+    const legacyProfile = ["/", "/index.html"].includes(path) && new URLSearchParams(location.search).has("profile") &&
+      (!location.hash || ["#profile", "#entry"].includes(location.hash));
+    const signupRoute = path === "/signup" || location.hash === "#signup";
+    if (profilePath || legacyProfile || /^\/profile\/[^/]+\/?$/.test(path)) root.dataset.profilePending = "true";
+    if (signupRoute) root.dataset.signupPending = "true";
+    if (!recovering && !signupRoute && !sessionStorage.getItem("qipi:entry-choice")) {
       root.dataset.entryPending = "true";
     }
   } catch {
-    if (!recovering && location.hash !== "#signup") root.dataset.entryPending = "true";
+    if (!recovering && location.pathname !== "/signup") root.dataset.entryPending = "true";
   }
 
   const reveal = () => { delete root.dataset.themeBooting; };

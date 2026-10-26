@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* Keep the current Qipi design system while screens move into React components. */
+@import "../public/styles.css";

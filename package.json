@@ -4,10 +4,26 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": "24.x"
   },
   "scripts": {
-    "dev": "node server.mjs",
-    "test": "node --test"
+    "dev": "next dev --port 4173",
+    "build": "next build --webpack",
+    "start": "next start --port 4173",
+    "test": "node --test",
+    "check:production": "node scripts/check-production.mjs",
+    "generate:shell": "node scripts/generate-shell.mjs",
+    "prebuild": "node scripts/generate-shell.mjs",
+    "predev": "node scripts/generate-shell.mjs"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.3.3"
   }
 }

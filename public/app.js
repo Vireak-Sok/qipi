@@ -1,59 +1,58 @@
-import { QipiAuth } from "./auth.js?v=signup-profile-20261025";
-import { copy } from "./i18n.js?v=profiles-likes-20261025";
+import { TRAVEL_OPTIONS } from "./js/shared.js";
+import { QipiAuth } from "./auth.js";
+import { copy } from "./i18n.js";
 
-const icon = (name, className = "heroicon") => `<svg class="${className}" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
-
-function getLikeActorId() {
-  let id = localStorage.getItem("qipi:like-actor");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("qipi:like-actor", id);
-  }
-  return id;
-}
+import { $, icon, esc, profileUsernameForId, saveLocal, dateToday } from "./js/core.js";
+import { createRouter } from "./js/routing.js";
+import { createSelectControls } from "./js/selects.js";
+import { createLoadingViews } from "./js/loading.js";
+import { createApiClient } from "./js/api.js";
+import { createMediaClient } from "./js/media.js";
+import { createSearchController } from "./js/search.js";
+import { createProfileController } from "./js/profile.js";
+import { createFeedController } from "./js/feed.js";
+import { createTripCard } from "./js/trip-card.js";
+import { createAppState } from "./js/state.js";
 
 // Application state and shared helpers.
 const auth = new QipiAuth();
-const state = {
-  lang: ["en", "km", "zh"].includes(localStorage.getItem("qipi:language")) ? localStorage.getItem("qipi:language") : "en",
-  routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
-  likeActorId: getLikeActorId(), profile: null, profileReturnView: "feed",
-  feedRequestActive: false,
-  savedTrips: Array.isArray(readLocal("qipi:saved-trips")) ? readLocal("qipi:saved-trips") : [],
-  theme: window.qipiTheme?.getPreference() || "system",
-  preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
-  hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys"),
-  recentSearches: Array.isArray(readLocal("qipi:recent-searches")) ? readLocal("qipi:recent-searches") : [], searchEditing: false,
-  searchFilters: { upcoming: false, routeId: "", transport: "" }
-};
-const $ = (selector) => document.querySelector(selector);
+const state = createAppState();
 const t = (key) => copy[state.lang][key] || copy.en[key] || key;
 const label = (value) => value?.[state.lang] || value?.en || "";
-const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
-const initials = (value) => String(value || "Q").trim().split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase();
 const displayName = () => auth.user?.user_metadata?.display_name?.trim() || auth.user?.email?.split("@")[0] || "";
-const dateToday = () => {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Phnom_Penh", year: "numeric", month: "2-digit", day: "2-digit"
-  }).formatToParts(new Date());
-  const part = (name) => parts.find((item) => item.type === name).value;
-  return `${part("year")}-${part("month")}-${part("day")}`;
-};
 let toastTimeout;
 
-function readLocal(key) {
-  try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch { return {}; }
-}
-function saveLocal(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+// Controllers share the same state; render callbacks run only after initialization.
+const { usernameFromPath, profileIdFromLocation, pageUrl, viewFromLocation, setLink } = createRouter(state);
+const { enhanceSelects, syncEnhancedSelect, syncEnhancedSelects, closeEnhancedSelect } = createSelectControls();
+const { showDialogLoading, renderDialogError, renderSettingsAccountLoading, skeletonPostsMarkup, renderTripListLoading, renderRoutesLoading, renderLoadingError } = createLoadingViews({ t, showDialog });
+const { api, event } = createApiClient({ auth, state, t });
+const { appMediaUrl, avatarContents, uploadImage } = createMediaClient({ auth, t });
+const tripCardMarkup = createTripCard({ state, t, label, dateParts, dateLabel, routeFor, avatarContents, appMediaUrl });
+const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadTrips, openFeedPage, openExplorePage, openTripsPage, renderFeedLoading, loadFeedData } = createFeedController({
+  state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage,
+  tripCardMarkup: (trip) => tripCardMarkup(trip)
+});
+const { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, openMobileSearch, closeMobileSearch, bindSearchEvents } = createSearchController({
+  state, t, api, renderRoutes, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
+});
+const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = createProfileController({
+  state, auth, t, label, displayName, usernameFromPath, setLink, setPageView, api, renderFilter, renderRoutes, refreshMe, renderLoadingError, toast,
+  dateParts, dateLabel, routeFor, avatarContents, appMediaUrl, skeletonPostsMarkup, tripCardMarkup, loadSavedTrips
+});
+
 const ENTRY_CHOICE_KEY = "qipi:entry-choice";
 function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
 function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
 let entryReturnView = "feed";
-function viewFromHash(hash) {
-  return ({ "#routes": "explore", "#trips": "trips", "#saved": "saved" })[hash] || "feed";
-}
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
+  else if (entryReturnView === "profile") {
+    state.profileId = profileIdFromLocation();
+    state.profileUsername = state.profileId;
+    renderProfileLoading();
+    setPageView("profile", { preserveUrl: true });
+  }
   else setPageView(entryReturnView);
 }
 function routeFor(id) { return state.routes.find((route) => route.id === id); }
@@ -76,18 +75,6 @@ function toast(message) {
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => element.classList.remove("show"), 3500);
 }
-async function api(path, { method = "GET", data, headers = {} } = {}) {
-  const accessToken = await auth.accessToken();
-  const response = await fetch(path, {
-    method,
-    headers: { "x-qipi-actor": state.likeActorId, ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers },
-    body: data ? JSON.stringify(data) : undefined
-  });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || t("failed"));
-  return result;
-}
-function event(type, targetId) { api("/api/events", { method: "POST", data: { type, targetId } }).catch(() => {}); }
 function setError(form, message) {
   const box = form.querySelector(".error-message");
   if (box) { box.textContent = message; box.classList.add("show"); }
@@ -95,166 +82,12 @@ function setError(form, message) {
 function closeDialogs() {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
 }
-// Accessible custom select controls.
-let openSelectControl = null;
-let selectTypeahead = "";
-let selectTypeaheadTimer;
-
-function syncEnhancedSelect(select) {
-  const shell = select?.closest(".select-control");
-  const trigger = shell?.querySelector(".select-trigger");
-  if (!trigger) return;
-  const option = select.options[select.selectedIndex];
-  trigger.querySelector(".select-current").textContent = option?.textContent?.trim() || "—";
-  trigger.setAttribute("aria-valuetext", option?.textContent?.trim() || "");
-  trigger.disabled = select.disabled;
-}
-
-function closeEnhancedSelect(returnFocus = false) {
-  if (!openSelectControl) return;
-  const { trigger, menu } = openSelectControl;
-  trigger.setAttribute("aria-expanded", "false");
-  trigger.removeAttribute("aria-activedescendant");
-  trigger.removeAttribute("aria-controls");
-  menu.remove();
-  openSelectControl = null;
-  if (returnFocus) trigger.focus();
-}
-
-function focusSelectOption(index) {
-  if (!openSelectControl) return;
-  const options = [...openSelectControl.menu.querySelectorAll("[role='option']")];
-  if (!options.length) return;
-  const next = (index + options.length) % options.length;
-  options[next].focus();
-  openSelectControl.trigger.setAttribute("aria-activedescendant", options[next].id);
-}
-
-function chooseEnhancedOption(index) {
-  if (!openSelectControl) return;
-  const { select, trigger } = openSelectControl;
-  const option = select.options[index];
-  if (!option || option.disabled) return;
-  select.value = option.value;
-  select.dispatchEvent(new Event("change", { bubbles: true }));
-  syncEnhancedSelect(select);
-  closeEnhancedSelect(true);
-}
-
-function openEnhancedSelect(select) {
-  if (openSelectControl?.select === select) { closeEnhancedSelect(); return; }
-  closeEnhancedSelect();
-  const shell = select.closest(".select-control");
-  const trigger = shell?.querySelector(".select-trigger");
-  if (!trigger || select.disabled) return;
-  const menu = document.createElement("div");
-  menu.className = "select-options";
-  menu.id = `${trigger.id}-options`;
-  menu.setAttribute("role", "listbox");
-  if (trigger.getAttribute("aria-labelledby")) menu.setAttribute("aria-labelledby", trigger.getAttribute("aria-labelledby"));
-  else menu.setAttribute("aria-label", trigger.getAttribute("aria-label") || "Options");
-  menu.innerHTML = [...select.options].map((option, index) => `<button type="button" role="option" id="${menu.id}-option-${index}" class="select-option" data-option-index="${index}" aria-selected="${index === select.selectedIndex}" ${option.disabled ? "disabled" : ""}>${esc(option.textContent.trim())}${index === select.selectedIndex ? icon("check", "heroicon select-option-check") : ""}</button>`).join("");
-  const host = select.closest("dialog") || document.body;
-  host.append(menu);
-  const rect = trigger.getBoundingClientRect();
-  const width = Math.min(Math.max(rect.width, 190), window.innerWidth - 24);
-  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
-  const desiredHeight = Math.min(280, menu.scrollHeight);
-  const below = Math.max(0, window.innerHeight - rect.bottom - 12);
-  const above = Math.max(0, rect.top - 12);
-  const opensBelow = below >= desiredHeight || below >= above;
-  const available = opensBelow ? below : above;
-  const maxHeight = Math.min(280, Math.max(72, available));
-  const visibleHeight = Math.min(desiredHeight, maxHeight);
-  const rawTop = opensBelow ? rect.bottom + 6 : rect.top - visibleHeight - 6;
-  const top = Math.max(8, Math.min(rawTop, window.innerHeight - visibleHeight - 8));
-  Object.assign(menu.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, maxHeight: `${maxHeight}px` });
-  trigger.setAttribute("aria-expanded", "true");
-  trigger.setAttribute("aria-controls", menu.id);
-  openSelectControl = { select, trigger, menu };
-  menu.addEventListener("click", (eventTarget) => {
-    const option = eventTarget.target.closest("[data-option-index]");
-    if (option) chooseEnhancedOption(Number(option.dataset.optionIndex));
-  });
-  menu.addEventListener("keydown", (eventTarget) => {
-    const current = Number(eventTarget.target.closest("[data-option-index]")?.dataset.optionIndex || 0);
-    if (eventTarget.key === "ArrowDown") { eventTarget.preventDefault(); focusSelectOption(current + 1); }
-    else if (eventTarget.key === "ArrowUp") { eventTarget.preventDefault(); focusSelectOption(current - 1); }
-    else if (eventTarget.key === "Home") { eventTarget.preventDefault(); focusSelectOption(0); }
-    else if (eventTarget.key === "End") { eventTarget.preventDefault(); focusSelectOption(select.options.length - 1); }
-    else if (eventTarget.key === "Enter" || eventTarget.key === " ") { eventTarget.preventDefault(); chooseEnhancedOption(current); }
-    else if (eventTarget.key === "Escape") { eventTarget.preventDefault(); closeEnhancedSelect(true); }
-    else if (eventTarget.key === "Tab") closeEnhancedSelect();
-    else if (eventTarget.key.length === 1 && !eventTarget.ctrlKey && !eventTarget.metaKey) {
-      selectTypeahead += eventTarget.key.toLocaleLowerCase();
-      clearTimeout(selectTypeaheadTimer);
-      selectTypeaheadTimer = setTimeout(() => { selectTypeahead = ""; }, 650);
-      const match = [...select.options].findIndex((option) => option.textContent.trim().toLocaleLowerCase().startsWith(selectTypeahead));
-      if (match >= 0) { eventTarget.preventDefault(); focusSelectOption(match); }
-    }
-  });
-  menu.querySelector(`[data-option-index="${Math.max(select.selectedIndex, 0)}"]`)?.focus();
-}
-
-function enhanceSelects(root = document) {
-  const selects = [...(root.matches?.("select") ? [root] : []), ...root.querySelectorAll("select")];
-  for (const select of selects) {
-    if (select.classList.contains("select-native")) continue;
-    const shell = document.createElement("div");
-    shell.className = "select-control";
-    select.before(shell);
-    shell.append(select);
-    select.classList.add("select-native");
-    select.setAttribute("aria-hidden", "true");
-    select.tabIndex = -1;
-    const trigger = document.createElement("button");
-    trigger.type = "button";
-    trigger.className = "select-trigger";
-    trigger.id = `${select.id || "qipi-select"}-trigger`;
-    trigger.setAttribute("role", "combobox");
-    trigger.setAttribute("aria-haspopup", "listbox");
-    trigger.setAttribute("aria-expanded", "false");
-    const labelledBy = select.getAttribute("aria-labelledby");
-    const labels = [...(select.labels || [])];
-    if (!labelledBy && labels.length) {
-      const ids = labels.map((label) => { if (!label.id) label.id = `${select.id}-label`; label.htmlFor = trigger.id; return label.id; });
-      trigger.setAttribute("aria-labelledby", ids.join(" "));
-    } else if (labelledBy) trigger.setAttribute("aria-labelledby", labelledBy);
-    else trigger.setAttribute("aria-label", select.getAttribute("aria-label") || "Choose an option");
-    trigger.innerHTML = `<span class="select-current"></span>${icon("chevron-down", "heroicon select-chevron")}`;
-    shell.append(trigger);
-    trigger.addEventListener("click", () => openEnhancedSelect(select));
-    trigger.addEventListener("keydown", (eventTarget) => {
-      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(eventTarget.key)) { eventTarget.preventDefault(); openEnhancedSelect(select); }
-    });
-    select.addEventListener("change", () => syncEnhancedSelect(select));
-    syncEnhancedSelect(select);
-  }
-}
-
-function syncEnhancedSelects(root = document) {
-  const selects = [...(root.matches?.("select") ? [root] : []), ...root.querySelectorAll("select")];
-  selects.forEach(syncEnhancedSelect);
-}
-
-document.addEventListener("pointerdown", (eventTarget) => {
-  if (openSelectControl && !openSelectControl.menu.contains(eventTarget.target) && !openSelectControl.trigger.contains(eventTarget.target)) closeEnhancedSelect();
-});
-window.addEventListener("resize", () => closeEnhancedSelect());
-window.addEventListener("scroll", () => closeEnhancedSelect(), true);
-
 function showDialog(id, html) {
   closeDialogs();
   const dialog = document.getElementById(id);
   dialog.querySelector("[id$='-content']").innerHTML = html;
   enhanceSelects(dialog);
   dialog.showModal();
-}
-function setLink(param, id) {
-  const url = new URL(location.href);
-  url.search = "";
-  if (param && id) url.searchParams.set(param, id);
-  history.replaceState({}, "", url);
 }
 function applyLanguage() {
   document.documentElement.lang = state.lang === "zh" ? "zh-Hans" : state.lang;
@@ -270,92 +103,30 @@ function applyLanguage() {
 
 function renderAccount() {
   const name = displayName();
+  const signedIn = Boolean(auth.user);
   $("#account-label").textContent = name || t("signIn");
-  $("#account-avatar").innerHTML = name ? esc(initials(name)) : icon("user");
-  $("#rail-avatar").textContent = name ? initials(name) : "Q";
-  $("#composer-avatar").textContent = name ? initials(name) : "Q";
+  $("#account-label").hidden = signedIn;
+  $("#account-button").classList.toggle("is-profile-only", signedIn);
+  const avatarPath = auth.user?.user_metadata?.avatar_path || "";
+  $("#account-avatar").innerHTML = name ? avatarContents(name, avatarPath) : icon("user");
+  $("#rail-avatar").innerHTML = avatarContents(name || "Q", avatarPath);
+  $("#composer-avatar").innerHTML = avatarContents(name || "Q", avatarPath);
   $("#rail-user-name").textContent = name || t("guestTraveler");
-}
-
-function setSearch(value) {
-  const query = value.trim();
-  state.search = query.toLocaleLowerCase();
-  if ($("#feed-search")) $("#feed-search").value = query;
-  if ($("#mobile-feed-search")) $("#mobile-feed-search").value = query;
-  if ($(".search-clear")) $(".search-clear").hidden = !query;
-  renderRoutes(); renderTrips();
-}
-
-function submitSearch(value) {
-  setSearch(value);
-  saveRecentSearch(value);
-  state.filter = "";
-  state.searchFilters = { upcoming: false, routeId: "", transport: "" };
-  syncSearchFilterControls();
-  closeDesktopSearch();
-  closeMobileSearch({ save: false });
-  setPageView("search-results");
-  renderTrips();
-}
-
-function saveRecentSearch(value) {
-  const query = value.trim();
-  if (!query) return;
-  state.recentSearches = [query, ...state.recentSearches.filter((item) => item.toLocaleLowerCase() !== query.toLocaleLowerCase())].slice(0, 8);
-  saveLocal("qipi:recent-searches", state.recentSearches);
-  renderSearchRecents();
-}
-
-function renderSearchRecents() {
-  document.querySelectorAll("[data-action='toggle-search-edit']").forEach((button) => { button.textContent = state.searchEditing ? t("doneEditingSearches") : t("editSearches"); });
-  const rowMarkup = (query) => `<li class="search-recent-row"><button type="button" class="search-recent-select" data-action="select-recent-search" data-query="${esc(query)}"><span class="search-recent-icon">${icon("clock")}</span><span class="search-recent-text">${esc(query)}</span></button><button type="button" class="search-recent-remove" data-action="remove-recent-search" data-query="${esc(query)}" aria-label="${esc(t("removeRecentSearch"))}: ${esc(query)}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button></li>`;
-  const desktopQuery = $("#feed-search")?.value.trim().toLocaleLowerCase() || "";
-  const mobileQuery = $("#mobile-feed-search")?.value.trim().toLocaleLowerCase() || "";
-  for (const [id, query] of [["search-recents-list", mobileQuery], ["desktop-search-recents", desktopQuery]]) {
-    const list = $(`#${id}`);
-    if (!list) continue;
-    list.classList.toggle("is-editing", state.searchEditing);
-    const recent = state.recentSearches.filter((item) => !query || item.toLocaleLowerCase().includes(query));
-    list.innerHTML = recent.length ? `<ul class="search-recent-list">${recent.map(rowMarkup).join("")}</ul>` : `<p class="search-recents-empty">${esc(query ? t("searchRecentNoMatch") : t("searchRecentEmpty"))}</p>`;
-  }
-}
-
-function openDesktopSearch() {
-  const panel = $("#desktop-search-panel");
-  if (!panel || window.matchMedia("(max-width: 700px)").matches) return;
-  const wasHidden = panel.hidden;
-  panel.hidden = false;
-  if (wasHidden) { state.searchEditing = false; renderSearchRecents(); }
-}
-
-function closeDesktopSearch() {
-  const panel = $("#desktop-search-panel");
-  if (panel) panel.hidden = true;
-}
-
-function openMobileSearch() {
-  const dialog = $("#search-dialog");
-  if (!dialog?.open) dialog?.showModal();
-  state.searchEditing = false;
-  renderSearchRecents();
-  requestAnimationFrame(() => $("#mobile-feed-search")?.focus());
-}
-
-function closeMobileSearch({ save = true } = {}) {
-  if (save) saveRecentSearch($("#mobile-feed-search")?.value || "");
-  $("#search-dialog")?.close();
+  const profileLabel = name ? `${t("profile")}: ${name}` : t("signIn");
+  $("#account-button").setAttribute("aria-label", profileLabel);
+  $(".rail-profile")?.setAttribute("aria-label", profileLabel);
 }
 
 function renderSettings() {
   const content = $("#settings-account-content");
   if (!content) return;
+  content.setAttribute("aria-busy", "false");
   const name = displayName();
   const metadata = auth.user?.user_metadata || {};
   const travelStyles = Array.isArray(metadata.travel_styles) ? metadata.travel_styles : [];
-  const travelOptions = [["solo", "travelSolo"], ["backpacking", "travelBackpacking"], ["adventure", "travelAdventure"], ["motor-trips", "travelMotorTrips"], ["road-trips", "travelRoadTrips"], ["group-trips", "travelGroupTrips"]];
   content.innerHTML = auth.user
-    ? `<div class="settings-profile"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div>
-      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="field"><label for="settings-home-base">${esc(t("signupHomeBase"))}</label><input id="settings-home-base" name="homeBase" value="${esc(metadata.home_base || "")}" maxlength="80" /></div><fieldset class="signup-interests"><legend>${esc(t("signupInterests"))}</legend><p>${esc(t("signupInterestsHint"))}</p><div class="signup-interest-grid">${travelOptions.map(([value, key]) => `<label><input type="checkbox" name="travelStyle" value="${value}" ${travelStyles.includes(value) ? "checked" : ""} /><span>${esc(t(key))}</span></label>`).join("")}</div></fieldset><div class="field"><label for="settings-bio">${esc(t("signupBio"))}</label><textarea id="settings-bio" name="bio" rows="3" maxlength="160">${esc(metadata.bio || "")}</textarea></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
+    ? `<div class="settings-profile"><span class="profile-avatar" id="settings-profile-avatar">${avatarContents(name, metadata.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small><label class="photo-upload-button" for="settings-avatar-file">${esc(t("changeProfilePhoto"))}</label><input id="settings-avatar-file" class="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" /></div></div>
+      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="field"><label for="settings-home-base">${esc(t("signupHomeBase"))}</label><input id="settings-home-base" name="homeBase" value="${esc(metadata.home_base || "")}" maxlength="80" /></div><fieldset class="signup-interests"><legend>${esc(t("signupInterests"))}</legend><p>${esc(t("signupInterestsHint"))}</p><div class="signup-interest-grid">${TRAVEL_OPTIONS.map(([value, key]) => `<label><input type="checkbox" name="travelStyle" value="${value}" ${travelStyles.includes(value) ? "checked" : ""} /><span>${esc(t(key))}</span></label>`).join("")}</div></fieldset><div class="field"><label for="settings-bio">${esc(t("signupBio"))}</label><textarea id="settings-bio" name="bio" rows="3" maxlength="160">${esc(metadata.bio || "")}</textarea></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
   $("#settings-theme").value = state.theme;
@@ -365,7 +136,8 @@ function renderSettings() {
   syncEnhancedSelects();
 }
 
-function setPageView(view) {
+function setPageView(view, { preserveUrl = false } = {}) {
+  if (view === "saved") view = "feed"; // Legacy URL resolves through openSavedTrips after authentication.
   state.view = view;
   const main = $("#main");
   const settings = $("#settings-view");
@@ -373,156 +145,80 @@ function setPageView(view) {
   const isSettings = view === "settings";
   const isExplore = view === "explore";
   const isSearchResults = view === "search-results";
-  const isSaved = view === "saved";
   const isSignup = view === "signup";
   const isProfile = view === "profile";
   main.classList.toggle("entry-open", isEntry);
-  main.classList.toggle("settings-open", isSettings || isSaved);
+  main.classList.toggle("settings-open", isSettings);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   $("#search-filter-panel").hidden = !isSearchResults;
-  $("#saved-view").hidden = !isSaved;
-  document.querySelectorAll('.rail-nav a[href="#feed"], .mobile-nav a[href="#feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
-  document.querySelectorAll('.rail-nav a[href="#routes"], .mobile-nav a[href="#routes"]').forEach((item) => item.classList.toggle("active", isExplore));
-  document.querySelectorAll('.rail-nav a[href="#trips"], .mobile-nav a[href="#trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
+  document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
+  document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
+  document.querySelectorAll('.rail-nav [data-page-view="trips"], .mobile-nav [data-page-view="trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
-  document.querySelectorAll('.rail-nav [data-action="saved-trips"], .mobile-nav [data-action="saved-trips"]').forEach((item) => item.classList.toggle("active", isSaved));
-  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#saved-view):not(#profile-view):not(#signup-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isSaved || isProfile || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view)").forEach((section) => {
+    section.hidden = isEntry || isSettings || isProfile || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
-  $("#saved-view").hidden = !isSaved;
   $("#profile-view").hidden = !isProfile;
   $("#signup-view").hidden = !isSignup;
   if (isSettings) renderSettings();
-  if (isSaved) renderTrips();
   if (isProfile) renderProfile();
   renderRoutes();
-  const targetHash = isEntry ? "#entry" : isSignup ? "#signup" : isSettings ? "#settings" : isSaved ? "#saved" : isProfile ? "#profile" : isExplore ? "#routes" : isSearchResults ? "#search" : view === "trips" ? "#trips" : "#feed";
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
-  if (location.hash !== targetHash) history.replaceState(history.state, "", `${location.pathname}${location.search}${targetHash}`);
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.documentElement.removeAttribute("data-profile-pending");
+  const nextLocation = pageUrl(view);
+  if (!preserveUrl && location.pathname + location.search + location.hash !== nextLocation) {
+    history.replaceState(history.state, "", nextLocation);
+  }
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
 
-function openSettings() {
+async function openSettings() {
   closeDialogs();
   setSettingsView(true);
+  if (auth.user) {
+    renderSettingsAccountLoading();
+    await refreshMe();
+    renderSettings();
+  }
 }
 
 async function refreshMe() {
   if (!auth.user) { state.me = null; return; }
-  try { state.me = await api("/api/me"); }
+  try {
+    const { profile } = await api("/api/me/profile", { method: "PUT" });
+    state.me = { ...await api("/api/me"), profile };
+  }
   catch { state.me = null; }
 }
 
-// Feed, search and page rendering.
-function renderRoutes() {
-  const routeGrid = $("#route-grid");
-  const visible = state.routes.filter((route) => !state.search || `${label(route.title)} ${label(route.summary)}`.toLowerCase().includes(state.search));
-  const inExplore = state.view === "explore";
-  const routeSection = $("#routes");
-  routeSection.classList.toggle("explore-mode", inExplore);
-  $("#routes-title").textContent = inExplore ? t("exploreRoutes") : t("explore");
-  $("#routes .text-link").hidden = inExplore;
-  $("#routes .explore-description").hidden = !inExplore;
-  routeGrid.setAttribute("aria-busy", "false");
-  routeGrid.innerHTML = visible.length ? visible.map((route, index) => inExplore ? `
-    <button type="button" class="explore-route-card ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
-      <span class="explore-route-art"><span class="explore-route-index">0${index + 1}</span><span class="explore-route-mark">${icon("map-pin")}</span><span class="explore-route-kind">${esc(label(route.label))}</span></span>
-      <span class="explore-route-copy"><strong>${esc(label(route.title))}</strong><span>${esc(label(route.summary))}</span><small>${icon("clock")} ${esc(label(route.duration))} <span>·</span> ${icon("truck")} ${esc(label(route.mode))}</small><b>${esc(t("viewRoute"))} ${icon("arrow-right")}</b></span>
-    </button>` : `
-    <button type="button" class="route-story ${esc(route.accent)}" data-action="open-route" data-id="${esc(route.id)}" aria-label="${esc(t("viewRoute"))}: ${esc(label(route.title))}">
-      <span class="story-avatar"><span class="story-art"><span class="story-road"></span><span class="story-count">0${index + 1}</span></span></span>
-      <span class="story-name">${esc(label(route.title))}</span>
-    </button>`).join("") : `<p class="small-copy">${esc(t("routeFilterEmpty"))}</p>`;
-}
-function renderFilter() {
-  $("#trip-route-filter").innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
-  $("#trip-route-filter").value = state.filter;
-  syncEnhancedSelect($("#trip-route-filter"));
-  const searchRoute = $("#search-route-filter");
-  if (searchRoute) {
-    searchRoute.innerHTML = `<option value="">${esc(t("allRoutes"))}</option>` + state.routes.map((route) => `<option value="${esc(route.id)}">${esc(label(route.title))}</option>`).join("");
-    searchRoute.value = state.searchFilters.routeId;
-    syncEnhancedSelect(searchRoute);
+async function navigateToView(view) {
+  if (view === "feed") return openFeedPage();
+  if (view === "explore") return openExplorePage();
+  if (view === "trips") return openTripsPage();
+  if (view === "saved") return openSavedTrips();
+  if (view === "settings") return openSettings();
+  if (view === "search-results") {
+    setPageView(view);
+    renderTripListLoading("#trip-list", 2);
+    return loadSearchResults();
   }
-  syncSearchFilterControls();
-}
-function syncSearchFilterControls() {
-  const upcoming = $("#search-upcoming-only"), route = $("#search-route-filter"), transport = $("#search-transport-filter");
-  if (upcoming) upcoming.checked = state.searchFilters.upcoming;
-  if (route) route.value = state.searchFilters.routeId;
-  if (transport) transport.value = state.searchFilters.transport;
-  if (route) syncEnhancedSelect(route);
-  if (transport) syncEnhancedSelect(transport);
-  const allButton = $(".search-filter-all");
-  const allActive = !state.searchFilters.upcoming && !state.searchFilters.routeId && !state.searchFilters.transport;
-  allButton?.classList.toggle("is-active", allActive);
-  allButton?.setAttribute("aria-pressed", String(allActive));
-}
-function renderTrips() {
-  const isSaved = state.view === "saved";
-  const tripList = $(isSaved ? "#saved-trip-list" : "#trip-list");
-  const sourceTrips = isSaved ? state.savedTripRecords : state.trips;
-  const filtered = sourceTrips.filter((trip) => isSaved ? state.savedTrips.includes(trip.id) :
-    (state.view === "search-results" || !state.filter || trip.routeId === state.filter) &&
-    (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
-    (state.view !== "search-results" || (!state.searchFilters.routeId || trip.routeId === state.searchFilters.routeId) && (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || trip.date >= dateToday())));
-  tripList.setAttribute("aria-busy", "false");
-  if (state.view === "search-results") $("#trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${t("searchResultCount")}`;
-  else $("#trips-title").textContent = t("forYou");
-  if (!filtered.length) {
-    tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon(isSaved ? "bookmark" : state.view === "search-results" ? "search" : "calendar")}</div><h3>${esc(isSaved ? t("savedEmptyTitle") : state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(isSaved ? t("savedEmptyBody") : state.view === "search-results" ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : isSaved ? `<button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("postTrip"))} ${icon("arrow-up-right")}</button>`}</div>`;
-    return;
-  }
-  tripList.innerHTML = filtered.map(tripCardMarkup).join("");
-}
-async function loadTrips() {
-  const result = await api("/api/trips");
-  state.trips = result.trips;
-  renderTrips();
-}
-
-function renderFeedLoading() {
-  $("#route-grid").setAttribute("aria-busy", "true");
-  $("#trip-list").setAttribute("aria-busy", "true");
-  $("#route-grid").innerHTML = `<div class="skeleton-routes" aria-hidden="true">${Array.from({ length: 3 }, () => `<span class="skeleton-story"><i></i><b></b></span>`).join("")}</div>`;
-  $("#trip-list").innerHTML = `<div class="skeleton-posts" aria-hidden="true">${Array.from({ length: 2 }, () => `<article class="skeleton-post"><span class="skeleton-post-head"><i></i><b></b></span><span class="skeleton-media"></span><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></article>`).join("")}</div>`;
-}
-
-function renderFeedError() {
-  $("#route-grid").setAttribute("aria-busy", "false");
-  $("#route-grid").replaceChildren();
-  $("#trip-list").setAttribute("aria-busy", "false");
-  $("#trip-list").innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-feed">${esc(t("retry"))}</button></div>`;
-}
-
-async function loadFeedData() {
-  if (state.feedRequestActive) return;
-  state.feedRequestActive = true;
-  if ($("#route-grid").getAttribute("aria-busy") !== "true") renderFeedLoading();
-  try {
-    const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
-    state.routes = routeResult.routes;
-    state.trips = tripResult.trips;
-    applyLanguage();
-  } catch (error) {
-    renderFeedError();
-    toast(error.message || t("failed"));
-  } finally {
-    state.feedRequestActive = false;
-  }
+  setPageView(view);
 }
 
 // Route and trip actions.
 async function openRoute(id, deepLink = true) {
+  const requestId = ++state.routeRequestId;
+  showDialogLoading("route-dialog", "route-dialog-title");
   try {
     const { route, updates } = await api(`/api/routes/${encodeURIComponent(id)}`);
+    if (requestId !== state.routeRequestId) return;
     if (deepLink) setLink("route", id);
     event("route_viewed", id);
     showDialog("route-dialog", `
@@ -535,12 +231,15 @@ async function openRoute(id, deepLink = true) {
       <div class="dialog-actions"><a class="button button-ghost" href="${esc(route.mapUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("openMap"))} ${icon("arrow-up-right")}</a><button class="button button-primary" type="button" data-action="show-route-trips" data-id="${esc(id)}">${esc(t("findTripsHere"))} ${icon("arrow-right")}</button></div>
       <div class="dialog-section"><h3>${esc(t("recentNotes"))}</h3><div class="updates-list">${updates.length ? updates.map((update) => `<div class="update-item"><strong>${esc(update.nickname)}</strong><small>${esc(dateLabel(update.visitedOn))} · ${esc(t(update.condition === "mixed" ? "mixedCondition" : update.condition))}</small><p>${esc(update.note)}</p></div>`).join("") : `<p class="small-copy">${esc(t("noNotes"))}</p>`}</div><div class="dialog-actions"><button class="plain-button" type="button" data-action="open-update" data-id="${esc(id)}">${esc(t("addRouteNote"))} ${icon("arrow-up-right")}</button><button class="plain-button danger-link" type="button" data-action="open-report" data-type="route" data-id="${esc(id)}">${esc(t("reportRoute"))}</button></div></div>
       <p class="small-copy">${esc(t("routeNotLive"))}</p>`);
-  } catch (error) { toast(error.message || t("failed")); }
+  } catch (error) { if (requestId === state.routeRequestId) { renderDialogError("route-dialog", "retry-route", id); toast(error.message || t("failed")); } }
 }
 
 async function openTrip(id, deepLink = true) {
+  const requestId = ++state.tripRequestId;
+  showDialogLoading("trip-dialog", "trip-dialog-title");
   try {
     const { trip } = await api(`/api/trips/${encodeURIComponent(id)}`);
+    if (requestId !== state.tripRequestId) return;
     if (deepLink) setLink("trip", id);
     event("trip_viewed", id);
     let requestStatus = state.me?.requests.find((request) => request.trip.id === id)?.status || "";
@@ -551,6 +250,7 @@ async function openTrip(id, deepLink = true) {
         requestStatus = result.request.status;
       } catch { requestStatus = ""; }
     }
+    if (requestId !== state.tripRequestId) return;
     const isHost = Boolean(state.hostKeys[id] || state.me?.trips.some((owned) => owned.id === id));
     const statusText = requestStatus ? t(requestStatus === "approved" ? "requestApproved" : requestStatus === "declined" ? "requestDeclined" : "requestPending") : "";
     const primary = isHost
@@ -571,50 +271,7 @@ async function openTrip(id, deepLink = true) {
       <div class="dialog-actions">${primary}<button class="button button-ghost" type="button" data-action="share-trip" data-id="${esc(id)}">${esc(t("shareTrip"))} ${icon("arrow-up-right")}</button></div>
       <div id="requests-panel"></div>
       <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">${esc(t("reportTrip"))}</button></div></div>`);
-  } catch (error) { toast(error.message || t("failed")); }
-}
-
-async function openProfile(id, deepLink = true) {
-  try {
-    const { profile, trips } = await api(`/api/profiles/${encodeURIComponent(id)}`);
-    if (state.view !== "profile") state.profileReturnView = state.view === "entry" ? "feed" : state.view;
-    state.profile = { ...profile, trips };
-    if (deepLink) setLink("profile", id);
-    setPageView("profile");
-  } catch (error) { toast(error.message || t("failed")); }
-}
-
-function tripCardMarkup(trip) {
-  const date = dateParts(trip.date);
-  const route = routeFor(trip.routeId);
-  const saved = state.savedTrips.includes(trip.id);
-  const liked = Boolean(trip.likedByViewer);
-  const isHost = Boolean(state.hostKeys[trip.id] || state.me?.trips.some((owned) => owned.id === trip.id));
-  const request = state.me?.requests.find((item) => item.trip.id === trip.id);
-  const isRequested = Boolean(request || state.requestKeys[trip.id]);
-  const ctaAction = isHost || isRequested || trip.availableSpots === 0 ? "open-trip" : "join-trip";
-  const ctaLabel = isHost ? t("manageRequests") : isRequested
-    ? t(request?.status === "approved" ? "requestApproved" : request?.status === "declined" ? "requestDeclined" : "requestPending")
-    : trip.availableSpots === 0 ? t("fullTrip") : t("requestJoin");
-  const transport = trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed");
-  const author = `<span class="post-avatar">${esc(initials(trip.hostName))}</span><span class="post-byline"><strong>${esc(trip.hostName)} ${trip.hostVerified ? `<span class="verified-dot" title="${esc(t("member"))}">${icon("check")}</span>` : ""}</strong><small>${esc(t("guestHost"))} · ${esc(dateLabel(trip.date))}</small></span>`;
-  return `<article class="trip-card">
-    <div class="post-head">${trip.profileId ? `<button class="post-profile-link" type="button" data-action="open-profile" data-id="${esc(trip.profileId)}">${author}</button>` : `<span class="post-profile-static">${author}</span>`}<button class="post-save ${saved ? "saved" : ""}" type="button" data-action="toggle-save" data-id="${esc(trip.id)}" aria-label="${esc(t(saved ? "unsave" : "save"))}">${icon("bookmark")}</button></div>
-    <div class="post-media ${esc(route?.accent || "weekend")}" aria-hidden="true"><span class="post-media-hill"></span><span class="post-media-road"></span><span class="post-media-title">${esc(label(route?.title))}</span></div>
-    <h3 class="post-title">${esc(trip.title)}</h3><p class="post-note">${esc((trip.notes || `${label(routeFor(trip.routeId)?.title)} · ${trip.meetingArea}`).slice(0, 170))}</p>
-    <div class="post-journey"><span class="post-date"><strong>${date.day}</strong><small>${date.month}</small></span><span class="post-route"><strong>${esc(label(routeFor(trip.routeId)?.title))}</strong><small>${esc(trip.meetingArea)} · ${esc(trip.departureTime)} · ${esc(transport)}</small></span><span class="post-spots">${trip.availableSpots} ${esc(t("spots"))}</span></div>
-    <div class="post-actions"><button class="post-like ${liked ? "liked" : ""}" type="button" data-action="toggle-like" data-id="${esc(trip.id)}" aria-pressed="${liked}" aria-label="${esc(t(liked ? "unlike" : "like"))}">${icon("heart")}<span>${esc(t(liked ? "unlike" : "like"))}</span><span class="like-count">${Number(trip.likesCount) || 0}</span></button><button type="button" data-action="share-trip" data-id="${esc(trip.id)}">${icon("share")} ${esc(t("shareTrip"))}</button><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${icon("chat")} ${esc(t("discussTrip"))}</button><button type="button" data-action="${ctaAction}" data-id="${esc(trip.id)}">${esc(ctaLabel)} ${icon("arrow-right")}</button></div>
-  </article>`;
-}
-
-function renderProfile() {
-  const content = $("#profile-content");
-  if (!content || !state.profile) return;
-  const { profile, trips } = { profile: state.profile, trips: state.profile.trips || [] };
-  content.innerHTML = `<section class="profile-card settings-card">
-    <div class="profile-overview"><span class="profile-avatar profile-avatar-large">${esc(initials(profile.displayName))}</span><div class="profile-identity"><span class="profile-demo-label">${esc(t("demoProfile"))}</span><h2>${esc(profile.displayName)}</h2><small>${esc(profile.homeBase || "")} · ${esc((profile.languages || []).join(" · "))}</small></div><strong class="profile-post-count">${Number(profile.postCount) || 0} ${esc(t("posts"))}</strong></div>
-    <p class="profile-bio">${esc(profile.bio || "")}</p><div class="profile-interests">${(profile.interests || []).map((interest) => `<span>${esc(interest)}</span>`).join("")}</div>
-  </section><section class="profile-posts"><div class="feed-section-head"><h2>${esc(t("profilePosts"))}</h2></div><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>`;
+  } catch (error) { if (requestId === state.tripRequestId) { renderDialogError("trip-dialog", "retry-trip", id); toast(error.message || t("failed")); } }
 }
 
 function openCreate(selectedRoute = "") {
@@ -630,6 +287,7 @@ function openCreate(selectedRoute = "") {
       <div class="field"><label for="trip-seats">${esc(t("openPlaces"))}</label><input id="trip-seats" name="seats" type="number" min="1" max="12" value="3" required /></div>
       <div class="field span-2"><label for="trip-meeting">${esc(t("meetingAreaLabel"))}</label><input id="trip-meeting" name="meetingArea" minlength="3" maxlength="80" required /><small>${esc(t("meetingAreaHint"))}</small></div>
       <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own" ${state.preferences.defaultCostStyle === "own" ? "selected" : ""}>${esc(t("ownCosts"))}</option><option value="shared" ${state.preferences.defaultCostStyle === "shared" ? "selected" : ""}>${esc(t("sharedCosts"))}</option><option value="free" ${state.preferences.defaultCostStyle === "free" ? "selected" : ""}>${esc(t("freeTrip"))}</option></select></div>
+      <div class="field span-2"><label for="trip-image">${esc(t("tripPhotoLabel"))}</label><input id="trip-image" type="file" accept="image/jpeg,image/png,image/webp" /><small>${esc(t("imageUploadHint"))}</small><div id="trip-image-preview" class="trip-image-preview" hidden></div></div>
       <div class="field span-2"><label for="trip-notes">${esc(t("tripNotes"))}</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="${esc(t("tripNotesHint"))}"></textarea></div>
     </div>${state.preferences.safetyReminders ? `<div class="note-box settings-safety-note">${esc(t("safetyReminder"))}</div>` : ""}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
 }
@@ -645,36 +303,36 @@ async function manageTrip(id) {
   } catch (error) { toast(error.message || t("failed")); }
 }
 
-async function openMyTrips() {
-  try {
-    if (auth.enabled && !auth.user) { openAuth("signin"); return; }
-    if (auth.user) await refreshMe();
-    const { trips } = await api("/api/trips?includeClosed=true");
-    const hosted = [...(state.me?.trips || []), ...trips.filter((trip) => state.hostKeys[trip.id])]
-      .filter((trip, index, all) => all.findIndex((item) => item.id === trip.id) === index);
-    const legacyRequests = await Promise.all(Object.entries(state.requestKeys).map(async ([tripId, request]) => {
-      try {
-        const [tripResult, requestResult] = await Promise.all([
-          api(`/api/trips/${encodeURIComponent(tripId)}`),
-          api(`/api/trips/${encodeURIComponent(tripId)}/requests/${encodeURIComponent(request.id)}`, { headers: { "x-request-token": request.token } })
-        ]);
-        return { trip: tripResult.trip, status: requestResult.request.status };
-      } catch { return null; }
-    }));
-    const requests = [...(state.me?.requests || []).map(({ trip, status }) => ({ trip, status })), ...legacyRequests.filter(Boolean)]
-      .filter((item, index, all) => all.findIndex((entry) => entry.trip.id === item.trip.id) === index);
-    showDialog("my-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("myTrips"))}</p><h2 id="my-dialog-title">${esc(t("myTitle"))}</h2><p class="dialog-intro">${esc(t("myIntro"))}</p>
-      <div class="dialog-section"><h3>${esc(t("hosting"))}</h3><div class="my-list">${hosted.length ? hosted.map((trip) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(t(trip.status))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noHosted"))}</p>`}</div></div>
-      <div class="dialog-section"><h3>${esc(t("joining"))}</h3><div class="my-list">${requests.length ? requests.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<p class="small-copy">${esc(t("noJoined"))}</p>`}</div></div>`);
-  } catch (error) { toast(error.message || t("failed")); }
-}
-
 async function openSavedTrips() {
+  if (!auth.user) { await openFeedPage(); pendingAction = openSavedTrips; openAuth("signin"); return; }
+  await openProfile(auth.user.id, true, "saved");
+}
+async function loadSavedTrips() {
+  const requestId = ++state.savedRequestId;
+  state.savedLoading = true;
+  state.savedError = false;
+  if (state.view === "profile") renderProfile();
   try {
-    const { trips } = await api("/api/trips?includeClosed=true");
-    state.savedTripRecords = trips.filter((trip) => state.savedTrips.includes(trip.id));
-    setPageView("saved");
-  } catch (error) { toast(error.message || t("failed")); }
+    // Fetch only saved IDs. This boundary can use indexed SQL without changing UI.
+    const trips = [];
+    for (let offset = 0; offset < state.savedTrips.length; offset += 100) {
+      const ids = state.savedTrips.slice(offset, offset + 100);
+      const result = await api("/api/trips?includeClosed=true&ids=" + encodeURIComponent(ids.join(",")));
+      trips.push(...result.trips);
+      if (requestId !== state.savedRequestId) return;
+    }
+    if (requestId !== state.savedRequestId) return;
+    state.savedTripRecords = trips;
+  } catch (error) {
+    if (requestId !== state.savedRequestId) return;
+    state.savedError = true;
+    toast(error.message || t("failed"));
+  } finally {
+    if (requestId === state.savedRequestId) {
+      state.savedLoading = false;
+      if (state.view === "profile") renderProfile();
+    }
+  }
 }
 
 function openUpdate(id) {
@@ -684,10 +342,17 @@ function openReport(type, id) {
   showDialog("report-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("reportTitle"))}</p><h2 id="report-dialog-title">${esc(t("reportTitle"))}</h2><p class="dialog-intro">${esc(t("reportIntro"))}</p><form id="report-form" data-target-type="${esc(type)}" data-target-id="${esc(id)}"><div class="field"><label for="report-reason">${esc(t("reason"))}</label><select id="report-reason" name="reason"><option value="inaccurate">${esc(t("inaccurate"))}</option><option value="unsafe">${esc(t("unsafe"))}</option><option value="spam">${esc(t("spam"))}</option><option value="other">${esc(t("other"))}</option></select></div><div class="field"><label for="report-details">${esc(t("details"))}</label><textarea id="report-details" name="details" maxlength="500"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendReport"))} ${icon("arrow-up-right")}</button></form>`);
 }
 async function shareTrip(id) {
-  const url = new URL(location.origin + "/");
-  url.searchParams.set("trip", id);
+  const url = new URL("/post/" + encodeURIComponent(id), location.origin);
   try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
   catch { window.prompt(t("shareTrip"), url.toString()); }
+}
+async function shareProfile(id) {
+  const profile = state.profile?.id === id ? state.profile : null;
+  const trip = [...state.trips, ...state.savedTripRecords].find((item) => item.profileId === id);
+  const username = profile?.username || (id === usernameFromPath() ? id : profileUsernameForId(id, trip?.hostName));
+  const url = new URL("/" + encodeURIComponent(username), location.origin);
+  try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
+  catch { window.prompt(t("shareProfile"), url.toString()); }
 }
 
 // Sign-up and authentication flows.
@@ -749,11 +414,7 @@ function openAuth(mode = "signin") {
     showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profile"))}</h2><p class="dialog-intro">${esc(t("authUnavailable"))}</p>`);
     return;
   }
-  if (mode === "profile" && auth.user) {
-    const name = displayName();
-    showDialog("auth-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("profile"))}</p><h2 id="auth-dialog-title">${esc(t("profileTitle"))}</h2><div class="profile-summary"><span class="profile-avatar">${esc(initials(name))}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div><div class="dialog-actions"><button class="button button-primary" type="button" data-action="my-trips">${esc(t("myTrips"))}</button><button class="button button-ghost" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div>`);
-    return;
-  }
+  if (mode === "profile" && auth.user) { openProfile(auth.user.id); return; }
   const recover = mode === "recover";
   const reset = mode === "reset";
   const title = t(recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
@@ -773,9 +434,24 @@ function openAuth(mode = "signin") {
 
 async function openStartupDeepLink() {
   const query = new URLSearchParams(location.search);
-  if (query.has("route")) await openRoute(query.get("route"), false);
-  else if (query.has("trip")) await openTrip(query.get("trip"), false);
-  else if (query.has("profile")) await openProfile(query.get("profile"), false);
+  const pending = state.startupDeepLink;
+  state.startupDeepLink = null;
+  const postMatch = location.pathname.match(/^\/post\/([^/]+)\/?$/);
+  if (pending?.routeId || query.has("route")) {
+    const id = pending?.routeId || query.get("route");
+    setLink("route", id);
+    await openRoute(id, false);
+  }
+  else if (pending?.tripId || query.has("trip") || postMatch) {
+    let id = pending?.tripId || query.get("trip") || postMatch[1];
+    try { id = decodeURIComponent(id); } catch {}
+    setLink("trip", id);
+    await openTrip(id, false);
+  }
+  else if (profileIdFromLocation()) {
+    const profileId = profileIdFromLocation();
+    if (!state.profile || state.profile.id !== profileId) await openProfile(profileId, false, query.get("tab") || "posts");
+  }
 }
 
 async function authSuccess() {
@@ -790,7 +466,9 @@ async function authSuccess() {
   pendingAction = null;
   if (action) action();
   else {
-    if (wasEntryPage) await loadFeedData();
+    // A shared profile link should resume on that profile without first
+    // fetching or painting the feed.
+    if (wasEntryPage && entryReturnView !== "profile") await loadFeedData();
     await openStartupDeepLink();
   }
 }
@@ -802,11 +480,25 @@ document.addEventListener("click", async (eventTarget) => {
   const { action, id, type, request, decision, mode } = button.dataset;
   if (action === "open-mobile-search") { openMobileSearch(); return; }
   if (action === "close-mobile-search") { closeMobileSearch(); return; }
-  if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
-  if (action === "toggle-search-edit") { state.searchEditing = !state.searchEditing; renderSearchRecents(); return; }
+  if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; $(".search-clear").hidden = true; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
   if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
-  if (action === "remove-recent-search") { state.recentSearches = state.recentSearches.filter((item) => item !== button.dataset.query); saveLocal("qipi:recent-searches", state.recentSearches); renderSearchRecents(); return; }
+  if (action === "remove-recent-search") {
+    state.recentSearches = state.recentSearches.filter((item) => item !== button.dataset.query);
+    saveLocal("qipi:recent-searches", state.recentSearches);
+    renderSearchRecents();
+    return;
+  }
   if (action === "reset-search-filters") { state.searchFilters = { upcoming: false, routeId: "", transport: "" }; syncSearchFilterControls(); renderTrips(); return; }
+  if (action === "close-search-results") {
+    state.filter = "";
+    state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+    setSearch("");
+    syncSearchFilterControls();
+    closeDesktopSearch();
+    closeMobileSearch({ save: false });
+    await openFeedPage();
+    return;
+  }
   if (action === "toggle-notifications") {
     const panel = $("#notifications-panel");
     panel.hidden = !panel.hidden;
@@ -822,7 +514,8 @@ document.addEventListener("click", async (eventTarget) => {
     button.disabled = true;
     saveEntryChoice("guest");
     await restoreEntryReturnView();
-    await loadFeedData();
+    // Profile deep links have their own data request and loading state.
+    if (entryReturnView !== "profile") await loadFeedData();
     await openStartupDeepLink();
     return;
   }
@@ -831,57 +524,114 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
   if (action === "signup-previous") { setSignupStep(1); return; }
   if (action === "signup-exit") {
-    setPageView(signupReturnTarget.view);
+    await navigateToView(signupReturnTarget.view);
     if (signupReturnTarget.dialog === "signin") openAuth("signin");
     return;
   }
   if (action === "signup-sign-in") { openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
+  if (action === "retry-explore") { await openExplorePage(); return; }
+  if (action === "retry-trips") { await openTripsPage(); return; }
+  if (action === "retry-search") { await loadSearchResults(); return; }
+  if (action === "retry-saved") { await loadSavedTrips(); return; }
+  if (action === "profile-tab") { await selectProfileTab(id); return; }
+  if (action === "retry-profile") { await openProfile(id); return; }
+  if (action === "retry-route") { await openRoute(id); return; }
+  if (action === "retry-trip") { await openTrip(id); return; }
+  if (action === "edit-profile") { state.profileEditing = true; renderProfile(); return; }
+  if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfile(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
   if (action === "open-profile") { await openProfile(id); return; }
   if (action === "profile-back") {
     const returnView = state.profileReturnView || "feed";
     state.profile = null;
+    state.profileId = "";
+    state.profileUsername = "";
+    state.profileRequestId += 1;
     setLink();
-    setPageView(returnView);
+    await navigateToView(returnView);
     return;
   }
   if (action === "open-trip") openTrip(id);
   if (action === "create-trip") requireSignIn(() => openCreate(id || state.filter));
   if (action === "join-trip") requireSignIn(() => openJoin(id));
-  if (action === "my-trips") openMyTrips();
   if (action === "saved-trips") openSavedTrips();
   if (action === "open-settings") openSettings();
-  if (action === "back-to-feed") setSettingsView(false);
+  if (action === "back-to-feed") { await openFeedPage(); }
   if (action === "settings-sign-in") openAuth("signin");
-  if (action === "account") { pendingAction = null; openAuth(auth.user ? "profile" : "signin"); }
+  if (action === "account") {
+    pendingAction = null;
+    if (auth.user) await openProfile(auth.user.id);
+    else openAuth("signin");
+  }
   if (action === "auth-mode") openAuth(mode);
-  if (action === "sign-out") { await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); closeDialogs(); }
+  if (action === "sign-out") { state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); closeDialogs(); }
   if (action === "toggle-save") {
     state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
     saveLocal("qipi:saved-trips", state.savedTrips);
     renderTrips();
+    if (state.view === "profile") renderProfile();
   }
   if (action === "toggle-like") {
-    button.disabled = true;
-    try {
-      const liked = button.getAttribute("aria-pressed") !== "true";
-      const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
-      const updateTrip = (trip) => trip.id === id ? { ...trip, ...result } : trip;
-      state.trips = state.trips.map(updateTrip);
-      state.savedTripRecords = state.savedTripRecords.map(updateTrip);
-      if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map(updateTrip) };
+    if (state.pendingLikes.has(id)) return;
+    const sourceTrip = state.trips.find((trip) => trip.id === id)
+      || state.savedTripRecords.find((trip) => trip.id === id)
+      || state.profile?.trips.find((trip) => trip.id === id);
+    if (!sourceTrip) return;
+    const previous = {
+      likedByViewer: Boolean(sourceTrip.likedByViewer),
+      likesCount: Number(sourceTrip.likesCount) || 0
+    };
+    const liked = !previous.likedByViewer;
+    const optimistic = {
+      likedByViewer: liked,
+      likesCount: Math.max(0, previous.likesCount + (liked ? 1 : -1))
+    };
+    const updateTrip = (trip, values) => trip.id === id ? { ...trip, ...values } : trip;
+    const updateLikeState = (values) => {
+      state.trips = state.trips.map((trip) => updateTrip(trip, values));
+      state.savedTripRecords = state.savedTripRecords.map((trip) => updateTrip(trip, values));
+      if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map((trip) => updateTrip(trip, values)) };
+    };
+    const renderLikeState = () => {
       renderTrips();
       if (state.view === "profile") renderProfile();
+    };
+    updateLikeState(optimistic);
+    state.pendingLikes.add(id);
+    renderLikeState();
+    try {
+      const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
+      updateLikeState(result);
+    } catch (error) {
+      updateLikeState(previous);
+      toast(error.message || t("failed"));
+    } finally {
+      state.pendingLikes.delete(id);
+      renderLikeState();
+    }
+    return;
+  }
+  if (action === "toggle-follow") {
+    if (!state.profile || state.profile.id !== id) return;
+    button.disabled = true;
+    try {
+      const following = button.getAttribute("aria-pressed") !== "true";
+      const result = await api(`/api/profiles/${encodeURIComponent(id)}/follow`, { method: "POST", data: { following } });
+      if (state.profile?.id === id) {
+        state.profile = { ...state.profile, ...result };
+        renderProfile();
+      }
     } catch (error) { toast(error.message || t("failed")); }
-    finally { button.disabled = false; }
+    finally { if (button.isConnected) button.disabled = false; }
     return;
   }
   if (action === "manage-trip") manageTrip(id);
   if (action === "open-update") requireSignIn(() => openUpdate(id));
   if (action === "open-report") openReport(type, id);
   if (action === "share-trip") shareTrip(id);
+  if (action === "share-profile") shareProfile(id);
   if (action === "show-route-trips") {
     state.filter = id; renderFilter(); renderTrips(); closeDialogs(); setLink(); $("#trips").scrollIntoView({ behavior: "smooth" });
   }
@@ -921,6 +671,64 @@ document.addEventListener("keydown", (eventTarget) => {
 
 document.addEventListener("change", (eventTarget) => {
   const input = eventTarget.target;
+  if (input.id === "trip-image") {
+    const file = input.files?.[0];
+    const preview = $("#trip-image-preview");
+    if (!file || !preview) return;
+    const url = URL.createObjectURL(file);
+    const image = document.createElement("img");
+    image.alt = "";
+    image.onload = image.onerror = () => URL.revokeObjectURL(url);
+    image.src = url;
+    preview.replaceChildren(image);
+    preview.hidden = false;
+  }
+  if (input.id === "settings-avatar-file") {
+    const file = input.files?.[0];
+    const form = $("#settings-profile-form");
+    const uploadLabel = document.querySelector('label[for="settings-avatar-file"]');
+    if (!file || !form) return;
+    input.disabled = true;
+    uploadLabel.textContent = t("uploadingImage");
+    uploadLabel.classList.add("is-uploading");
+    uploadImage(file, "profile").then(async (path) => {
+      await auth.updateAvatar(path);
+      await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
+      renderAccount();
+      $("#settings-profile-avatar").innerHTML = avatarContents(displayName(), path);
+      await loadTrips();
+      toast(t("profilePhotoSaved"));
+    }).catch((error) => setError(form, error.message || t("imageUploadError")))
+      .finally(() => {
+        input.disabled = false;
+        input.value = "";
+        uploadLabel.textContent = t("changeProfilePhoto");
+        uploadLabel.classList.remove("is-uploading");
+      });
+  }
+  if (input.id === "profile-avatar-file") {
+    const file = input.files?.[0];
+    const form = $("#profile-edit-form");
+    const uploadLabel = document.querySelector('label[for="profile-avatar-file"]');
+    if (!file || !form || !auth.user) return;
+    input.disabled = true;
+    uploadLabel.textContent = t("uploadingImage");
+    uploadLabel.classList.add("is-uploading");
+    uploadImage(file, "profile").then(async (path) => {
+      await auth.updateAvatar(path);
+      await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
+      if (state.profile?.id === auth.user.id) state.profile = { ...state.profile, avatarPath: path };
+      renderAccount();
+      renderProfile();
+      toast(t("profilePhotoSaved"));
+    }).catch((error) => setError(form, error.message || t("imageUploadError")))
+      .finally(() => {
+        input.disabled = false;
+        input.value = "";
+        uploadLabel.textContent = t("changeProfilePhoto");
+        uploadLabel.classList.remove("is-uploading");
+      });
+  }
   if (input.matches('input[name="travelStyle"]') && input.checked) {
     const form = input.closest("form");
     if (form?.querySelectorAll('input[name="travelStyle"]:checked').length > 3) {
@@ -933,6 +741,23 @@ document.addEventListener("change", (eventTarget) => {
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "profile-edit-form") {
+    eventTarget.preventDefault();
+    const submit = form.querySelector("button[type=submit]");
+    submit.disabled = true;
+    try {
+      const values = Object.fromEntries(new FormData(form));
+      const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
+      if (travelStyles.length > 3) throw new Error(t("signupStyleLimit"));
+      await auth.updateProfile({ displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
+      renderAccount();
+      state.profileEditing = false;
+      await openProfile(auth.user.id, false);
+      toast(t("profileSaved"));
+    } catch (error) { setError(form, error.message || t("profileSaveError")); }
+    finally { if (submit.isConnected) submit.disabled = false; }
+    return;
+  }
   if (form.id === "signup-form") {
     eventTarget.preventDefault();
     if (!validateSignupAccount()) return;
@@ -996,6 +821,8 @@ document.addEventListener("submit", async (eventTarget) => {
   const values = Object.fromEntries(new FormData(form));
   try {
     if (form.id === "create-form") {
+      const image = form.querySelector("#trip-image")?.files?.[0];
+      if (image) values.mediaPath = await uploadImage(image, "trips");
       const { trip, ownerToken } = await api("/api/trips", { method: "POST", data: values });
       if (ownerToken) { state.hostKeys[trip.id] = ownerToken; saveLocal("qipi:host-keys", state.hostKeys); }
       localStorage.setItem("qipi:nickname", values.hostName);
@@ -1023,13 +850,7 @@ document.addEventListener("submit", async (eventTarget) => {
 
 enhanceSelects();
 $("#trip-route-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
-$("#feed-search").addEventListener("focus", openDesktopSearch);
-$("#feed-search").addEventListener("input", renderSearchRecents);
-$("#feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
-$("#mobile-feed-search").addEventListener("input", renderSearchRecents);
-$("#mobile-feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
-document.addEventListener("click", (eventTarget) => { if (!$("#desktop-search-wrap")?.contains(eventTarget.target)) closeDesktopSearch(); });
-document.addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Escape" && !$("#desktop-search-panel").hidden) { closeDesktopSearch(); $("#feed-search").blur(); } });
+bindSearchEvents();
 $("#search-upcoming-only").addEventListener("change", (eventTarget) => { state.searchFilters.upcoming = eventTarget.target.checked; syncSearchFilterControls(); renderTrips(); });
 $("#search-route-filter").addEventListener("change", (eventTarget) => { state.searchFilters.routeId = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
 $("#search-transport-filter").addEventListener("change", (eventTarget) => { state.searchFilters.transport = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
@@ -1053,15 +874,10 @@ $("#settings-safety-reminders").addEventListener("change", (eventTarget) => {
   state.preferences.safetyReminders = eventTarget.target.checked;
   saveLocal("qipi:preferences", state.preferences);
 });
-document.querySelectorAll("a[href^='#']").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
-  const target = anchor.getAttribute("href");
-  if (target === "#routes") { eventTarget.preventDefault(); setPageView("explore"); }
-  else if (target === "#feed") { eventTarget.preventDefault(); setPageView("feed"); }
-  else if (target === "#trips") {
-    eventTarget.preventDefault();
-    setPageView("trips");
-    requestAnimationFrame(() => $("#trips").scrollIntoView({ behavior: "smooth", block: "start" }));
-  }
+document.querySelectorAll("a[data-page-view]").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
+  if (eventTarget.button !== 0 || eventTarget.metaKey || eventTarget.ctrlKey || eventTarget.shiftKey || eventTarget.altKey) return;
+  eventTarget.preventDefault();
+  navigateToView(anchor.dataset.pageView);
 }));
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (eventTarget) => {
@@ -1074,22 +890,55 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 
 // Load the app state before routing to the requested screen.
 async function initialize() {
-  const signupRoute = location.hash === "#signup";
-  entryReturnView = viewFromHash(location.hash);
+  const currentPath = location.pathname.replace(/\/+$/, "") || "/";
+  const signupRoute = currentPath === "/signup" || location.hash === "#signup";
+  const startupQuery = new URLSearchParams(location.search);
+  const startupProfileId = profileIdFromLocation();
+  const postPath = currentPath.match(/^\/post\/([^/]+)$/);
+  state.startupDeepLink = {
+    routeId: startupQuery.get("route") || "",
+    tripId: startupQuery.get("trip") || (postPath ? decodeURIComponent(postPath[1]) : "")
+  };
+  const hasStartupProfile = Boolean(startupProfileId && !signupRoute && !auth.recovery);
+  state.profileId = hasStartupProfile ? startupProfileId : "";
+  state.profileUsername = hasStartupProfile ? usernameFromPath() || startupProfileId : "";
+  entryReturnView = hasStartupProfile ? "profile" : viewFromLocation(Boolean(startupProfileId));
+  if (entryReturnView === "search-results") {
+    state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();
+    if ($("#feed-search")) $("#feed-search").value = startupQuery.get("q") || "";
+  }
+  const legacyHash = ["#feed", "#routes", "#trips", "#saved", "#settings", "#search", "#entry", "#signup", "#profile"].includes(location.hash);
+  if (currentPath === "/index.html" || (currentPath === "/" && legacyHash)) {
+    history.replaceState(history.state, "", pageUrl(entryReturnView));
+  }
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
   if (showEntryImmediately) {
     document.documentElement.dataset.entryPending = "true";
   }
-  renderFeedLoading();
+  if (!showEntryImmediately && !signupRoute) {
+    if (hasStartupProfile) {
+      state.profileId = startupProfileId;
+      setPageView("profile", { preserveUrl: true });
+      renderProfileLoading();
+    } else {
+      setPageView(entryReturnView, { preserveUrl: true });
+      if (entryReturnView === "feed") renderFeedLoading();
+      else if (entryReturnView === "explore") renderRoutesLoading();
+      else if (["trips", "search-results"].includes(entryReturnView)) renderTripListLoading("#trip-list", 2);
+      else if (entryReturnView === "saved") renderTripListLoading("#trip-list", 2);
+    }
+  }
   try {
     await auth.initialize();
     if (auth.user) await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
+  renderAccount();
+  if (state.view === "settings" || (signupRoute && auth.user)) renderSettings();
   if (auth.user) {
     saveEntryChoice("account");
     document.documentElement.removeAttribute("data-entry-pending");
   } else if (!signupRoute && !auth.recovery && !entryChoice()) {
-    setPageView("entry");
+    setPageView("entry", { preserveUrl: true });
   } else {
     document.documentElement.removeAttribute("data-entry-pending");
   }
@@ -1098,11 +947,14 @@ async function initialize() {
     document.documentElement.removeAttribute("data-signup-pending");
     if (signupRoute && auth.user) setPageView("settings");
   }
-  if (state.view !== "entry") await loadFeedData();
-  if ($("#trip-list [data-action='retry-feed']")) return;
-  if (state.view !== "entry" && state.view !== "signup" && !signupRoute) {
-    if (entryReturnView === "saved") await openSavedTrips();
-    else setPageView(entryReturnView);
+  if (state.view !== "entry" && !signupRoute) {
+    if (hasStartupProfile) {
+      // openStartupDeepLink below fetches the linked profile after auth initializes.
+    } else if (entryReturnView === "saved") await openSavedTrips();
+    else if (["feed", "explore", "trips", "search-results"].includes(entryReturnView)) {
+      await loadFeedData();
+      if (entryReturnView === "explore" && $("#trip-list [data-action='retry-feed']")) renderLoadingError("#route-grid", "retry-explore");
+    }
   }
   if (state.view !== "entry") await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");

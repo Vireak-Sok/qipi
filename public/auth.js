@@ -1,3 +1,5 @@
+import { profileMetadata } from "./js/shared.js";
+
 const SESSION_KEY = "qipi:auth-session";
 
 function storedSession() {
@@ -78,12 +80,7 @@ export class QipiAuth {
   async signUp({ email, password, displayName, homeBase = "", travelStyles = [], bio = "" }) {
     const redirect = encodeURIComponent(`${location.origin}/`);
     const result = await this.request(`/signup?redirect_to=${redirect}`, {
-      method: "POST", body: { email, password, data: {
-        display_name: displayName,
-        home_base: homeBase,
-        travel_styles: travelStyles,
-        bio
-      } }
+      method: "POST", body: { email, password, data: profileMetadata({ displayName, homeBase, travelStyles, bio }) }
     });
     return this.acceptSession(result);
   }
@@ -133,20 +130,22 @@ export class QipiAuth {
     this.recovery = false;
   }
 
-  async updateProfile({ displayName, homeBase = "", travelStyles = [], bio = "" }) {
+  async updateMetadata(data, signInMessage = "Sign in again to update your profile") {
     const accessToken = await this.accessToken();
-    if (!accessToken) throw new Error("Sign in again to update your profile");
+    if (!accessToken) throw new Error(signInMessage);
     const user = await this.request("/user", {
-      method: "PUT", body: { data: {
-        ...this.user?.user_metadata,
-        display_name: displayName,
-        home_base: homeBase,
-        travel_styles: travelStyles,
-        bio
-      } }, accessToken
+      method: "PUT", body: { data: { ...this.user?.user_metadata, ...data } }, accessToken
     });
     this.save({ ...this.session, user });
     return user;
+  }
+
+  async updateProfile(values) {
+    return this.updateMetadata(profileMetadata(values));
+  }
+
+  async updateAvatar(avatarPath) {
+    return this.updateMetadata({ avatar_path: avatarPath }, "Sign in again to update your profile photo");
   }
 
   async signOut() {

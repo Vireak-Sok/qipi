@@ -133,6 +133,12 @@ test("media delivery resolves registered public images, handles HEAD, and reject
   const missing = await media(new Request("https://qipi.example/media/missing"), { params: Promise.resolve({ id: "not-an-id" }) });
   assert.equal(missing.status, 404);
   assert.equal(fetched, 2);
+  const profilePhoto = createMediaHandler({
+    getStore: () => memoryStore({ profiles: [{ id: "member-1", avatarPath: path }] }),
+    getSupabaseUrl: () => productionEnv.SUPABASE_URL,
+    fetchImpl: async () => new Response(new Uint8Array([1, 2, 3]))
+  });
+  assert.equal((await profilePhoto(new Request("https://qipi.example/media/" + id), context)).status, 200);
   const hidden = createMediaHandler({
     getStore: () => memoryStore({ trips: [{ hidden: true, mediaPath: path }] }),
     getSupabaseUrl: () => productionEnv.SUPABASE_URL,

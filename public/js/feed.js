@@ -76,7 +76,7 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
 
   async function openExplorePage() {
     setPageView("explore");
-    renderRoutesLoading();
+    renderRoutesLoading(true);
     try {
       const { routes } = await api("/api/routes");
       state.routes = routes;

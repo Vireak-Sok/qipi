@@ -27,7 +27,7 @@ const { usernameFromPath, profileIdFromLocation, pageUrl, viewFromLocation, setL
 const { enhanceSelects, syncEnhancedSelect, syncEnhancedSelects, closeEnhancedSelect } = createSelectControls();
 const { showDialogLoading, renderDialogError, renderSettingsAccountLoading, skeletonPostsMarkup, renderTripListLoading, renderRoutesLoading, renderLoadingError } = createLoadingViews({ t, showDialog });
 const { api, event } = createApiClient({ auth, state, t });
-const { appMediaUrl, avatarContents, uploadImage } = createMediaClient({ auth, t });
+const { appMediaUrl, storagePublicUrl, avatarContents, uploadImage } = createMediaClient({ auth, t });
 const tripCardMarkup = createTripCard({ state, t, label, dateParts, dateLabel, routeFor, avatarContents, appMediaUrl });
 const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadTrips, openFeedPage, openExplorePage, openTripsPage, renderFeedLoading, loadFeedData } = createFeedController({
   state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage,
@@ -122,11 +122,8 @@ function renderSettings() {
   if (!content) return;
   content.setAttribute("aria-busy", "false");
   const name = displayName();
-  const metadata = auth.user?.user_metadata || {};
-  const travelStyles = Array.isArray(metadata.travel_styles) ? metadata.travel_styles : [];
   content.innerHTML = auth.user
-    ? `<div class="settings-profile"><span class="profile-avatar" id="settings-profile-avatar">${avatarContents(name, metadata.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small><label class="photo-upload-button" for="settings-avatar-file">${esc(t("changeProfilePhoto"))}</label><input id="settings-avatar-file" class="visually-hidden-file" type="file" accept="image/jpeg,image/png,image/webp" /></div></div>
-      <form id="settings-profile-form"><div class="field"><label for="settings-profile-name">${esc(t("profileName"))}</label><input id="settings-profile-name" name="displayName" value="${esc(name)}" minlength="2" maxlength="40" required /></div><div class="field"><label for="settings-home-base">${esc(t("signupHomeBase"))}</label><input id="settings-home-base" name="homeBase" value="${esc(metadata.home_base || "")}" maxlength="80" /></div><fieldset class="signup-interests"><legend>${esc(t("signupInterests"))}</legend><p>${esc(t("signupInterestsHint"))}</p><div class="signup-interest-grid">${TRAVEL_OPTIONS.map(([value, key]) => `<label><input type="checkbox" name="travelStyle" value="${value}" ${travelStyles.includes(value) ? "checked" : ""} /><span>${esc(t(key))}</span></label>`).join("")}</div></fieldset><div class="field"><label for="settings-bio">${esc(t("signupBio"))}</label><textarea id="settings-bio" name="bio" rows="3" maxlength="160">${esc(metadata.bio || "")}</textarea></div><div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("saveProfile"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></form>`
+    ? `<div class="settings-profile"><span class="profile-avatar">${avatarContents(name, auth.user.user_metadata?.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div><div class="settings-account-actions"><button class="button button-primary" type="button" data-action="account">${icon("user")} ${esc(t("profilePageTitle"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
   $("#settings-theme").value = state.theme;
@@ -158,6 +155,10 @@ function setPageView(view, { preserveUrl = false } = {}) {
   document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
   document.querySelectorAll('.rail-nav [data-page-view="trips"], .mobile-nav [data-page-view="trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
+  document.querySelectorAll(".mobile-nav [data-page-view], .mobile-nav [data-action='open-settings']").forEach((item) => {
+    if (item.classList.contains("active")) item.setAttribute("aria-current", "page");
+    else item.removeAttribute("aria-current");
+  });
   document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view)").forEach((section) => {
     section.hidden = isEntry || isSettings || isProfile || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
@@ -260,7 +261,7 @@ async function openTrip(id, deepLink = true) {
         : trip.status === "closed"
           ? `<span class="status-chip closed">${esc(t("closedTrip"))}</span>`
           : trip.availableSpots === 0
-            ? `<span class="status-chip closed">${esc(t("fullTrip"))}</span>`
+            ? ""
             : `<button class="button button-primary" type="button" data-action="join-trip" data-id="${esc(id)}">${esc(t("joinTrip"))} ${icon("arrow-up-right")}</button>`;
     showDialog("trip-dialog", `
       <p class="dialog-kicker">${esc(label(routeFor(trip.routeId)?.title))} / ${esc(dateLabel(trip.date))}</p><h2 id="trip-dialog-title">${esc(trip.title)}</h2><p class="dialog-intro">${esc(t("hostedBy"))} ${esc(trip.hostName)} · ${esc(trip.availableSpots)} ${esc(t("spots"))}</p>
@@ -422,7 +423,7 @@ function openAuth(mode = "signin") {
   const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
     <div class="field">
       <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
-      <input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required />
+      <div class="password-control"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required /><button type="button" class="password-toggle" data-action="toggle-password" data-target="auth-password" aria-controls="auth-password" aria-pressed="false" aria-label="${esc(t("showPassword"))}">${esc(t("showPassword"))}</button></div>
     </div>`;
   const submitLabel = recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
   const form = reset
@@ -478,6 +479,17 @@ document.addEventListener("click", async (eventTarget) => {
   const button = eventTarget.target.closest("[data-action]");
   if (!button) return;
   const { action, id, type, request, decision, mode } = button.dataset;
+  if (action === "toggle-password") {
+    const input = document.getElementById(button.dataset.target);
+    if (!input) return;
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    button.setAttribute("aria-pressed", String(visible));
+    button.textContent = t(visible ? "hidePassword" : "showPassword");
+    button.setAttribute("aria-label", t(visible ? "hidePassword" : "showPassword"));
+    input.focus({ preventScroll: true });
+    return;
+  }
   if (action === "open-mobile-search") { openMobileSearch(); return; }
   if (action === "close-mobile-search") { closeMobileSearch(); return; }
   if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; $(".search-clear").hidden = true; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
@@ -683,29 +695,6 @@ document.addEventListener("change", (eventTarget) => {
     preview.replaceChildren(image);
     preview.hidden = false;
   }
-  if (input.id === "settings-avatar-file") {
-    const file = input.files?.[0];
-    const form = $("#settings-profile-form");
-    const uploadLabel = document.querySelector('label[for="settings-avatar-file"]');
-    if (!file || !form) return;
-    input.disabled = true;
-    uploadLabel.textContent = t("uploadingImage");
-    uploadLabel.classList.add("is-uploading");
-    uploadImage(file, "profile").then(async (path) => {
-      await auth.updateAvatar(path);
-      await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
-      renderAccount();
-      $("#settings-profile-avatar").innerHTML = avatarContents(displayName(), path);
-      await loadTrips();
-      toast(t("profilePhotoSaved"));
-    }).catch((error) => setError(form, error.message || t("imageUploadError")))
-      .finally(() => {
-        input.disabled = false;
-        input.value = "";
-        uploadLabel.textContent = t("changeProfilePhoto");
-        uploadLabel.classList.remove("is-uploading");
-      });
-  }
   if (input.id === "profile-avatar-file") {
     const file = input.files?.[0];
     const form = $("#profile-edit-form");
@@ -719,7 +708,10 @@ document.addEventListener("change", (eventTarget) => {
       await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
       if (state.profile?.id === auth.user.id) state.profile = { ...state.profile, avatarPath: path };
       renderAccount();
-      renderProfile();
+      const avatar = form.querySelector(".profile-photo-edit .profile-avatar");
+      if (avatar) avatar.innerHTML = avatarContents(state.profile?.displayName, path);
+      const overviewAvatar = $("#profile-content .profile-avatar-large");
+      if (overviewAvatar) overviewAvatar.innerHTML = avatarContents(state.profile?.displayName, path);
       toast(t("profilePhotoSaved"));
     }).catch((error) => setError(form, error.message || t("imageUploadError")))
       .finally(() => {
@@ -738,6 +730,18 @@ document.addEventListener("change", (eventTarget) => {
     } else if (form?.id === "signup-form") signupError();
   }
 });
+
+document.addEventListener("error", (eventTarget) => {
+  const image = eventTarget.target;
+  if (!(image instanceof HTMLImageElement) || !image.dataset.mediaPath) return;
+  const publicUrl = storagePublicUrl(image.dataset.mediaPath);
+  if (!image.dataset.fallbackTried && publicUrl && image.src !== publicUrl) {
+    image.dataset.fallbackTried = "true";
+    image.src = publicUrl;
+    return;
+  }
+  image.remove(); // Keep the avatar initials or route art visible if both sources fail.
+}, true);
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
@@ -779,24 +783,13 @@ document.addEventListener("submit", async (eventTarget) => {
     finally { submit.disabled = false; }
     return;
   }
-  if (form.id === "settings-profile-form") {
-    eventTarget.preventDefault();
-    const submit = form.querySelector("button[type=submit]");
-    submit.disabled = true;
-    try {
-      const values = Object.fromEntries(new FormData(form));
-      const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
-      if (travelStyles.length > 3) throw new Error(t("signupStyleLimit"));
-      await auth.updateProfile({ displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
-      renderAccount(); renderSettings(); toast(t("profileSaved"));
-    } catch (error) { setError(form, error.message || t("profileSaveError")); }
-    finally { submit.disabled = false; }
-    return;
-  }
   if (form.id === "auth-form") {
     eventTarget.preventDefault();
     const submit = form.querySelector("button[type=submit]");
+    const originalLabel = submit.innerHTML;
     submit.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    if (form.dataset.mode === "signin") submit.innerHTML = `<span class="button-spinner" aria-hidden="true"></span><span role="status">${esc(t("signingIn"))}</span>`;
     const values = Object.fromEntries(new FormData(form));
     try {
       if (form.dataset.mode === "signin") {
@@ -811,7 +804,7 @@ document.addEventListener("submit", async (eventTarget) => {
         await authSuccess();
       }
     } catch (error) { setError(form, error.message || t("failed")); }
-    finally { submit.disabled = false; }
+    finally { submit.disabled = false; submit.innerHTML = originalLabel; form.removeAttribute("aria-busy"); }
     return;
   }
   if (!["create-form", "join-form", "update-form", "report-form"].includes(form.id)) return;

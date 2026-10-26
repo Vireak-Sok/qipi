@@ -648,7 +648,7 @@
   font-weight: 850;
   padding: 4px 5px;
 }
-.post-actions button:last-child {
+.post-actions button.post-join-action {
   margin-left: auto;
   background: #183d38;
   color: #fff;
@@ -2472,7 +2472,7 @@
 .button,.composer-prompt,.composer-create,.rail-note button,.lang-button,.feed-filter,.field input,.field select,.field textarea,.settings-card>select,.top-search {
   border-radius: var(--control-radius);
 }
-.post-actions button:last-child {
+.post-actions button.post-join-action {
   border-radius: var(--control-radius);
 }
 .settings-preference-grid {

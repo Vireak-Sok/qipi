@@ -1,7 +1,7 @@
 import { esc, icon } from "./core.js";
 export const PROFILE_TABS = [
   { id: "posts", label: "profilePosts", icon: "calendar" },
-  { id: "joining", label: "joining", icon: "users" },
+  { id: "joining", label: "profileJoiningTab", icon: "users" },
   { id: "saved", label: "saved", icon: "bookmark" }
 ];
 export function profileTabs({ active = "posts", t }) {

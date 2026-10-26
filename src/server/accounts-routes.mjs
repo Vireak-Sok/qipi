@@ -48,6 +48,8 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
           updatedCount += 1;
         }
       }
+      const publicProfile = (data.profiles || []).find((profile) => profile.id === user.id);
+      if (publicProfile) publicProfile.avatarPath = avatarPath;
       data.media = (data.media || []).filter((media) => !(media.ownerId === user.id && media.kind === "profile"));
       if (avatarPath) {
         const mediaId = avatarPath.match(/([0-9a-f-]{36})\.(?:jpg|png|webp)$/i)?.[1]?.toLowerCase();

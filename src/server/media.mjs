@@ -15,6 +15,7 @@ export function createMediaHandler({
       const publicPaths = [
         ...(data.trips || []).filter((trip) => !trip.hidden).flatMap((trip) => [trip.mediaPath, trip.hostAvatarPath]),
         ...(data.demoUsers || []).map((profile) => profile.avatarPath),
+        ...(data.profiles || []).map((profile) => profile.avatarPath),
         ...(data.media || []).map((media) => media.path)
       ].filter(Boolean);
       const path = publicPaths.find((candidate) => mediaIdFromPath(candidate) === id.toLowerCase());

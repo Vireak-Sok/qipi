@@ -15,13 +15,15 @@ export function createMediaClient({ auth, t }) {
   }
   function avatarContents(name, path = "") {
     const url = appMediaUrl(path);
-    return url ? `<img class="avatar-image" src="${esc(url)}" alt="" loading="lazy" decoding="async" />` : esc(initials(name));
+    const fallback = `<span class="avatar-fallback">${esc(initials(name))}</span>`;
+    return url ? `${fallback}<img class="avatar-image" src="${esc(url)}" data-media-path="${esc(path)}" alt="" loading="lazy" decoding="async" />` : fallback;
   }
   async function uploadImage(file, area) {
     if (!auth.user) throw new Error(t("imageSignInRequired"));
+    if (!["profile", "trips"].includes(area)) throw new Error(t("imageUploadError"));
     const extension = IMAGE_TYPES.get(file?.type);
     if (!extension) throw new Error(t("imageTypeError"));
-    if (file.size > MAX_IMAGE_BYTES) throw new Error(t("imageSizeError"));
+    if (!file.size || file.size > MAX_IMAGE_BYTES) throw new Error(t("imageSizeError"));
     const accessToken = await auth.accessToken();
     if (!accessToken) throw new Error(t("imageSignInRequired"));
     const path = `users/${auth.user.id}/${area}/${crypto.randomUUID()}.${extension}`;

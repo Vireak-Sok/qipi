@@ -53,7 +53,7 @@
   letter-spacing: .025em;
   white-space: nowrap;
 }
-.profile-handle { display: block; margin-top: 4px; color: var(--brand-strong); font-size: 11px; font-weight: 650; }
+.profile-handle { display: block; margin-top: 4px; color: var(--brand-strong); font-size: 11px; font-weight: 650; overflow-wrap: anywhere; }
 .profile-card .profile-identity small { margin-top: 4px; font-size: 11px; line-height: 1.35; }
 .profile-card .profile-actions { display: flex; align-self: center; gap: 7px; margin: 0; }
 .profile-card .profile-actions .button {

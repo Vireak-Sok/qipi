@@ -184,11 +184,12 @@ test("Saved belongs to the owner's profile and never appears on another profile"
   assert.match(content.innerHTML, /data-action="edit-profile"/);
   const sharedSections = ["profile-card-main", "profile-overview", "profile-stats", "profile-tabs", "profile-tab-panel"];
   for (const section of sharedSections) assert.match(content.innerHTML, new RegExp(section));
-  state.profile = { id: "someone-else", displayName: "Other", trips: [] };
+  state.profile = { id: "someone-else", displayName: "Other", interests: ["motorbike"], trips: [] };
   controller.renderProfile();
   for (const section of sharedSections) assert.match(content.innerHTML, new RegExp(section));
   assert.match(content.innerHTML, /data-action="toggle-follow"/);
   assert.match(content.innerHTML, /data-action="profile-tab" data-id="posts"/);
+  assert.match(content.innerHTML, />Motorbike<\/span>/);
   assert.doesNotMatch(content.innerHTML, /saved-id|data-id="saved"|data-id="joining"|data-action="edit-profile"/);
   await controller.selectProfileTab("saved");
   assert.equal(loaded, 1);

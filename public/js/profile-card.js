@@ -20,7 +20,11 @@ export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, i
   const action = isOwnProfile
     ? `<button class="button button-ghost profile-edit-trigger" type="button" data-action="edit-profile" aria-label="${esc(t("editProfile"))}">${icon("pencil")}<span>${esc(t("profileEditAction"))}</span></button>`
     : `<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>`;
-  const interestLabel = (interest) => t(`travel${interest.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join("")}`) || interest;
+  const interestLabel = (interest) => {
+    const key = `travel${interest.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join("")}`;
+    const translated = t(key);
+    return translated && translated !== key ? translated : interest.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
 
   return `<section class="profile-card settings-card">
     <div class="profile-cover ${profile.isDemo ? "is-demo" : "is-member"}" aria-hidden="true"></div>

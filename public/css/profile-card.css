@@ -74,10 +74,8 @@
 .profile-card .profile-interests span { padding: 5px 9px; font-size: 10px; }
 .profile-card .profile-edit-form { width: 100%; margin: 18px 0 0; padding-top: 18px; border-top: 1px solid var(--border-soft); }
 .profile-tabs {
-  justify-content: flex-start;
   gap: 5px;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   margin: 16px 0 0;
   padding: 4px;
   border: 1px solid var(--border-soft);
@@ -85,7 +83,7 @@
   background: var(--surface-card);
 }
 .profile-tab {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-height: 38px;
   padding: 8px 13px;
   border: 0;
@@ -120,7 +118,6 @@
   .profile-card .profile-stats { margin-top: 14px; padding: 11px 2px; }
   .profile-card .profile-stats span { font-size: 10px; }
   .profile-card .profile-stats strong { font-size: 16px; }
-  .profile-tabs { width: 100%; }
   .profile-tab { flex: 1 1 0; min-width: 0; padding-inline: 6px; }
 }
 @media (max-width: 360px) {

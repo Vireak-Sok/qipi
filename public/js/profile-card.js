@@ -14,7 +14,6 @@ function editProfileForm({ profile, styles, t, avatarContents }) {
 
 export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, isEditing, t, avatarContents }) {
   const styles = profile.interests || [];
-  const location = [profile.homeBase, ...(profile.languages || [])].filter(Boolean).join(" · ");
   const routeCount = Number(profile.routeCount) || new Set(trips.map((trip) => trip.routeId)).size;
   const upcomingCount = trips.filter((trip) => trip.date >= dateToday()).length;
   const action = isOwnProfile
@@ -31,7 +30,7 @@ export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, i
     <div class="profile-card-main">
       <div class="profile-overview">
         <span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span>
-        <div class="profile-identity"><div class="profile-name-row"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.isDemo ? `<span class="profile-demo-label">${esc(t("demoProfile"))}</span>` : ""}</div>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}${location ? `<small>${esc(location)}</small>` : ""}</div>
+        <div class="profile-identity"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}</div>
         <div class="profile-actions">${action}<button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}" aria-label="${esc(t("shareProfile"))}">${icon("share")}<span>${esc(t("profileShareAction"))}</span></button></div>
       </div>
       ${isEditing && isOwnProfile ? editProfileForm({ profile, styles, t, avatarContents }) : `<div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${routeCount}</strong><span>${esc(t("profileRoutes"))}</span></div><div><strong>${upcomingCount}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>${profile.bio || styles.length ? `<div class="profile-about">${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interestLabel(interest))}</span>`).join("")}</div>` : ""}</div>` : ""}`}

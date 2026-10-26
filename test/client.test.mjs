@@ -182,15 +182,27 @@ test("Saved belongs to the owner's profile and never appears on another profile"
   assert.equal(loaded, 1);
   assert.match(content.innerHTML, /<article>saved-id<\/article>/);
   assert.match(content.innerHTML, /data-action="edit-profile"/);
-  const sharedSections = ["profile-card-main", "profile-overview", "profile-stats", "profile-tabs", "profile-tab-panel"];
+  const sharedSections = ["profile-card-main", "profile-overview", "profile-stats", "profile-tab-panel"];
   for (const section of sharedSections) assert.match(content.innerHTML, new RegExp(section));
+  assert.match(content.innerHTML, /class="profile-tabs"/);
   state.profile = { id: "someone-else", displayName: "Other", interests: ["motorbike"], trips: [] };
   controller.renderProfile();
   for (const section of sharedSections) assert.match(content.innerHTML, new RegExp(section));
   assert.match(content.innerHTML, /data-action="toggle-follow"/);
-  assert.match(content.innerHTML, /data-action="profile-tab" data-id="posts"/);
+  assert.doesNotMatch(content.innerHTML, /class="profile-tabs"|data-action="profile-tab"/);
   assert.match(content.innerHTML, />Motorbike<\/span>/);
   assert.doesNotMatch(content.innerHTML, /saved-id|data-id="saved"|data-id="joining"|data-action="edit-profile"/);
   await controller.selectProfileTab("saved");
   assert.equal(loaded, 1);
+});
+
+test("profile card identity shows only name and username for demo and member profiles", async () => {
+  const { profileCardMarkup } = await import("../public/js/profile-card.js");
+  const base = { id: "demo-1", displayName: "Dara", username: "dara", homeBase: "Kampot", languages: ["km", "en"], isDemo: true, interests: [] };
+  for (const isOwnProfile of [false, true]) {
+    const markup = profileCardMarkup({ profile: base, trips: [], isOwnProfile, isFollowing: false, isEditing: false, t: key => key, avatarContents: () => "DD" });
+    assert.match(markup, /<h2>Dara<\/h2>/);
+    assert.match(markup, /@dara/);
+    assert.doesNotMatch(markup, /demoProfile|Kampot|km · en|profile-demo-label/);
+  }
 });

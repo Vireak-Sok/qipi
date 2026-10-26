@@ -51,7 +51,7 @@ export function createProfileController({ state, auth, t, label, displayName, us
     const content = $("#profile-content");
     if (!content) return;
     content.setAttribute("aria-busy", "true");
-    content.innerHTML = `<div class="skeleton-profile" aria-hidden="true"><div class="skeleton-profile-cover"></div><div class="skeleton-profile-card"><i class="skeleton-profile-avatar"></i><div class="skeleton-profile-title"><b></b><span></span></div><div class="skeleton-profile-actions"><i></i><i></i></div><div class="skeleton-profile-stats"><i></i><i></i><i></i><i></i></div><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></div><div class="skeleton-profile-tabs"><i></i><i></i><i></i></div><div class="skeleton-profile-posts">${skeletonPostsMarkup(2)}</div></div>`;
+    content.innerHTML = `<div class="skeleton-profile" aria-hidden="true"><div class="skeleton-profile-cover"></div><div class="skeleton-profile-card"><i class="skeleton-profile-avatar"></i><div class="skeleton-profile-title"><b></b><span></span></div><div class="skeleton-profile-actions"><i></i><i></i></div><div class="skeleton-profile-stats"><i></i><i></i><i></i><i></i></div><span class="skeleton-copy"></span><span class="skeleton-copy short"></span></div><div class="skeleton-profile-posts">${skeletonPostsMarkup(2)}</div></div>`;
   }
 
   function renderProfile() {
@@ -65,7 +65,7 @@ export function createProfileController({ state, auth, t, label, displayName, us
     const joinedTrips = isOwnProfile ? (state.me?.requests || []) : [];
     content.setAttribute("aria-busy", "false");
     content.innerHTML = `${profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, isEditing: state.profileEditing, t, avatarContents })}
-    ${profileTabs({ active: activeTab, t, tabs: isOwnProfile ? PROFILE_TABS : PROFILE_TABS.slice(0, 1) })}
+    ${isOwnProfile ? profileTabs({ active: activeTab, t, tabs: PROFILE_TABS }) : ""}
     <div id="profile-tab-panel" role="region" aria-label="${esc(t(activeTab === 'saved' ? 'saved' : activeTab === 'joining' ? 'joining' : 'profilePosts'))}">
     ${activeTab === "posts" ? `<section class="profile-posts"><div class="feed-section-head"><h2>${esc(t("profilePosts"))}</h2></div><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>` : activeTab === "joining" ? `<section class="profile-posts profile-joined-trips"><div class="feed-section-head"><h2>${esc(t("joining"))}</h2></div><div class="my-list">${joinedTrips.length ? joinedTrips.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<div class="empty-trips"><h3>${esc(t("noJoined"))}</h3></div>`}</div></section>` : savedCollectionMarkup()}
     </div>`;

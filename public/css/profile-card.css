@@ -37,24 +37,13 @@
   font-size: 21px;
 }
 .profile-card .profile-identity { min-width: 0; padding-top: 12px; }
-.profile-name-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .profile-card .profile-identity h2 {
   margin: 0;
   font-size: 20px;
   line-height: 1.18;
   letter-spacing: -.035em;
 }
-.profile-card .profile-demo-label {
-  padding: 3px 7px;
-  border-radius: 6px;
-  background: var(--surface-selected);
-  color: var(--brand-strong);
-  font-size: 9px;
-  letter-spacing: .025em;
-  white-space: nowrap;
-}
 .profile-handle { display: block; margin-top: 4px; color: var(--brand-strong); font-size: 11px; font-weight: 650; overflow-wrap: anywhere; }
-.profile-card .profile-identity small { margin-top: 4px; font-size: 11px; line-height: 1.35; }
 .profile-card .profile-actions { display: flex; align-self: center; gap: 7px; margin: 0; }
 .profile-card .profile-actions .button {
   display: inline-flex;
@@ -84,8 +73,29 @@
 .profile-card .profile-about .profile-interests { margin: 0; }
 .profile-card .profile-interests span { padding: 5px 9px; font-size: 10px; }
 .profile-card .profile-edit-form { width: 100%; margin: 18px 0 0; padding-top: 18px; border-top: 1px solid var(--border-soft); }
-.profile-tabs:has(.profile-tab:only-child) { justify-content: flex-start; }
-.profile-tabs .profile-tab:only-child { flex: 0 0 118px; }
+.profile-tabs {
+  justify-content: flex-start;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 16px 0 0;
+  padding: 4px;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+.profile-tab {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.profile-tab:hover { color: var(--text-primary); background: var(--surface-selected); }
+.profile-tab.is-active { color: var(--brand-strong); background: var(--surface-selected); font-weight: 750; }
+.profile-tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .skeleton-profile-cover { height: 94px; }
 .skeleton-profile-avatar { margin-top: -35px; }
@@ -110,6 +120,8 @@
   .profile-card .profile-stats { margin-top: 14px; padding: 11px 2px; }
   .profile-card .profile-stats span { font-size: 10px; }
   .profile-card .profile-stats strong { font-size: 16px; }
+  .profile-tabs { width: 100%; }
+  .profile-tab { flex: 1 1 0; min-width: 0; padding-inline: 6px; }
 }
 @media (max-width: 360px) {
   .profile-card .profile-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }

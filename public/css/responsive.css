@@ -113,6 +113,7 @@
 .message-thread-head>a strong { font-size: 14px; }
 .message-thread-back { display: none; }
 .message-history { min-height: 0; padding: 24px clamp(16px,4vw,44px); }
+.message-history::before { content: ""; flex: 1 0 0; min-height: 0; }
 .message-bubble { padding: 11px 14px 8px; border-radius: 17px 17px 17px 5px; }
 .message-bubble.is-mine { border-radius: 17px 17px 5px 17px; }
 .message-composer { grid-template-columns: minmax(0,1fr) 46px; gap: 10px; padding: 14px 18px; background: var(--surface-card); }

@@ -43,7 +43,7 @@
     const legacyProfile = ["/", "/index.html"].includes(path) && new URLSearchParams(location.search).has("profile") &&
       (!location.hash || ["#profile", "#entry"].includes(location.hash));
     const signupRoute = path === "/signup" || location.hash === "#signup";
-    if (profilePath || legacyProfile || /^\/profile\/[^/]+\/?$/.test(path)) root.dataset.profilePending = "true";
+    if (path === "/profile" || profilePath || legacyProfile || /^\/profile\/[^/]+\/?$/.test(path)) root.dataset.profilePending = "true";
     if (signupRoute) root.dataset.signupPending = "true";
     if (!recovering && !signupRoute && !sessionStorage.getItem("qipi:entry-choice")) {
       root.dataset.entryPending = "true";

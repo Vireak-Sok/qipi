@@ -35,7 +35,8 @@ export function createRouter(state, { location = window.location, history = wind
   function viewFromLocation(hasProfile = false) {
     const path = location.pathname.replace(/\/+$/, "") || "/";
     if (path === "/messages" || /^\/messages\/[0-9a-f-]{36}$/i.test(path)) return "messages";
-    if (path === "/profile" || /^\/profile\/[^/]+$/.test(path) || usernameFromPath()) return hasProfile ? "profile" : "feed";
+    if (path === "/profile") return "profile";
+    if (/^\/profile\/[^/]+$/.test(path) || usernameFromPath()) return hasProfile ? "profile" : "feed";
     const paths = {
       "/": "feed", "/index.html": "feed", "/feed": "feed", "/explore": "explore", "/routes": "explore",
       "/trips": "trips", "/saved": "saved", "/settings": "settings", "/search": "search-results",

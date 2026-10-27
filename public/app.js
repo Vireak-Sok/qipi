@@ -48,10 +48,12 @@ let entryReturnView = "feed";
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
   else if (entryReturnView === "profile") {
-    state.profileId = profileIdFromLocation();
-    state.profileUsername = state.profileId;
-    renderProfileLoading();
-    setPageView("profile", { preserveUrl: true });
+    const profileId = profileIdFromLocation() || auth.user?.id;
+    if (profileId) await openProfile(profileId);
+    else {
+      entryReturnView = "feed";
+      await openFeedPage();
+    }
   }
   else setPageView(entryReturnView);
 }
@@ -557,7 +559,7 @@ async function openStartupDeepLink() {
   }
   else if (profileIdFromLocation()) {
     const profileId = profileIdFromLocation();
-    if (!state.profile || state.profile.id !== profileId) await openProfile(profileId, false, query.get("tab") || "posts");
+    if (!state.profile || (state.profile.id !== profileId && state.profile.username !== profileId)) await openProfile(profileId, false, query.get("tab") || "posts");
   }
 }
 
@@ -1054,9 +1056,10 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 // Load the app state before routing to the requested screen.
 async function initialize() {
   const currentPath = location.pathname.replace(/\/+$/, "") || "/";
+  const ownProfileRoute = currentPath === "/profile";
   const signupRoute = currentPath === "/signup" || location.hash === "#signup";
   const startupQuery = new URLSearchParams(location.search);
-  const startupProfileId = profileIdFromLocation();
+  const startupProfileId = profileIdFromLocation() || (ownProfileRoute ? auth.user?.id || "" : "");
   const messageRoute = currentPath.match(/^\/messages(?:\/([0-9a-f-]{36}))?$/i);
   state.conversationId = messageRoute?.[1] || "";
   const postPath = currentPath.match(/^\/post\/([^/]+)$/);
@@ -1067,7 +1070,11 @@ async function initialize() {
   const hasStartupProfile = Boolean(startupProfileId && !signupRoute && !auth.recovery);
   state.profileId = hasStartupProfile ? startupProfileId : "";
   state.profileUsername = hasStartupProfile ? usernameFromPath() || startupProfileId : "";
-  entryReturnView = hasStartupProfile ? "profile" : viewFromLocation(Boolean(startupProfileId));
+  entryReturnView = hasStartupProfile || ownProfileRoute ? "profile" : viewFromLocation(Boolean(startupProfileId));
+  if (ownProfileRoute && !auth.user && entryChoice()) {
+    entryReturnView = "feed";
+    history.replaceState(history.state, "", pageUrl("feed"));
+  }
   if (entryReturnView === "search-results") {
     state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();
     if ($("#feed-search")) $("#feed-search").value = startupQuery.get("q") || "";
@@ -1107,6 +1114,10 @@ async function initialize() {
   } else {
     document.documentElement.removeAttribute("data-entry-pending");
   }
+  if (ownProfileRoute && !auth.user && entryChoice()) {
+    entryReturnView = "feed";
+    setPageView("feed");
+  }
   if (signupRoute && !auth.user) openSignupPage();
   else {
     document.documentElement.removeAttribute("data-signup-pending");
@@ -1114,7 +1125,7 @@ async function initialize() {
   }
   if (state.view !== "entry" && !signupRoute) {
     if (hasStartupProfile) {
-      // openStartupDeepLink below fetches the linked profile after auth initializes.
+      if (ownProfileRoute) await openProfile(startupProfileId, true, startupQuery.get("tab") || "posts");
     } else if (entryReturnView === "saved") await openSavedTrips();
     else if (entryReturnView === "messages" && auth.user) await openMessages(state.conversationId);
     else if (["feed", "explore", "trips", "search-results"].includes(entryReturnView)) {

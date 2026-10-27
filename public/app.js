@@ -100,6 +100,7 @@ function applyLanguage() {
   renderAccount(); renderRoutes(); renderFilter(); renderTrips();
   if (state.view === "profile") renderProfile();
   if (state.view === "settings") renderSettings();
+  renderChatNotifications();
   syncEnhancedSelects();
 }
 
@@ -117,6 +118,60 @@ function renderAccount() {
   const profileLabel = name ? `${t("profile")}: ${name}` : t("signIn");
   $("#account-button").setAttribute("aria-label", profileLabel);
   $(".rail-profile")?.setAttribute("aria-label", profileLabel);
+}
+
+function renderChatNotifications() {
+  const unread = auth.user ? state.conversations.filter((item) => Number(item.unreadCount) > 0) : [];
+  const total = unread.reduce((count, item) => count + Number(item.unreadCount), 0);
+  const label = total > 99 ? "99+" : String(total);
+  document.querySelectorAll("[data-message-badge]").forEach((badge) => {
+    badge.hidden = total === 0;
+    badge.textContent = total ? label : "";
+  });
+  document.querySelectorAll('[data-page-view="messages"]').forEach((link) => {
+    if (total) link.setAttribute("aria-label", `${t("messages")} (${label})`);
+    else link.removeAttribute("aria-label");
+  });
+  const button = $("[data-action='toggle-notifications']");
+  if (button) button.setAttribute("aria-label", total ? `${t("notifications")} (${label})` : t("notifications"));
+  const list = $("#notification-messages");
+  const empty = $("#notifications-panel .notification-empty");
+  if (!list || !empty) return;
+  list.hidden = unread.length === 0;
+  empty.hidden = unread.length > 0;
+  list.innerHTML = unread.map((item) => `<button class="notification-message" type="button" data-action="open-notification-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="notification-message-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span><b class="notification-message-count">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b></button>`).join("");
+}
+
+function syncConversations(conversations, { updateSidebar = false } = {}) {
+  const next = (conversations || []).map((item) => state.view === "messages" && state.conversationProfile && item.id === state.conversationId
+    ? { ...item, unreadCount: 0 }
+    : item);
+  const changed = JSON.stringify(next) !== JSON.stringify(state.conversations);
+  state.conversations = next;
+  if (changed) renderChatNotifications();
+  if (changed && updateSidebar && state.view === "messages") renderMessageSidebarList();
+  return changed;
+}
+
+async function refreshChatNotifications() {
+  const userId = auth.user?.id;
+  if (!userId || document.hidden) return;
+  if (state.view === "messages" && !state.conversationId && state.messagePoll) return;
+  try {
+    const result = await api("/api/conversations");
+    if (auth.user?.id !== userId) return;
+    syncConversations(result.conversations, { updateSidebar: true });
+  } catch {
+    if (!auth.user) { state.conversations = []; renderChatNotifications(); }
+  }
+}
+
+function startChatNotifications() {
+  if (state.chatNotificationPoll) clearInterval(state.chatNotificationPoll);
+  state.chatNotificationPoll = null;
+  if (!auth.user) { state.conversations = []; renderChatNotifications(); return; }
+  refreshChatNotifications();
+  state.chatNotificationPoll = setInterval(refreshChatNotifications, 20000);
 }
 
 function renderSettings() {
@@ -234,18 +289,31 @@ function renderMessagesSignIn() {
   content.innerHTML = `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("messagesSignInTitle"))}</h2><p>${esc(t("messagesSignInCopy"))}</p><button class="button button-primary" type="button" data-action="messages-sign-in">${esc(t("signIn"))}</button></section>`;
 }
 
-function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoading = loading, inboxError = false } = {}) {
-  const content = $("#messages-content");
-  if (!content) return;
-  content.setAttribute("aria-busy", String(loading));
+function messageListMarkup({ inboxLoading = false, inboxError = false } = {}) {
   const conversations = state.conversations;
-  const list = inboxLoading
+  return inboxLoading
     ? `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`
     : inboxError
       ? `<div class="message-inbox-error"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-messages">${esc(t("retry"))}</button></div>`
     : conversations.length
       ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation ${item.id === state.conversationId ? "is-active" : ""}" type="button" data-action="open-conversation" data-id="${esc(item.id)}" ${item.id === state.conversationId ? 'aria-current="true"' : ""}>${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
       : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
+}
+
+function renderMessageSidebarList() {
+  const sidebar = $("#messages-content .message-sidebar");
+  const current = sidebar?.lastElementChild;
+  if (!current || current.classList.contains("message-sidebar-head")) return;
+  const scrollTop = current.scrollTop;
+  current.outerHTML = messageListMarkup();
+  sidebar.lastElementChild.scrollTop = scrollTop;
+}
+
+function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoading = loading, inboxError = false } = {}) {
+  const content = $("#messages-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", String(loading));
+  const list = messageListMarkup({ inboxLoading, inboxError });
   content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
@@ -257,10 +325,11 @@ function renderConversation({ loading = false } = {}) {
 
 function updateConversationPreview(message) {
   if (!message) return;
-  state.conversations = state.conversations.map((conversation) => conversation.id === state.conversationId
+  const next = state.conversations.map((conversation) => conversation.id === state.conversationId
     ? { ...conversation, updatedAt: message.created_at, lastMessage: message, unreadCount: 0 }
     : conversation)
     .sort((a, b) => new Date(b.updatedAt || b.lastMessage?.created_at || 0) - new Date(a.updatedAt || a.lastMessage?.created_at || 0));
+  syncConversations(next);
 }
 
 function renderMessageThreadMarkup() {
@@ -302,7 +371,7 @@ async function openMessages(conversationId = "", { useCachedInbox = false } = {}
           if (threadReady) renderMessageInbox({ inboxError: true, loading: !state.conversationProfile, threadLoading: false });
         }
         else {
-          state.conversations = inbox.result.conversations || [];
+          syncConversations(inbox.result.conversations);
           if (threadReady) renderMessageInbox({ loading: !state.conversationProfile, threadLoading: false });
         }
       });
@@ -316,7 +385,7 @@ async function openMessages(conversationId = "", { useCachedInbox = false } = {}
       state.conversationProfile = result.profile;
       threadReady = true;
       const inbox = inboxSettled ? await inboxRequest : null;
-      if (inbox?.result) state.conversations = inbox.result.conversations || [];
+      syncConversations(inbox?.result?.conversations || state.conversations);
       renderMessageInbox({ inboxLoading: !inbox && !state.conversations.length, inboxError: Boolean(inbox?.error), threadLoading: false });
       state.messagePoll = setInterval(() => refreshConversation(requestId), 6000);
     } catch (error) {
@@ -331,7 +400,7 @@ async function openMessages(conversationId = "", { useCachedInbox = false } = {}
     const inbox = await inboxRequest;
     if (requestId !== state.messageRequestId || state.view !== "messages") return;
     if (inbox.error) throw inbox.error;
-    state.conversations = inbox.result.conversations || [];
+    syncConversations(inbox.result.conversations);
     renderMessageInbox();
     state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
   } catch (error) {
@@ -347,6 +416,7 @@ async function refreshConversation(requestId) {
   try {
     const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`);
     if (requestId !== state.messageRequestId || state.view !== "messages") return;
+    syncConversations(state.conversations, { updateSidebar: true });
     const currentLast = state.messages.at(-1)?.id;
     const newLast = result.messages?.at(-1)?.id;
     if (currentLast !== newLast) {
@@ -363,11 +433,7 @@ async function refreshInbox(requestId) {
   try {
     const result = await api("/api/conversations");
     if (requestId !== state.messageRequestId || state.view !== "messages") return;
-    const next = result.conversations || [];
-    if (JSON.stringify(next) !== JSON.stringify(state.conversations)) {
-      state.conversations = next;
-      renderMessageInbox();
-    }
+    if (syncConversations(result.conversations)) renderMessageInbox();
   } catch { /* Inbox refresh is best effort. */ }
 }
 
@@ -616,6 +682,7 @@ async function openStartupDeepLink() {
 async function authSuccess() {
   await refreshMe();
   renderAccount();
+  startChatNotifications();
   renderSettings();
   renderTrips();
   const wasEntryPage = state.view === "entry";
@@ -677,11 +744,18 @@ document.addEventListener("click", async (eventTarget) => {
     const panel = $("#notifications-panel");
     panel.hidden = !panel.hidden;
     button.setAttribute("aria-expanded", String(!panel.hidden));
+    if (!panel.hidden) refreshChatNotifications();
     return;
   }
   if (action === "close-notifications") {
     $("#notifications-panel").hidden = true;
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
+    return;
+  }
+  if (action === "open-notification-conversation") {
+    $("#notifications-panel").hidden = true;
+    $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
+    await openMessages(id, { useCachedInbox: true });
     return;
   }
   if (action === "open-message") {
@@ -755,7 +829,7 @@ document.addEventListener("click", async (eventTarget) => {
     else openAuth("signin");
   }
   if (action === "auth-mode") openAuth(mode);
-  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
+  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); startChatNotifications(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
   if (action === "toggle-save") {
     state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
     saveLocal("qipi:saved-trips", state.savedTrips);
@@ -1103,6 +1177,9 @@ document.querySelectorAll("dialog").forEach((dialog) => {
     }
   });
 });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && auth.user) refreshChatNotifications();
+});
 
 // Load the app state before routing to the requested screen.
 async function initialize() {
@@ -1191,5 +1268,6 @@ async function initialize() {
   }
   if (state.view !== "entry") await openStartupDeepLink();
   if (auth.recovery) openAuth("reset");
+  startChatNotifications();
 }
 initialize();

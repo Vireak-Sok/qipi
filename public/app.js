@@ -155,6 +155,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);
+  main.classList.toggle("messages-thread-open", isMessages && Boolean(state.conversationId));
   $("#search-filter-panel").hidden = !isSearchResults;
   document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
@@ -237,29 +238,26 @@ function renderMessageInbox({ loading = false } = {}) {
   const content = $("#messages-content");
   if (!content) return;
   content.setAttribute("aria-busy", String(loading));
-  if (loading) {
-    content.innerHTML = `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`;
-    return;
-  }
   const conversations = state.conversations;
-  content.innerHTML = conversations.length ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation" type="button" data-action="open-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
-    : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
+  const list = loading
+    ? `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`
+    : conversations.length
+      ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation ${item.id === state.conversationId ? "is-active" : ""}" type="button" data-action="open-conversation" data-id="${esc(item.id)}" ${item.id === state.conversationId ? 'aria-current="true"' : ""}>${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
+      : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${loading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`}</div>`;
+  const history = $("#message-history");
+  if (history) history.scrollTop = history.scrollHeight;
 }
 
 function renderConversation({ loading = false } = {}) {
-  const content = $("#messages-content");
-  if (!content) return;
-  content.setAttribute("aria-busy", String(loading));
-  if (loading) {
-    content.innerHTML = `<div class="message-thread-skeleton"><i></i><i></i><i></i><i></i></div>`;
-    return;
-  }
+  renderMessageInbox({ loading });
+}
+
+function renderMessageThreadMarkup() {
   const profile = state.conversationProfile;
-  if (!profile) { renderMessageInbox(); return; }
+  if (!profile) return `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`;
   const messages = state.messages;
-  content.innerHTML = `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${esc(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
-  const history = $("#message-history");
-  if (history) history.scrollTop = history.scrollHeight;
+  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${esc(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
 async function openMessages(conversationId = "") {
@@ -268,20 +266,26 @@ async function openMessages(conversationId = "") {
   const requestId = ++state.messageRequestId;
   setPageView("messages");
   if (!auth.user) { renderMessagesSignIn(); return; }
-  if (conversationId) renderConversation({ loading: true });
+  if (conversationId) {
+    state.conversationProfile = null;
+    state.messages = [];
+    renderConversation({ loading: true });
+  }
   else renderMessageInbox({ loading: true });
   try {
+    const [conversationsResult, messageResult] = await Promise.all([
+      api("/api/conversations"),
+      conversationId ? api(`/api/messages/${encodeURIComponent(conversationId)}`) : Promise.resolve(null)
+    ]);
+    if (requestId !== state.messageRequestId || state.view !== "messages") return;
+    state.conversations = conversationsResult.conversations || [];
     if (conversationId) {
-      const result = await api(`/api/messages/${encodeURIComponent(conversationId)}`);
-      if (requestId !== state.messageRequestId || state.view !== "messages") return;
+      const result = messageResult;
       state.messages = result.messages || [];
       state.conversationProfile = result.profile;
       renderConversation();
       state.messagePoll = setInterval(() => refreshConversation(requestId), 6000);
     } else {
-      const result = await api("/api/conversations");
-      if (requestId !== state.messageRequestId || state.view !== "messages") return;
-      state.conversations = result.conversations || [];
       renderMessageInbox();
       state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
     }
@@ -531,7 +535,7 @@ function openAuth(mode = "signin") {
   const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
     <div class="field">
       <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
-      <div class="password-control"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required /><button type="button" class="password-toggle" data-action="toggle-password" data-target="auth-password" aria-controls="auth-password" aria-pressed="false" aria-label="${esc(t("showPassword"))}">${esc(t("showPassword"))}</button></div>
+      <div class="password-control"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required /><button type="button" class="password-toggle" data-action="toggle-password" data-target="auth-password" aria-controls="auth-password" aria-pressed="false" aria-label="${esc(t("showPassword"))}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#eye"></use></svg></button></div>
     </div>`;
   const submitLabel = recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
   const form = reset
@@ -597,7 +601,7 @@ document.addEventListener("click", async (eventTarget) => {
     const visible = input.type === "password";
     input.type = visible ? "text" : "password";
     button.setAttribute("aria-pressed", String(visible));
-    button.textContent = t(visible ? "hidePassword" : "showPassword");
+    button.innerHTML = `<svg class="heroicon" aria-hidden="true"><use href="/icons.svg#${visible ? "eye-slash" : "eye"}"></use></svg>`;
     button.setAttribute("aria-label", t(visible ? "hidePassword" : "showPassword"));
     input.focus({ preventScroll: true });
     return;

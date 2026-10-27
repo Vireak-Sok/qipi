@@ -332,6 +332,7 @@ export default {
   "messagesSignInTitle": "Sign in to message travelers",
   "messagesSignInCopy": "Connect with other travelers and plan a trip together.",
   "noConversations": "No conversations yet",
+  "selectConversation": "Select a conversation",
   "startConversation": "Start a conversation from a traveler’s profile.",
   "messagePlaceholder": "Write a message...",
   "traveler": "Traveler"

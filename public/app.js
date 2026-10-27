@@ -1074,6 +1074,8 @@ async function initialize() {
   if (ownProfileRoute && !auth.user && entryChoice()) {
     entryReturnView = "feed";
     history.replaceState(history.state, "", pageUrl("feed"));
+  } else if (ownProfileRoute && !auth.user) {
+    history.replaceState(history.state, "", pageUrl("entry"));
   }
   if (entryReturnView === "search-results") {
     state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();

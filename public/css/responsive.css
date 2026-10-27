@@ -89,9 +89,9 @@
   grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--border-soft);
-  border-radius: 20px;
+  border-radius: 14px;
   background: var(--surface-card);
-  box-shadow: 0 12px 36px color-mix(in srgb, var(--text-primary) 6%, transparent);
+  box-shadow: var(--surface-shadow);
 }
 .message-sidebar { display: flex; min-width: 0; min-height: 0; flex-direction: column; border-right: 1px solid var(--border-soft); background: var(--surface-card); }
 .message-sidebar-head { display: flex; align-items: center; min-height: 76px; padding: 16px 20px; border-bottom: 1px solid var(--border-soft); }
@@ -99,6 +99,7 @@
 .message-inbox { min-height: 0; overflow-y: auto; padding: 6px; }
 .message-conversation { position: relative; grid-template-columns: 48px minmax(0,1fr) auto; min-height: 76px; margin: 2px 0; padding: 11px 12px; border: 0; border-radius: 14px; }
 .message-conversation.is-active { background: var(--surface-selected); }
+.message-conversation:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; box-shadow: none; }
 .message-conversation .message-avatar { width: 46px; height: 46px; border-radius: 50%; }
 .message-conversation-copy { gap: 6px; }
 .message-conversation-copy strong { font-size: 13px; }
@@ -115,7 +116,7 @@
 .message-bubble { padding: 11px 14px 8px; border-radius: 17px 17px 17px 5px; }
 .message-bubble.is-mine { border-radius: 17px 17px 5px 17px; }
 .message-composer { grid-template-columns: minmax(0,1fr) 46px; gap: 10px; padding: 14px 18px; background: var(--surface-card); }
-.message-composer textarea { min-height: 46px; max-height: 140px; resize: none; border-radius: 18px; background: var(--surface-field); }
+.message-composer textarea { min-height: 46px; max-height: 140px; resize: none; border-radius: var(--control-radius); background: var(--surface-field); }
 .message-composer button { width: 46px; min-height: 46px; border-radius: 50%; }
 .message-welcome { display: grid; align-content: center; justify-items: center; gap: 16px; height: 100%; min-height: 0; padding: 30px; color: var(--text-secondary); text-align: center; }
 .message-welcome>span { display: grid; place-items: center; width: 76px; height: 76px; border: 1px solid var(--border-soft); border-radius: 50%; background: var(--surface-card); color: var(--brand-strong); }
@@ -173,7 +174,7 @@
   .mobile-nav .mobile-create .heroicon { width: 23px; height: 23px; }
 }
 @media (min-width: 961px) {
-  .messages-open .left-rail { width: 190px; max-width: 190px; }
+  .messages-open .left-rail { width: var(--left-column); max-width: var(--left-column); }
   .messages-layout { grid-template-columns: minmax(240px, 320px) minmax(0,1fr); }
 }
 /* Keep primary actions on the active theme, including hover. */

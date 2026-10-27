@@ -234,23 +234,33 @@ function renderMessagesSignIn() {
   content.innerHTML = `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("messagesSignInTitle"))}</h2><p>${esc(t("messagesSignInCopy"))}</p><button class="button button-primary" type="button" data-action="messages-sign-in">${esc(t("signIn"))}</button></section>`;
 }
 
-function renderMessageInbox({ loading = false } = {}) {
+function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoading = loading, inboxError = false } = {}) {
   const content = $("#messages-content");
   if (!content) return;
   content.setAttribute("aria-busy", String(loading));
   const conversations = state.conversations;
-  const list = loading
+  const list = inboxLoading
     ? `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`
+    : inboxError
+      ? `<div class="message-inbox-error"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-messages">${esc(t("retry"))}</button></div>`
     : conversations.length
       ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation ${item.id === state.conversationId ? "is-active" : ""}" type="button" data-action="open-conversation" data-id="${esc(item.id)}" ${item.id === state.conversationId ? 'aria-current="true"' : ""}>${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
       : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${loading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`}</div>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
 
 function renderConversation({ loading = false } = {}) {
   renderMessageInbox({ loading });
+}
+
+function updateConversationPreview(message) {
+  if (!message) return;
+  state.conversations = state.conversations.map((conversation) => conversation.id === state.conversationId
+    ? { ...conversation, updatedAt: message.created_at, lastMessage: message, unreadCount: 0 }
+    : conversation)
+    .sort((a, b) => new Date(b.updatedAt || b.lastMessage?.created_at || 0) - new Date(a.updatedAt || a.lastMessage?.created_at || 0));
 }
 
 function renderMessageThreadMarkup() {
@@ -260,39 +270,74 @@ function renderMessageThreadMarkup() {
   return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${esc(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
-async function openMessages(conversationId = "") {
+async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
   if (state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
+  const cachedConversationId = state.conversationId;
+  const hasCachedThread = Boolean(conversationId && cachedConversationId === conversationId && state.conversationProfile);
   state.conversationId = conversationId;
   const requestId = ++state.messageRequestId;
   setPageView("messages");
   if (!auth.user) { renderMessagesSignIn(); return; }
   if (conversationId) {
-    state.conversationProfile = null;
-    state.messages = [];
-    renderConversation({ loading: true });
+    if (!hasCachedThread) {
+      state.conversationProfile = null;
+      state.messages = [];
+    }
+    renderMessageInbox({ loading: !hasCachedThread, inboxLoading: !state.conversations.length, threadLoading: !hasCachedThread });
   }
   else renderMessageInbox({ loading: true });
-  try {
-    const [conversationsResult, messageResult] = await Promise.all([
-      api("/api/conversations"),
-      conversationId ? api(`/api/messages/${encodeURIComponent(conversationId)}`) : Promise.resolve(null)
-    ]);
-    if (requestId !== state.messageRequestId || state.view !== "messages") return;
-    state.conversations = conversationsResult.conversations || [];
-    if (conversationId) {
-      const result = messageResult;
+  let inboxSettled = useCachedInbox;
+  const inboxRequest = useCachedInbox
+    ? Promise.resolve({ result: { conversations: state.conversations } })
+    : api("/api/conversations").then(
+      (result) => { inboxSettled = true; return { result }; },
+      (error) => { inboxSettled = true; return { error }; }
+    );
+  if (conversationId) {
+    let threadReady = hasCachedThread;
+    if (!useCachedInbox) {
+      inboxRequest.then((inbox) => {
+        if (requestId !== state.messageRequestId || state.view !== "messages") return;
+        if (inbox.error) {
+          if (threadReady) renderMessageInbox({ inboxError: true, loading: !state.conversationProfile, threadLoading: false });
+        }
+        else {
+          state.conversations = inbox.result.conversations || [];
+          if (threadReady) renderMessageInbox({ loading: !state.conversationProfile, threadLoading: false });
+        }
+      });
+    }
+    try {
+      // Let a deep-linked thread appear as soon as its messages arrive; the inbox
+      // summary is independent and should not hold the conversation pane open.
+      const result = await api(`/api/messages/${encodeURIComponent(conversationId)}`);
+      if (requestId !== state.messageRequestId || state.view !== "messages") return;
       state.messages = result.messages || [];
       state.conversationProfile = result.profile;
-      renderConversation();
+      threadReady = true;
+      const inbox = inboxSettled ? await inboxRequest : null;
+      if (inbox?.result) state.conversations = inbox.result.conversations || [];
+      renderMessageInbox({ inboxLoading: !inbox && !state.conversations.length, inboxError: Boolean(inbox?.error), threadLoading: false });
       state.messagePoll = setInterval(() => refreshConversation(requestId), 6000);
-    } else {
-      if (window.matchMedia("(min-width: 701px)").matches && state.conversations[0]) {
-        await openMessages(state.conversations[0].id);
-        return;
-      }
-      renderMessageInbox();
-      state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
+    } catch (error) {
+      if (requestId !== state.messageRequestId) return;
+      const content = $("#messages-content");
+      content.setAttribute("aria-busy", "false");
+      content.innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(error.message || t("failed"))}</p><button class="button button-ghost" type="button" data-action="retry-messages">${esc(t("retry"))}</button></div>`;
     }
+    return;
+  }
+  try {
+    const inbox = await inboxRequest;
+    if (requestId !== state.messageRequestId || state.view !== "messages") return;
+    if (inbox.error) throw inbox.error;
+    state.conversations = inbox.result.conversations || [];
+    if (window.matchMedia("(min-width: 701px)").matches && state.conversations[0]) {
+      await openMessages(state.conversations[0].id, { useCachedInbox: true });
+      return;
+    }
+    renderMessageInbox();
+    state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
   } catch (error) {
     if (requestId !== state.messageRequestId) return;
     const content = $("#messages-content");
@@ -311,6 +356,7 @@ async function refreshConversation(requestId) {
     if (currentLast !== newLast) {
       state.messages = result.messages || [];
       state.conversationProfile = result.profile;
+      updateConversationPreview(state.messages.at(-1));
       renderConversation();
     }
   } catch { /* Polling is best effort; the next refresh or user action retries. */ }
@@ -653,7 +699,7 @@ document.addEventListener("click", async (eventTarget) => {
     else await begin();
     return;
   }
-  if (action === "open-conversation") { await openMessages(id); return; }
+  if (action === "open-conversation") { await openMessages(id, { useCachedInbox: true }); return; }
   if (action === "messages-back") { await openMessages(); return; }
   if (action === "messages-sign-in") { openAuth("signin"); return; }
   if (action === "retry-messages") { await openMessages(state.conversationId); return; }
@@ -931,6 +977,7 @@ document.addEventListener("submit", async (eventTarget) => {
     try {
       const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`, { method: "POST", data: { body: messageBody } });
       state.messages.push(result.message);
+      updateConversationPreview(result.message);
       renderConversation();
     } catch (error) { toast(error.message || t("failed")); }
     finally { if (submit.isConnected) submit.disabled = false; }
@@ -1112,7 +1159,10 @@ async function initialize() {
   }
   try {
     await auth.initialize();
-    if (auth.user) await refreshMe();
+    // The messages route uses the verified auth user and chat APIs directly.
+    // Loading the user's trip/request summary here added two unrelated requests
+    // before the inbox could start, so fetch it only on pages that need it.
+    if (auth.user && entryReturnView !== "messages") await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
   renderAccount();
   if (state.view === "settings" || (signupRoute && auth.user)) renderSettings();

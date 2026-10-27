@@ -246,6 +246,7 @@ export default {
   "messagesSignInTitle": "登录后与旅行者聊天",
   "messagesSignInCopy": "联系其他旅行者，一起规划旅程。",
   "noConversations": "还没有对话",
+  "selectConversation": "选择一个对话",
   "startConversation": "从旅行者的个人资料开始对话。",
   "messagePlaceholder": "输入消息…",
   "traveler": "旅行者"

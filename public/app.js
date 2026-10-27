@@ -246,7 +246,7 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
     : conversations.length
       ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation ${item.id === state.conversationId ? "is-active" : ""}" type="button" data-action="open-conversation" data-id="${esc(item.id)}" ${item.id === state.conversationId ? 'aria-current="true"' : ""}>${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
       : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`}</div>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
@@ -332,10 +332,6 @@ async function openMessages(conversationId = "", { useCachedInbox = false } = {}
     if (requestId !== state.messageRequestId || state.view !== "messages") return;
     if (inbox.error) throw inbox.error;
     state.conversations = inbox.result.conversations || [];
-    if (window.matchMedia("(min-width: 701px)").matches && state.conversations[0]) {
-      await openMessages(state.conversations[0].id, { useCachedInbox: true });
-      return;
-    }
     renderMessageInbox();
     state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
   } catch (error) {

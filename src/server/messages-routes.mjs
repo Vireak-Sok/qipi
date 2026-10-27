@@ -24,12 +24,16 @@ export async function handleMessagesRoutes({ req, res, path, method, store, user
       const otherId = conversation.user_low === user.id ? conversation.user_high : conversation.user_low;
       const profile = publicProfile(data, otherId);
       if (!profile) return null;
+      const [lastMessage, unreadCount] = await Promise.all([
+        chat.latestMessage(conversation.id),
+        chat.unreadCount(conversation.id, user.id)
+      ]);
       return {
         id: conversation.id,
         updatedAt: conversation.updated_at,
         profile: { id: profile.id, username: profile.username, displayName: profile.displayName, avatarPath: profile.avatarPath || "" },
-        lastMessage: await chat.latestMessage(conversation.id),
-        unreadCount: await chat.unreadCount(conversation.id, user.id)
+        lastMessage,
+        unreadCount
       };
     }));
     return respond(200, { conversations: result.filter(Boolean) });
@@ -56,10 +60,13 @@ export async function handleMessagesRoutes({ req, res, path, method, store, user
   if (method === "GET") {
     const before = new URL(req.url || "/", "http://localhost").searchParams.get("before") || "";
     if (before && (!Number.isFinite(Date.parse(before)) || before.length > 40)) throw new HttpError(400, "Invalid message cursor");
-    const [messages, data] = await Promise.all([chat.messages(conversationId, { before }), store.read()]);
+    const [messages, data] = await Promise.all([
+      chat.messages(conversationId, { before }),
+      store.read(),
+      chat.markRead(conversationId, user.id)
+    ]);
     const otherId = conversation.user_low === user.id ? conversation.user_high : conversation.user_low;
     const profile = publicProfile(data, otherId);
-    await chat.markRead(conversationId, user.id);
     return respond(200, {
       messages: messages.reverse(),
       profile: profile ? { id: profile.id, username: profile.username, displayName: profile.displayName, avatarPath: profile.avatarPath || "" } : null,

@@ -114,6 +114,31 @@
 .account-avatar,.profile-avatar,.composer-avatar,.post-avatar { position: relative; }
 .avatar-image { position: absolute; inset: 0; }
 .post-media-image { position: absolute; inset: 0; }
+.avatar-image,.post-media-image,.image-preview-photo { opacity: 0; }
+.avatar-image.is-loaded,.post-media-image.is-loaded,.image-preview-photo.is-loaded { opacity: 1; }
+.image-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 3px solid var(--surface-card);
+  border-top-color: var(--brand-strong);
+  border-radius: 50%;
+  animation: qipi-spin .8s linear infinite;
+  pointer-events: none;
+}
+.account-avatar .image-loading-indicator,.profile-avatar .image-loading-indicator,.composer-avatar .image-loading-indicator,.post-avatar .image-loading-indicator {
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-width: 2px;
+}
+.avatar-image.is-loaded + .image-loading-indicator,.post-media-image.is-loaded + .image-loading-indicator,.image-preview-photo.is-loaded + .image-loading-indicator { display: none; }
+.trip-image-preview { position: relative; }
+@media (prefers-reduced-motion: reduce) { .image-loading-indicator { animation-duration: 1.8s; } }
 
 .password-control { position: relative; min-width: 0; }
 .password-control input { width: 100%; padding-right: 72px !important; }

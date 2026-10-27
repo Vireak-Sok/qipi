@@ -7,7 +7,7 @@ import { createRouter } from "./js/routing.js";
 import { createSelectControls } from "./js/selects.js";
 import { createLoadingViews } from "./js/loading.js";
 import { createApiClient } from "./js/api.js";
-import { createMediaClient } from "./js/media.js";
+import { createMediaClient, revealImage } from "./js/media.js";
 import { createSearchController } from "./js/search.js";
 import { createProfileController } from "./js/profile.js";
 import { createFeedController } from "./js/feed.js";
@@ -687,13 +687,30 @@ document.addEventListener("change", (eventTarget) => {
     const file = input.files?.[0];
     const preview = $("#trip-image-preview");
     if (!file || !preview) return;
+    if (preview.dataset.objectUrl) URL.revokeObjectURL(preview.dataset.objectUrl);
     const url = URL.createObjectURL(file);
+    preview.dataset.objectUrl = url;
     const image = document.createElement("img");
+    const spinner = document.createElement("span");
+    image.className = "image-preview-photo";
     image.alt = "";
-    image.onload = image.onerror = () => URL.revokeObjectURL(url);
-    image.src = url;
-    preview.replaceChildren(image);
+    spinner.className = "image-loading-indicator";
+    spinner.setAttribute("aria-hidden", "true");
+    image.addEventListener("load", () => { void revealImage(image).finally(() => {
+      URL.revokeObjectURL(url);
+      if (preview.dataset.objectUrl === url) delete preview.dataset.objectUrl;
+    }); }, { once: true });
+    image.addEventListener("error", () => {
+      URL.revokeObjectURL(url);
+      if (preview.dataset.objectUrl !== url) return;
+      delete preview.dataset.objectUrl;
+      preview.replaceChildren();
+      preview.hidden = true;
+      setError(input.closest("form"), t("imageUploadError"));
+    }, { once: true });
+    preview.replaceChildren(image, spinner);
     preview.hidden = false;
+    image.src = url;
   }
   if (input.id === "profile-avatar-file") {
     const file = input.files?.[0];
@@ -731,6 +748,11 @@ document.addEventListener("change", (eventTarget) => {
   }
 });
 
+document.addEventListener("load", (eventTarget) => {
+  const image = eventTarget.target;
+  if (image instanceof HTMLImageElement && image.dataset.mediaPath) void revealImage(image);
+}, true);
+
 document.addEventListener("error", (eventTarget) => {
   const image = eventTarget.target;
   if (!(image instanceof HTMLImageElement) || !image.dataset.mediaPath) return;
@@ -740,6 +762,7 @@ document.addEventListener("error", (eventTarget) => {
     image.src = publicUrl;
     return;
   }
+  image.nextElementSibling?.classList.contains("image-loading-indicator") && image.nextElementSibling.remove();
   image.remove(); // Keep the avatar initials or route art visible if both sources fail.
 }, true);
 
@@ -811,6 +834,12 @@ document.addEventListener("submit", async (eventTarget) => {
   eventTarget.preventDefault();
   const submit = form.querySelector("button[type=submit]");
   submit.disabled = true;
+  const originalSubmit = submit.innerHTML;
+  const hasImage = form.id === "create-form" && Boolean(form.querySelector("#trip-image")?.files?.[0]);
+  if (hasImage) {
+    form.setAttribute("aria-busy", "true");
+    submit.innerHTML = `<span class="button-spinner" aria-hidden="true"></span><span role="status">${esc(t("uploadingImage"))}</span>`;
+  }
   const values = Object.fromEntries(new FormData(form));
   try {
     if (form.id === "create-form") {
@@ -838,7 +867,7 @@ document.addEventListener("submit", async (eventTarget) => {
       closeDialogs(); toast(t("reportSuccess"));
     }
   } catch (error) { setError(form, error.message || t("failed")); }
-  finally { submit.disabled = false; }
+  finally { submit.disabled = false; submit.innerHTML = originalSubmit; form.removeAttribute("aria-busy"); }
 });
 
 enhanceSelects();

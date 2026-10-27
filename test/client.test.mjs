@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { runInNewContext } from "node:vm";
 import { createRouter } from "../public/js/routing.js";
-import { createMediaClient } from "../public/js/media.js";
+import { createMediaClient, prepareImageUpload, revealImage } from "../public/js/media.js";
 import { profileUsername } from "../public/js/shared.js";
 import { QipiAuth } from "../public/auth.js";
 
@@ -56,6 +56,58 @@ test("image uploads use the signed-in folder, publishable key, and user token", 
   assert.match(media.appMediaUrl(path), /^\/media\/[0-9a-f-]{36}$/);
   await assert.rejects(() => media.uploadImage(new File(["bad"], "file.txt", { type: "text/plain" }), "trips"), /imageTypeError/);
   assert.equal(request.mock.callCount(), 1);
+});
+
+test("large photos are resized and uploaded as smaller WebP files", async (context) => {
+  const previousDecode = globalThis.createImageBitmap, previousDocument = globalThis.document;
+  let closed = false, drawn = false;
+  const canvas = {
+    width: 0, height: 0,
+    getContext: () => ({ drawImage: () => { drawn = true; } }),
+    toBlob: (resolve, type) => resolve(new Blob([new Uint8Array(180_000)], { type }))
+  };
+  globalThis.createImageBitmap = async () => ({ width: 4000, height: 3000, close: () => { closed = true; } });
+  globalThis.document = { createElement: () => canvas };
+  context.after(() => {
+    if (previousDecode) globalThis.createImageBitmap = previousDecode; else delete globalThis.createImageBitmap;
+    if (previousDocument) globalThis.document = previousDocument; else delete globalThis.document;
+  });
+  const auth = { user: { id: "member-1" }, key: "publishable", url: "https://configured.supabase.co", accessToken: async () => "user-jwt" };
+  const media = createMediaClient({ auth, t: key => key });
+  const request = context.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.match(String(url), /\/trips\/[0-9a-f-]{36}\.webp$/);
+    assert.equal(options.headers["content-type"], "image/webp");
+    assert.equal(options.body.size, 180_000);
+    return new Response("{}", { status: 200 });
+  });
+  await media.uploadImage(new File([new Uint8Array(1_000_000)], "photo.jpg", { type: "image/jpeg" }), "trips");
+  assert.deepEqual([canvas.width, canvas.height], [1600, 1200]);
+  assert.equal(drawn, true);
+  assert.equal(closed, true);
+  assert.equal(request.mock.callCount(), 1);
+  await prepareImageUpload(new File([new Uint8Array(1_000_000)], "avatar.jpg", { type: "image/jpeg" }), "profile");
+  assert.deepEqual([canvas.width, canvas.height], [512, 384]);
+  await assert.rejects(() => media.uploadImage({ type: "image/jpeg", size: 21 * 1024 * 1024 }, "trips"), /imageSizeError/);
+});
+
+test("images stay hidden until decoding completes and stale loads cannot reveal them", async () => {
+  let finishDecode, revealed = false;
+  const image = {
+    src: "/media/first", currentSrc: "/media/first", isConnected: true, complete: true, naturalWidth: 800,
+    classList: { add: () => { revealed = true; } },
+    decode: () => new Promise(resolve => { finishDecode = resolve; })
+  };
+  const first = revealImage(image);
+  assert.equal(revealed, false);
+  image.currentSrc = "/media/second";
+  finishDecode();
+  await first;
+  assert.equal(revealed, false);
+  const second = revealImage(image);
+  assert.equal(revealed, false);
+  finishDecode();
+  await second;
+  assert.equal(revealed, true);
 });
 
 test("theme and entry boot flags are applied synchronously before first paint", async () => {

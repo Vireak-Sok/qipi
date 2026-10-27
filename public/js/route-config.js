@@ -17,7 +17,6 @@ export function isSupportedPage(segments) {
 export const PRIMARY_NAV = [
   { view: "feed", icon: "home", label: "home", fallback: "Home" },
   { view: "explore", icon: "compass", label: "explore", fallback: "Explore" },
-  { view: "trips", icon: "calendar", label: "navTrips", fallback: "Upcoming" },
   { view: "messages", icon: "chat", label: "messages", fallback: "Messages" },
   { action: "open-settings", icon: "settings", label: "settings", fallback: "Settings" }
 ];

@@ -144,30 +144,36 @@ function setPageView(view, { preserveUrl = false } = {}) {
   const isSearchResults = view === "search-results";
   const isSignup = view === "signup";
   const isProfile = view === "profile";
+  const isMessages = view === "messages";
+  if (!isMessages && state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
   main.classList.toggle("entry-open", isEntry);
   main.classList.toggle("settings-open", isSettings);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
+  main.classList.toggle("messages-open", isMessages);
   $("#search-filter-panel").hidden = !isSearchResults;
   document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
   document.querySelectorAll('.rail-nav [data-page-view="trips"], .mobile-nav [data-page-view="trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
+  document.querySelectorAll('.rail-nav [data-page-view="messages"], .mobile-nav [data-page-view="messages"]').forEach((item) => item.classList.toggle("active", isMessages));
   document.querySelectorAll('.rail-nav [data-action="open-settings"], .mobile-nav [data-action="open-settings"]').forEach((item) => item.classList.toggle("active", isSettings));
   document.querySelectorAll(".mobile-nav [data-page-view], .mobile-nav [data-action='open-settings']").forEach((item) => {
     if (item.classList.contains("active")) item.setAttribute("aria-current", "page");
     else item.removeAttribute("aria-current");
   });
   document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isProfile || isSignup || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
   $("#profile-view").hidden = !isProfile;
   $("#signup-view").hidden = !isSignup;
+  $("#messages-view").hidden = !isMessages;
   if (isSettings) renderSettings();
   if (isProfile) renderProfile();
+  if (isMessages && !auth.user) renderMessagesSignIn();
   renderRoutes();
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-profile-pending");
@@ -205,12 +211,112 @@ async function navigateToView(view) {
   if (view === "trips") return openTripsPage();
   if (view === "saved") return openSavedTrips();
   if (view === "settings") return openSettings();
+  if (view === "messages") return openMessages();
   if (view === "search-results") {
     setPageView(view);
     renderTripListLoading("#trip-list", 2);
     return loadSearchResults();
   }
   setPageView(view);
+}
+
+function messageAvatar(profile) {
+  return `<span class="profile-avatar message-avatar">${avatarContents(profile.displayName || "Traveler", profile.avatarPath || "")}</span>`;
+}
+
+function renderMessagesSignIn() {
+  const content = $("#messages-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", "false");
+  content.innerHTML = `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("messagesSignInTitle"))}</h2><p>${esc(t("messagesSignInCopy"))}</p><button class="button button-primary" type="button" data-action="messages-sign-in">${esc(t("signIn"))}</button></section>`;
+}
+
+function renderMessageInbox({ loading = false } = {}) {
+  const content = $("#messages-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", String(loading));
+  if (loading) {
+    content.innerHTML = `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`;
+    return;
+  }
+  const conversations = state.conversations;
+  content.innerHTML = conversations.length ? `<div class="message-inbox">${conversations.map((item) => `<button class="message-conversation" type="button" data-action="open-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="message-conversation-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span>${item.unreadCount ? `<b class="message-unread">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b>` : ""}<time>${esc(item.lastMessage?.created_at ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric" }).format(new Date(item.lastMessage.created_at)) : "")}</time></button>`).join("")}</div>`
+    : `<section class="messages-gate"><span class="messages-gate-icon">${icon("chat")}</span><h2>${esc(t("noConversations"))}</h2><p>${esc(t("startConversation"))}</p><a class="button button-primary" href="/explore" data-page-view="explore">${esc(t("explore"))}</a></section>`;
+}
+
+function renderConversation({ loading = false } = {}) {
+  const content = $("#messages-content");
+  if (!content) return;
+  content.setAttribute("aria-busy", String(loading));
+  if (loading) {
+    content.innerHTML = `<div class="message-thread-skeleton"><i></i><i></i><i></i><i></i></div>`;
+    return;
+  }
+  const profile = state.conversationProfile;
+  if (!profile) { renderMessageInbox(); return; }
+  const messages = state.messages;
+  content.innerHTML = `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${esc(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
+  const history = $("#message-history");
+  if (history) history.scrollTop = history.scrollHeight;
+}
+
+async function openMessages(conversationId = "") {
+  if (state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
+  state.conversationId = conversationId;
+  const requestId = ++state.messageRequestId;
+  setPageView("messages");
+  if (!auth.user) { renderMessagesSignIn(); return; }
+  if (conversationId) renderConversation({ loading: true });
+  else renderMessageInbox({ loading: true });
+  try {
+    if (conversationId) {
+      const result = await api(`/api/messages/${encodeURIComponent(conversationId)}`);
+      if (requestId !== state.messageRequestId || state.view !== "messages") return;
+      state.messages = result.messages || [];
+      state.conversationProfile = result.profile;
+      renderConversation();
+      state.messagePoll = setInterval(() => refreshConversation(requestId), 6000);
+    } else {
+      const result = await api("/api/conversations");
+      if (requestId !== state.messageRequestId || state.view !== "messages") return;
+      state.conversations = result.conversations || [];
+      renderMessageInbox();
+      state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
+    }
+  } catch (error) {
+    if (requestId !== state.messageRequestId) return;
+    const content = $("#messages-content");
+    content.setAttribute("aria-busy", "false");
+    content.innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(error.message || t("failed"))}</p><button class="button button-ghost" type="button" data-action="retry-messages">${esc(t("retry"))}</button></div>`;
+  }
+}
+
+async function refreshConversation(requestId) {
+  if (requestId !== state.messageRequestId || state.view !== "messages" || !state.conversationId) return;
+  try {
+    const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`);
+    if (requestId !== state.messageRequestId || state.view !== "messages") return;
+    const currentLast = state.messages.at(-1)?.id;
+    const newLast = result.messages?.at(-1)?.id;
+    if (currentLast !== newLast) {
+      state.messages = result.messages || [];
+      state.conversationProfile = result.profile;
+      renderConversation();
+    }
+  } catch { /* Polling is best effort; the next refresh or user action retries. */ }
+}
+
+async function refreshInbox(requestId) {
+  if (requestId !== state.messageRequestId || state.view !== "messages" || state.conversationId) return;
+  try {
+    const result = await api("/api/conversations");
+    if (requestId !== state.messageRequestId || state.view !== "messages") return;
+    const next = result.conversations || [];
+    if (JSON.stringify(next) !== JSON.stringify(state.conversations)) {
+      state.conversations = next;
+      renderMessageInbox();
+    }
+  } catch { /* Inbox refresh is best effort. */ }
 }
 
 // Route and trip actions.
@@ -461,7 +567,11 @@ async function authSuccess() {
   renderSettings();
   renderTrips();
   const wasEntryPage = state.view === "entry";
-  if (wasEntryPage) await restoreEntryReturnView();
+  if (wasEntryPage) {
+    await restoreEntryReturnView();
+    if (state.view === "messages") await openMessages(state.conversationId);
+  }
+  else if (state.view === "messages") await openMessages(state.conversationId);
   closeDialogs();
   const action = pendingAction;
   pendingAction = null;
@@ -522,6 +632,21 @@ document.addEventListener("click", async (eventTarget) => {
     $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     return;
   }
+  if (action === "open-message") {
+    const begin = async () => {
+      try {
+        const result = await api("/api/conversations", { method: "POST", data: { targetId: id } });
+        await openMessages(result.id);
+      } catch (error) { toast(error.message || t("failed")); }
+    };
+    if (!auth.user) { pendingAction = begin; openAuth("signin"); }
+    else await begin();
+    return;
+  }
+  if (action === "open-conversation") { await openMessages(id); return; }
+  if (action === "messages-back") { await openMessages(); return; }
+  if (action === "messages-sign-in") { openAuth("signin"); return; }
+  if (action === "retry-messages") { await openMessages(state.conversationId); return; }
   if (action === "entry-guest") {
     button.disabled = true;
     saveEntryChoice("guest");
@@ -578,7 +703,7 @@ document.addEventListener("click", async (eventTarget) => {
     else openAuth("signin");
   }
   if (action === "auth-mode") openAuth(mode);
-  if (action === "sign-out") { state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); closeDialogs(); }
+  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
   if (action === "toggle-save") {
     state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
     saveLocal("qipi:saved-trips", state.savedTrips);
@@ -785,6 +910,22 @@ document.addEventListener("submit", async (eventTarget) => {
     finally { if (submit.isConnected) submit.disabled = false; }
     return;
   }
+  if (form.id === "message-form") {
+    eventTarget.preventDefault();
+    if (!auth.user || !state.conversationId) return;
+    const input = form.elements.body;
+    const messageBody = input.value.trim();
+    if (!messageBody) return;
+    const submit = form.querySelector("button[type=submit]");
+    submit.disabled = true;
+    try {
+      const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`, { method: "POST", data: { body: messageBody } });
+      state.messages.push(result.message);
+      renderConversation();
+    } catch (error) { toast(error.message || t("failed")); }
+    finally { if (submit.isConnected) submit.disabled = false; }
+    return;
+  }
   if (form.id === "signup-form") {
     eventTarget.preventDefault();
     if (!validateSignupAccount()) return;
@@ -916,6 +1057,10 @@ async function initialize() {
   const signupRoute = currentPath === "/signup" || location.hash === "#signup";
   const startupQuery = new URLSearchParams(location.search);
   const startupProfileId = profileIdFromLocation();
+  const messageRoute = currentPath.match(/^\/messages(?:\/([0-9a-f-]{36}))?$/i);
+  state.conversationId = messageRoute?.[1] || "";
+  const messageRoute = currentPath.match(/^\/messages(?:\/([0-9a-f-]{36}))?$/i);
+  state.conversationId = messageRoute?.[1] || "";
   const postPath = currentPath.match(/^\/post\/([^/]+)$/);
   state.startupDeepLink = {
     routeId: startupQuery.get("route") || "",
@@ -973,6 +1118,7 @@ async function initialize() {
     if (hasStartupProfile) {
       // openStartupDeepLink below fetches the linked profile after auth initializes.
     } else if (entryReturnView === "saved") await openSavedTrips();
+    else if (entryReturnView === "messages" && auth.user) await openMessages(state.conversationId);
     else if (["feed", "explore", "trips", "search-results"].includes(entryReturnView)) {
       await loadFeedData();
       if (entryReturnView === "explore" && $("#trip-list [data-action='retry-feed']")) renderLoadingError("#route-grid", "retry-explore");

@@ -326,5 +326,13 @@ export default {
   "imageUploadError": "Could not upload this image. Try again.",
   "imageSignInRequired": "Sign in to upload an image.",
   "editProfile": "Edit profile",
-  "cancelEdit": "Cancel"
+  "cancelEdit": "Cancel",
+  "messages": "Messages",
+  "sendMessage": "Message",
+  "messagesSignInTitle": "Sign in to message travelers",
+  "messagesSignInCopy": "Connect with other travelers and plan a trip together.",
+  "noConversations": "No conversations yet",
+  "startConversation": "Start a conversation from a traveler’s profile.",
+  "messagePlaceholder": "Write a message...",
+  "traveler": "Traveler"
 };

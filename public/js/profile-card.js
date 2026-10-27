@@ -18,7 +18,7 @@ export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, i
   const upcomingCount = trips.filter((trip) => trip.date >= dateToday()).length;
   const action = isOwnProfile
     ? `<button class="button button-ghost profile-edit-trigger" type="button" data-action="edit-profile" aria-label="${esc(t("editProfile"))}">${icon("pencil")}<span>${esc(t("profileEditAction"))}</span></button>`
-    : `<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-label="${esc(t(isFollowing ? "following" : "follow"))}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>`;
+    : `${!profile.isDemo ? `<button class="button button-ghost profile-message" type="button" data-action="open-message" data-id="${esc(profile.id)}" aria-label="${esc(t("sendMessage"))}" title="${esc(t("sendMessage"))}">${icon("chat")}</button>` : ""}<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-label="${esc(t(isFollowing ? "following" : "follow"))}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>`;
   const interestLabel = (interest) => {
     const key = `travel${interest.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join("")}`;
     const translated = t(key);

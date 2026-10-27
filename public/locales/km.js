@@ -326,5 +326,13 @@ export default {
   "imageUploadError": "មិនអាចបង្ហោះរូបនេះបានទេ។ សូមសាកម្ដងទៀត។",
   "imageSignInRequired": "សូមចូលគណនីដើម្បីបង្ហោះរូប។",
   "editProfile": "កែប្រវត្តិរូប",
-  "cancelEdit": "បោះបង់"
+  "cancelEdit": "បោះបង់",
+  "messages": "សារ",
+  "sendMessage": "ផ្ញើសារ",
+  "messagesSignInTitle": "ចូលគណនីដើម្បីផ្ញើសារទៅអ្នកធ្វើដំណើរ",
+  "messagesSignInCopy": "ភ្ជាប់ទំនាក់ទំនងជាមួយអ្នកធ្វើដំណើរផ្សេងទៀត និងរៀបចំដំណើរកម្សាន្តជាមួយគ្នា។",
+  "noConversations": "មិនទាន់មានការសន្ទនាទេ",
+  "startConversation": "ចាប់ផ្តើមសន្ទនាពីប្រវត្តិរូបអ្នកធ្វើដំណើរ។",
+  "messagePlaceholder": "សរសេរសារ...",
+  "traveler": "អ្នកធ្វើដំណើរ"
 };

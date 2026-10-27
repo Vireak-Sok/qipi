@@ -56,6 +56,7 @@ Use [.env.example](.env.example) as a list of environment variable names. Never 
 - Supabase email/password accounts with email confirmation and password reset. Guests can browse; members can post trips, request to join, and submit route notes. The server checks each access token with Supabase Auth before these actions.
 - Trip filtering, shareable links, join requests, host approval or decline, capacity tracking, and trip closure. Account ownership works across devices. Existing pilot trips retain their browser-token controls.
 - A shared profile view with posts, follows, owner editing, and the owner's join request status.
+- Authenticated one-to-one text chat with an inbox, unread counts, message history, and periodic refresh. Apply [0003_qipi_chat.sql](supabase/migrations/0003_qipi_chat.sql) to Supabase before enabling chat on a hosted project.
 - Search results and filters, removable recent-search history, and saved trips in the owner’s profile tab.
 - Reporting and a small moderation dashboard for route notes, reports, and trip hiding.
 - Local file-backed demo data in `data/store.json`, created automatically on first run. On Vercel, the same API uses the Supabase row instead of the local file.
@@ -83,8 +84,8 @@ The saved browser keys, public URLs, request/response shapes, and Supabase JSONB
 
 ## Demo limits and next step
 
-New trips and requests belong to Supabase Auth accounts. Older pilot trips and requests still use browser-local tokens, so clearing local data can lose control of those older records. There is no identity verification, private messaging, payments, booking, live location, or emergency SOS. The Supabase row is suitable for a small pilot, but should become relational tables as usage grows. Before a larger public pilot, add stronger abuse controls, moderation operations, a custom SMTP provider, and a privacy review.
+New trips, requests, and messages belong to Supabase Auth accounts. Older pilot trips and requests still use browser-local tokens, so clearing local data can lose control of those older records. Chat messages use separate relational tables; there is no identity verification, payments, booking, live location, or emergency SOS. The Supabase row is suitable for a small pilot, but should become relational tables as usage grows. Before a larger public pilot, add stronger abuse controls, moderation operations, a custom SMTP provider, and a privacy review.
 
 The next implementation milestone is a private way for approved travelers to coordinate, while retaining the route → trip → request → approval flow.
 
-See [the architecture and scaling guide](docs/architecture.md) for component ownership, dynamic slugs, Saved behavior, and the remaining database migration needed for high traffic.
+See [the architecture and scaling guide](docs/architecture.md) for component ownership, dynamic slugs, Saved behavior, chat data boundaries, and remaining database migration work.

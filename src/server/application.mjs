@@ -8,8 +8,10 @@ import { readRuntimeConfig } from "../config.mjs";
 import { handleAccountsRoutes } from "./accounts-routes.mjs";
 import { handleTripsRoutes } from "./trips-routes.mjs";
 import { handleCommunityRoutes } from "./community-routes.mjs";
+import { handleMessagesRoutes } from "./messages-routes.mjs";
+import { SupabaseChatRepository } from "../chat-repository.mjs";
 
-const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes];
+const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes, handleMessagesRoutes];
 
 const defaultDataFile = join(process.cwd(), "data", "store.json");
 const defaultPublicDir = join(process.cwd(), "public");
@@ -76,7 +78,12 @@ export function createQipiHandler({
           publishableKey: authVerifier ? config.publishableKey : ""
         });
       }
-      const context = { req, res, path, method, url, store, userFor, adminToken };
+      const context = {
+        req, res, path, method, url, store, userFor, adminToken,
+        chat: config.supabaseUrl && config.secretKey
+          ? new SupabaseChatRepository({ url: config.supabaseUrl, key: config.secretKey })
+          : null
+      };
       for (const routeHandler of routeHandlers) {
         if (await routeHandler(context)) return;
       }

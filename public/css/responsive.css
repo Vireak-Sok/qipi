@@ -34,7 +34,7 @@
 .profile-identity h2, .post-title, .post-note { overflow-wrap: anywhere; }
 @media (max-width: 700px) {
   .mobile-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
   .mobile-nav > a, .mobile-nav > button { min-width: 0; min-height: 48px; }

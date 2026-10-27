@@ -11,6 +11,7 @@ export function createAppState() {
     routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
     likeActorId: getLikeActorId(), profile: null, profileId: "", profileUsername: "", profileReturnView: "feed", profileEditing: false, profileTab: "posts", savedLoading: false, savedError: false, savedRequestId: 0,
     profileRequestId: 0, routeRequestId: 0, tripRequestId: 0, startupDeepLink: null,
+    conversationId: "", conversations: [], messages: [], messageRequestId: 0, messagePoll: null,
     feedRequestActive: false, pendingLikes: new Set(),
     savedTrips: readArray("qipi:saved-trips"),
     theme: window.qipiTheme?.getPreference() || "system",

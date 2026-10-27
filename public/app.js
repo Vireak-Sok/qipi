@@ -1059,8 +1059,6 @@ async function initialize() {
   const startupProfileId = profileIdFromLocation();
   const messageRoute = currentPath.match(/^\/messages(?:\/([0-9a-f-]{36}))?$/i);
   state.conversationId = messageRoute?.[1] || "";
-  const messageRoute = currentPath.match(/^\/messages(?:\/([0-9a-f-]{36}))?$/i);
-  state.conversationId = messageRoute?.[1] || "";
   const postPath = currentPath.match(/^\/post\/([^/]+)$/);
   state.startupDeepLink = {
     routeId: startupQuery.get("route") || "",

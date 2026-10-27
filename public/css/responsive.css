@@ -125,14 +125,10 @@
 .message-thread-skeleton { height: 100%; padding: 40px 22px; background: linear-gradient(180deg,var(--surface-card) 0 76px,var(--surface-canvas) 76px); }
 .messages-gate { margin: 12px; min-height: 230px; border: 0; background: transparent; }
 
-@media (min-width: 961px) {
-  .messages-open.app-layout { grid-template-columns: 190px minmax(0,1fr); max-width: 1480px; justify-content: stretch; gap: 30px; }
-  .messages-open .feed-column { grid-column: 2; }
-  .messages-open .right-rail { display: none; }
-}
 @media (max-width: 960px) and (min-width: 701px) {
   .messages-page { height: min(760px, calc(100dvh - var(--page-sticky-top) - 20px)); }
   .messages-layout { grid-template-columns: minmax(220px, 285px) minmax(0,1fr); }
+  .messages-open .left-rail { width: 175px; max-width: 175px; }
   .message-sidebar-head { min-height: 68px; padding-inline: 15px; }
   .message-sidebar-head h1 { font-size: 20px; }
   .message-conversation { grid-template-columns: 42px minmax(0,1fr) auto; gap: 9px; padding-inline: 8px; }
@@ -175,6 +171,10 @@
   .mobile-nav > a.active,.mobile-nav > button.active:not(.mobile-create) { background: var(--surface-selected); color: var(--brand-strong); border-radius: 14px; }
   .mobile-nav .mobile-create { width: 44px; height: 44px; min-height: 44px; border-radius: 15px; background: var(--action-bg); color: var(--action-text); box-shadow: 0 5px 15px color-mix(in srgb,var(--action-bg) 28%,transparent); }
   .mobile-nav .mobile-create .heroicon { width: 23px; height: 23px; }
+}
+@media (min-width: 961px) {
+  .messages-open .left-rail { width: 190px; max-width: 190px; }
+  .messages-layout { grid-template-columns: minmax(240px, 320px) minmax(0,1fr); }
 }
 /* Keep primary actions on the active theme, including hover. */
 .social-app .button-primary:hover {

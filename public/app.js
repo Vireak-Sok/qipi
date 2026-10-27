@@ -286,6 +286,10 @@ async function openMessages(conversationId = "") {
       renderConversation();
       state.messagePoll = setInterval(() => refreshConversation(requestId), 6000);
     } else {
+      if (window.matchMedia("(min-width: 701px)").matches && state.conversations[0]) {
+        await openMessages(state.conversations[0].id);
+        return;
+      }
       renderMessageInbox();
       state.messagePoll = setInterval(() => refreshInbox(requestId), 10000);
     }

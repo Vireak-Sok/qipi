@@ -6,7 +6,7 @@ const safetyMap = (latitude, longitude) => {
   const lon = Math.max(-180, Math.min(180, longitude));
   const span = 0.012;
   const bbox = [lon - span, lat - span, lon + span, lat + span].map(n => n.toFixed(5)).join("%2C");
-  return `<div class="safety-map"><iframe title="Location map" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(5)}%2C${lon.toFixed(5)}"></iframe><a href="https://www.openstreetmap.org/?mlat=${lat.toFixed(5)}&mlon=${lon.toFixed(5)}#map=14/${lat.toFixed(5)}/${lon.toFixed(5)}" target="_blank" rel="noopener noreferrer">Open larger map · © OpenStreetMap contributors</a></div>`;
+  return `<div class="safety-map"><iframe title="Map with selected location pin" loading="eager" referrerpolicy="strict-origin-when-cross-origin" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(5)}%2C${lon.toFixed(5)}"></iframe><a href="https://www.openstreetmap.org/?mlat=${lat.toFixed(5)}&mlon=${lon.toFixed(5)}#map=14/${lat.toFixed(5)}/${lon.toFixed(5)}" target="_blank" rel="noopener noreferrer">Open larger map · © OpenStreetMap contributors</a></div>`;
 };
 const locationError = error => error?.code === 1 ? "Location permission was denied." : error?.code === 2 ? "Your location is unavailable. Check your device settings." : "Could not get your location. Try again.";
 function position() {
@@ -18,7 +18,7 @@ function position() {
 
 export function createSafetyController({ api, auth, setPageView, toast, openAuth }) {
   let contacts = [], checkins = [], session = null, shareToken = "", watchId = null, viewerTimer = null, lastPositionAt = 0;
-  let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", originQuery = "", emergencyRecipients = [];
+  let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", emergencyRecipients = [], suggestionTimer = null, suggestionController = null, suggestionRevision = 0, mapSelectionRevision = 0;
   const fallbackPoint = { latitude: 11.5564, longitude: 104.9282, label: "Phnom Penh, Cambodia" };
   let mapPoint = fallbackPoint;
   const content = () => $("#safety-content");
@@ -44,28 +44,41 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
 
   function mapFrameMarkup(point = mapPoint) {
     const map = safetyMap(point.latitude, point.longitude);
-    return map || `<div class="safety-map-fallback"><span>${mapIcon("map-pin")}</span><strong>Map unavailable</strong><small>Search for a place to see it here.</small></div>`;
+    return map ? `<div class="map-loading-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>${map}` : `<div class="safety-map-fallback"><span>${mapIcon("map-pin")}</span><strong>Map unavailable</strong><small>Search for a place to see it here.</small></div>`;
+  }
+
+  function bindMapFrame(frame = $("#safety-map-frame")) {
+    const iframe = frame?.querySelector("iframe");
+    const root = mapContent();
+    if (!iframe) {
+      frame?.classList.remove("is-loading");
+      root?.setAttribute("aria-busy", "false");
+      return;
+    }
+    frame.classList.add("is-loading");
+    root?.setAttribute("aria-busy", "true");
+    const finish = () => {
+      frame.classList.remove("is-loading");
+      root?.setAttribute("aria-busy", "false");
+    };
+    iframe.addEventListener("load", finish, { once: true });
+    iframe.addEventListener("error", finish, { once: true });
   }
 
   function renderMapFrame(point = mapPoint) {
     const frame = $("#safety-map-frame");
-    if (frame) frame.innerHTML = mapFrameMarkup(point);
-    const label = $("#safety-map-place");
-    if (label) label.textContent = point.label || "Selected location";
+    if (!frame) return;
+    frame.setAttribute("aria-label", "Map");
+    frame.innerHTML = mapFrameMarkup(point);
+    bindMapFrame(frame);
   }
 
   function renderMapView() {
     const target = mapContent();
     if (!target) return;
     const isLive = Boolean(session?.active);
-    const locationLabel = mapPoint.label || fallbackPoint.label;
     let panel = "";
-    if (mapPanel === "search") {
-      panel = `<section class="map-overlay-panel map-search-panel" aria-label="Search places">
-        <div class="map-overlay-head"><strong>Places in Cambodia</strong><button type="button" data-action="safety-close-panel" aria-label="Close search results">${mapIcon("close")}</button></div>
-        <label class="map-origin-field" for="safety-origin">Starting place <span>Optional</span></label><input id="safety-origin" form="safety-destination-form" name="origin" value="${esc(originQuery)}" placeholder="Use my current location" maxlength="120" autocomplete="off" />
-        <div id="safety-destination-results" class="map-search-results">${searchResultsMarkup()}</div></section>`;
-    } else if (mapPanel === "contacts") {
+    if (mapPanel === "contacts") {
       panel = `<section class="map-overlay-panel map-contacts-panel" aria-label="Trusted contacts">
         <div class="map-overlay-head"><strong>Trusted contacts</strong><button type="button" data-action="safety-close-panel" aria-label="Close contacts">${mapIcon("close")}</button></div>
         ${contactsMarkup({ compact: true })}${session?.active && shareToken ? `<button class="button button-secondary map-contact-share" type="button" data-action="safety-send-in-app">${mapIcon("share")} Send live link in Qipi</button><div id="safety-share-recipients"></div>` : ""}
@@ -77,7 +90,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
         <button class="map-emergency-backdrop" type="button" data-action="safety-close-panel" aria-label="Close emergency dialog"></button>
         <section class="map-overlay-panel map-emergency-panel">
           <div class="map-emergency-heading"><span class="map-emergency-mark">${mapIcon("shield-check")}</span><div><small>QIPI SAFETY</small><h2 id="safety-emergency-title">Ask for help</h2></div><button type="button" data-action="safety-close-panel" aria-label="Close emergency dialog">${mapIcon("close")}</button></div>
-          <p class="map-emergency-intro">Your current location will be included.</p>
+          <p class="map-emergency-intro">Your location will be shared with the selected contact.</p>
           <div class="map-emergency-fields"><label for="safety-emergency-type">What’s happening?<select id="safety-emergency-type"><option value="Need urgent help">Urgent help</option><option value="Medical emergency">Medical help</option><option value="Vehicle breakdown">Vehicle breakdown</option><option value="Lost and need directions">I am lost</option><option value="I feel unsafe">I feel unsafe</option><option value="Other emergency">Other</option></select></label>
             <label for="safety-emergency-recipient">Send to<select id="safety-emergency-recipient"><option value="device">Share from this device</option>${contactOptions}${chatOptions}</select></label></div>
           <label class="map-emergency-note-label" for="safety-emergency-note">Note <span>Optional</span></label><textarea id="safety-emergency-note" maxlength="240" rows="2" placeholder="Add a short note"></textarea>
@@ -95,29 +108,109 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
       </section>`;
     }
     target.innerHTML = `<div class="explore-map-shell">
-      <div class="explore-map-frame" id="safety-map-frame" aria-label="Map centered on ${esc(locationLabel)}">${mapFrameMarkup()}</div>
+      <div class="explore-map-frame${safetyMap(mapPoint.latitude, mapPoint.longitude) ? " is-loading" : ""}" id="safety-map-frame" aria-label="Map">${mapFrameMarkup()}</div>
       <div class="explore-map-overlay">
         <div class="map-control-row">
-          <form id="safety-destination-form" class="map-search-bar"><label class="visually-hidden" for="safety-destination">Search places in Cambodia</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Where do you want to go?" autocomplete="off" maxlength="120" required /><button type="submit" aria-label="Search destinations">Search ${mapIcon("arrow-right")}</button></form>
+          <div class="map-search-wrap"><form id="safety-destination-form" class="map-search-bar" role="search"><label class="visually-hidden" for="safety-destination">Search destinations</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or destinations" autocomplete="off" maxlength="120" aria-controls="safety-destination-results" aria-expanded="${String(mapPanel === "search")}" required /><button type="submit" aria-label="Search destinations">Search ${mapIcon("arrow-right")}</button></form><section class="map-overlay-panel map-search-panel" aria-label="Suggested places" ${mapPanel === "search" ? "" : "hidden"}><div class="map-overlay-head"><strong>Suggested places</strong><button type="button" data-action="safety-close-panel" aria-label="Close suggestions">${mapIcon("close")}</button></div><div id="safety-destination-results" class="map-search-results" aria-live="polite">${searchResultsMarkup()}</div></section></div>
           <div class="map-quick-actions"><button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="contacts">${mapIcon("users")}<span>Contacts</span></button>
-            <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong><small>${isLive ? "On" : "Off"}</small></span></button>
-            <button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency">${mapIcon("shield-check")}<span>Emergency</span></button>
+            <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong></span></button>
+            <button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button>
           </div>
         </div>
-        <div class="map-place-pill" id="safety-map-place"><span>${mapIcon("map-pin")}</span>${esc(locationLabel)}${mapPoint?.accuracy ? `<small>±${Math.round(mapPoint.accuracy)} m</small>` : ""}</div>
-        <div class="map-bottom-controls"><button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button><button class="map-locate-button" type="button" data-action="safety-locate" aria-label="Locate me" title="Locate me">${mapIcon("map-pin")}</button></div>
+        <div class="map-floating-actions"><button class="map-locate-button" type="button" data-action="safety-locate" aria-label="Go to my current location" title="Go to my current location">${mapIcon("map-pin")}</button><button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency" aria-label="Emergency help" title="Emergency help">${mapIcon("shield-check")}</button></div>
         ${panel}<p id="explore-map-notice" class="map-status-notice" role="status"></p>
       </div>
     </div>`;
     document.documentElement.classList.toggle("qipi-emergency-open", mapPanel === "emergency");
     const emergencyDialog = $("#safety-emergency-dialog");
     if (emergencyDialog && !emergencyDialog.open) emergencyDialog.showModal();
-    mapContent().setAttribute("aria-busy", "false");
+    bindMapFrame();
   }
 
   function searchResultsMarkup() {
-    if (!destinations.length) return searchQuery ? `<p class="safety-small">Search for a place in Cambodia.</p>` : `<p class="safety-small">Search to choose a place on the map.</p>`;
-    return `<div class="safety-destinations">${destinations.map((item, index) => `<button type="button" class="${selectedPlace?.name === item.name ? "is-selected" : ""}" data-action="safety-select-destination" data-index="${index}"><span>${mapIcon("map-pin")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div>${selectedPlace ? `<button type="button" class="map-directions-button" data-action="safety-choose-destination" data-index="${destinations.indexOf(selectedPlace)}">${mapIcon("arrow-up-right")} Get directions to ${esc(selectedPlace.name)}</button><div id="safety-destination-results"></div>` : ""}`;
+    if (!destinations.length) return searchQuery ? `<p class="safety-small">No places found yet. Keep typing to search Cambodia.</p>` : `<p class="safety-small">Start typing to find places in Cambodia.</p>`;
+    return `<div class="safety-destinations">${destinations.map((item, index) => `<button type="button" class="${selectedPlace?.name === item.name ? "is-selected" : ""}" data-action="safety-select-destination" data-index="${index}"><span>${mapIcon("map-pin")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div>${selectedPlace ? `<button type="button" class="map-directions-button" data-action="safety-choose-destination" data-index="${destinations.indexOf(selectedPlace)}">${mapIcon("arrow-up-right")} Get directions to ${esc(selectedPlace.name)}</button><div id="safety-route-result" class="safety-route-result"></div>` : ""}`;
+  }
+
+  const suggestionSkeletonMarkup = () => `<div class="map-suggestion-skeleton" aria-hidden="true"><i></i><span></span></div><div class="map-suggestion-skeleton" aria-hidden="true"><i></i><span></span></div><div class="map-suggestion-skeleton" aria-hidden="true"><i></i><span></span></div>`;
+
+  function showSearchPanel() {
+    mapPanel = "search";
+    $(".map-contacts-panel")?.remove();
+    $(".map-checkin-panel")?.remove();
+    $(".map-search-panel")?.removeAttribute("hidden");
+    $("#safety-destination")?.setAttribute("aria-expanded", "true");
+  }
+
+  function hideSearchPanel({ restoreFocus = false } = {}) {
+    if (mapPanel === "search") mapPanel = "";
+    $(".map-search-panel")?.setAttribute("hidden", "");
+    $("#safety-destination")?.setAttribute("aria-expanded", "false");
+    if (restoreFocus) $("#safety-destination")?.focus({ preventScroll: true });
+  }
+
+  async function fetchDestinationSuggestions(rawQuery) {
+    const query = String(rawQuery || "").trim();
+    const target = $("#safety-destination-results");
+    if (!target || query.length < 2) return;
+    suggestionController?.abort();
+    suggestionController = new AbortController();
+    const controller = suggestionController;
+    const revision = ++suggestionRevision;
+    target.setAttribute("aria-busy", "true");
+    target.innerHTML = suggestionSkeletonMarkup();
+    if (!mapConfig?.maptilerPublicKey) {
+      target.innerHTML = `<p class="safety-small">Place suggestions need a map key. <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}" target="_blank" rel="noopener noreferrer">Search this place on OpenStreetMap</a>.</p>`;
+      target.setAttribute("aria-busy", "false");
+      return;
+    }
+    try {
+      const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?autocomplete=true&fuzzyMatch=true&limit=5&country=kh&key=${encodeURIComponent(mapConfig.maptilerPublicKey)}`;
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Place suggestions are unavailable. Try again.");
+      const payload = await response.json();
+      if (revision !== suggestionRevision || controller.signal.aborted || !$("#safety-destination-results")) return;
+      destinations = (payload.features || []).filter(item => Array.isArray(item.center) && item.center.length === 2).slice(0, 5).map(item => ({
+        name: String(item.place_name || item.text || query), longitude: Number(item.center[0]), latitude: Number(item.center[1])
+      }));
+      selectedPlace = null;
+      target.innerHTML = destinations.length ? searchResultsMarkup() : `<p class="safety-small">No matching places found.</p>`;
+      target.setAttribute("aria-busy", "false");
+    } catch (error) {
+      if (error.name === "AbortError" || revision !== suggestionRevision) return;
+      target.innerHTML = `<p class="safety-small" role="alert">${esc(error.message || "Place suggestions could not load")}</p>`;
+      target.setAttribute("aria-busy", "false");
+    }
+  }
+
+  function handleDestinationFocus(event) {
+    if (event.target?.id !== "safety-destination") return;
+    showSearchPanel();
+    if (!searchQuery) $("#safety-destination-results").innerHTML = searchResultsMarkup();
+  }
+
+  function handleDestinationInput(event) {
+    if (event.target?.id !== "safety-destination") return;
+    searchQuery = event.target.value.trim();
+    showSearchPanel();
+    destinations = [];
+    selectedPlace = null;
+    suggestionController?.abort();
+    clearTimeout(suggestionTimer);
+    const results = $("#safety-destination-results");
+    if (searchQuery.length < 2) {
+      results.innerHTML = searchResultsMarkup();
+      results.setAttribute("aria-busy", "false");
+      return;
+    }
+    results.setAttribute("aria-busy", "true");
+    results.innerHTML = suggestionSkeletonMarkup();
+    const query = searchQuery;
+    suggestionTimer = setTimeout(() => void fetchDestinationSuggestions(query), 250);
+  }
+
+  function handleSearchOutside(event) {
+    if (mapPanel === "search" && !event.target.closest(".map-search-wrap")) hideSearchPanel();
   }
 
   function renderSettingsContacts() {
@@ -138,6 +231,8 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function stopViewerPoll() { if (viewerTimer) clearInterval(viewerTimer); viewerTimer = null; }
   function leave() {
     stopViewerPoll();
+    clearTimeout(suggestionTimer);
+    suggestionController?.abort();
     const emergencyDialog = $("#safety-emergency-dialog");
     if (emergencyDialog?.open) emergencyDialog.close();
     mapPanel = "";
@@ -162,13 +257,15 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
 
   async function openExploreMap() {
     stopViewerPoll();
+    clearTimeout(suggestionTimer);
+    suggestionController?.abort();
     mapPanel = "";
     setPageView("explore");
     mapPoint = selectedPlace || currentPoint || fallbackPoint;
     renderMapView();
     try { mapConfig = await api("/api/config"); } catch { mapConfig = null; }
     await loadPrivate();
-    void currentLocation();
+    void currentLocation({ preserveSelectedPlace: true });
   }
 
   async function updateViewer() {
@@ -290,16 +387,16 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (target) target.innerHTML = `<p class="safety-small" role="status">Location link sent in Qipi Messages.</p>`;
     toast("Location link sent");
   }
-  async function currentLocation() {
+  async function currentLocation({ preserveSelectedPlace = false } = {}) {
+    const selectionRevision = mapSelectionRevision;
     try {
       const result = await position();
+      if (preserveSelectedPlace && selectionRevision !== mapSelectionRevision) return null;
       const { latitude, longitude, accuracy } = result.coords;
       currentPoint = { latitude, longitude, accuracy, label: "Your current location" };
       mapPoint = currentPoint;
       selectedPlace = null;
       renderMapFrame(mapPoint);
-      const label = $("#safety-map-place");
-      if (label) label.innerHTML = `<span>${mapIcon("map-pin")}</span>Your current location<small>±${Math.round(accuracy)} m</small>`;
       return { latitude, longitude };
     } catch (error) {
       setNotice(error?.code === 1 ? "Location access is off. Tap the pin to retry." : "Location unavailable. Showing Cambodia.");
@@ -317,36 +414,21 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   async function destination(form) {
     const query = String(new FormData(form).get("destination") || "").trim();
     if (!query) return;
-    originQuery = String(new FormData(form).get("origin") || "").trim();
+    clearTimeout(suggestionTimer);
     searchQuery = query;
     destinations = [];
     selectedPlace = null;
-    mapPanel = "search";
-    renderMapView();
-    const target = $("#safety-destination-results");
-    if (!mapConfig?.maptilerPublicKey) {
-      target.innerHTML = `<p class="safety-small">Destination search will be available here once a map key is configured. <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(query)}" target="_blank" rel="noopener noreferrer">Search on OpenStreetMap</a>.</p>`;
-      return;
-    }
-    target.innerHTML = `<p class="safety-small" role="status">Finding destinations…</p>`;
-    try {
-      const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?limit=5&country=kh&key=${encodeURIComponent(mapConfig.maptilerPublicKey)}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Destination search is unavailable. Try again.");
-      const payload = await response.json();
-      destinations = (payload.features || []).filter(item => Array.isArray(item.center) && item.center.length === 2).slice(0, 5).map(item => ({
-        name: String(item.place_name || item.text || query), longitude: Number(item.center[0]), latitude: Number(item.center[1])
-      }));
-      if (!destinations.length) { if (target) target.innerHTML = `<p class="safety-small">No matching place found.</p>`; return; }
-      if (target) target.innerHTML = searchResultsMarkup();
-    } catch (error) { target.innerHTML = `<p class="safety-small" role="alert">${esc(error.message)}</p>`; }
+    showSearchPanel();
+    await fetchDestinationSuggestions(query);
   }
   function selectDestination(index) {
     const selected = destinations[index];
     if (!selected) return;
+    mapSelectionRevision += 1;
     selectedPlace = selected;
     mapPoint = { ...selected, label: selected.name };
-    renderMapView();
+    renderMapFrame(mapPoint);
+    $("#safety-destination-results").innerHTML = searchResultsMarkup();
   }
   async function chooseDestination(index) {
     const chosen = destinations[index];
@@ -354,31 +436,17 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     selectedPlace = chosen;
     mapPoint = { ...chosen, label: chosen.name };
     renderMapFrame(mapPoint);
-    const target = $("#safety-destination-results");
+    const target = $("#safety-route-result") || $("#safety-destination-results");
     if (!target) return;
     target.innerHTML = `<p class="safety-small" role="status">Finding directions to ${esc(chosen.name)}…</p>`;
     let point = currentPoint;
     if (!point) {
-      const startingPlace = $("#safety-origin")?.value.trim() || originQuery;
-      if (startingPlace && mapConfig?.maptilerPublicKey) {
-        try {
-          const response = await fetch(`https://api.maptiler.com/geocoding/${encodeURIComponent(startingPlace)}.json?limit=1&country=kh&key=${encodeURIComponent(mapConfig.maptilerPublicKey)}`);
-          if (!response.ok) throw new Error("Starting place search is unavailable");
-          const feature = (await response.json()).features?.[0];
-          if (!Array.isArray(feature?.center) || feature.center.length !== 2) throw new Error("Starting place not found. Try a nearby town or landmark.");
-          point = { longitude: Number(feature.center[0]), latitude: Number(feature.center[1]) };
-        } catch (error) {
-          target.innerHTML = `<p class="safety-small" role="alert">${esc(error.message || "Starting place not found")}. Destination shown on the map.</p>`;
-          return;
-        }
-      } else {
-        try {
-          const result = await position();
-          point = currentPoint = { latitude: result.coords.latitude, longitude: result.coords.longitude };
-        } catch {
-          target.innerHTML = `<p class="safety-small">${esc(locationError({ code: 2 }))} Enter a starting place above to get directions.</p>`;
-          return;
-        }
+      try {
+        const result = await position();
+        point = currentPoint = { latitude: result.coords.latitude, longitude: result.coords.longitude };
+      } catch (error) {
+        target.innerHTML = `<p class="safety-small">${esc(locationError(error))} Allow location access to get directions.</p>`;
+        return;
       }
     }
     const mapsUrl = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${point.latitude.toFixed(5)}%2C${point.longitude.toFixed(5)}%3B${chosen.latitude.toFixed(5)}%2C${chosen.longitude.toFixed(5)}`;
@@ -394,6 +462,10 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   async function openMapPanel(panel) {
     mapPanel = panel;
     emergencyRecipients = [];
+    if (panel !== "search") {
+      clearTimeout(suggestionTimer);
+      suggestionController?.abort();
+    }
     renderMapView();
     if (panel === "emergency" && auth.user) {
       try {
@@ -410,6 +482,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
   function closeMapPanel() {
     const wasEmergency = mapPanel === "emergency";
+    if (mapPanel === "search") { hideSearchPanel({ restoreFocus: true }); return; }
     const emergencyDialog = $("#safety-emergency-dialog");
     if (emergencyDialog?.open) emergencyDialog.close();
     mapPanel = "";
@@ -418,6 +491,11 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
 
   function handleEmergencyKeys(event) {
+    if (mapPanel === "search" && event.key === "Escape") {
+      event.preventDefault();
+      hideSearchPanel({ restoreFocus: true });
+      return;
+    }
     if (mapPanel !== "emergency") return;
     if (event.key === "Escape") {
       event.preventDefault();
@@ -431,6 +509,10 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
+
+  document.addEventListener("focusin", handleDestinationFocus);
+  document.addEventListener("input", handleDestinationInput);
+  document.addEventListener("pointerdown", handleSearchOutside);
 
   async function shareEmergency() {
     const kind = $("#safety-emergency-type")?.value || "Need urgent help";

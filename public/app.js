@@ -213,6 +213,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("settings-open", isSettings);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
+  document.documentElement.classList.toggle("qipi-map-fullscreen", isExplore);
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);

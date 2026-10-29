@@ -24,7 +24,10 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   const content = () => $("#safety-content");
   const mapContent = () => $("#explore-map-content");
   const shareLink = () => `${location.origin}/safety/live#${shareToken}`;
-  const setNotice = message => { const node = $("#safety-notice") || $("#explore-map-notice"); if (node) node.textContent = message; };
+  const setNotice = message => {
+    const node = mapPanel === "emergency" ? $("#safety-emergency-notice") : $("#safety-notice") || $("#explore-map-notice");
+    if (node) node.textContent = message;
+  };
   const phoneLink = phone => `tel:${encodeURIComponent(phone.replace(/[^+0-9]/g, ""))}`;
   const mapIcon = name => `<svg class="heroicon" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
   const visibleSettings = () => { const view = $("#settings-view"); return Boolean(view && !view.hidden); };
@@ -59,10 +62,9 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     let panel = "";
     if (mapPanel === "search") {
       panel = `<section class="map-overlay-panel map-search-panel" aria-label="Search places">
-        <div class="map-overlay-head"><strong>Find a place</strong><button type="button" data-action="safety-close-panel" aria-label="Close search">${mapIcon("close")}</button></div>
-        <form id="safety-destination-form"><label class="visually-hidden" for="safety-destination">Search places</label><div class="map-search-field">${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or addresses" autocomplete="off" maxlength="120" required /><button type="submit">Search</button></div>
-          <label class="map-origin-field" for="safety-origin">Starting place for directions <span>Optional</span></label><input id="safety-origin" name="origin" value="${esc(originQuery)}" placeholder="Use my current location" maxlength="120" autocomplete="off" />
-        </form><div id="safety-destination-results" class="map-search-results">${searchResultsMarkup()}</div></section>`;
+        <div class="map-overlay-head"><strong>Places in Cambodia</strong><button type="button" data-action="safety-close-panel" aria-label="Close search results">${mapIcon("close")}</button></div>
+        <label class="map-origin-field" for="safety-origin">Starting place <span>Optional</span></label><input id="safety-origin" form="safety-destination-form" name="origin" value="${esc(originQuery)}" placeholder="Use my current location" maxlength="120" autocomplete="off" />
+        <div id="safety-destination-results" class="map-search-results">${searchResultsMarkup()}</div></section>`;
     } else if (mapPanel === "contacts") {
       panel = `<section class="map-overlay-panel map-contacts-panel" aria-label="Trusted contacts">
         <div class="map-overlay-head"><strong>Trusted contacts</strong><button type="button" data-action="safety-close-panel" aria-label="Close contacts">${mapIcon("close")}</button></div>
@@ -71,16 +73,20 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     } else if (mapPanel === "emergency") {
       const chatOptions = emergencyRecipients.map(item => `<option value="${esc(item.id)}">Qipi chat · ${esc(item.profile?.displayName || item.profile?.username || "Traveler")}</option>`).join("");
       const contactOptions = contacts.map(item => `<option value="contact:${esc(item.id)}">SMS · ${esc(item.name)}</option>`).join("");
-      panel = `<section class="map-overlay-panel map-emergency-panel" aria-label="Emergency help">
-        <div class="map-overlay-head"><strong>Ask for help</strong><button type="button" data-action="safety-close-panel" aria-label="Close emergency panel">${mapIcon("close")}</button></div>
-        <p class="safety-small">Choose what is happening, then send your location to someone you choose.</p>
-        <label for="safety-emergency-type">I need help with</label><select id="safety-emergency-type"><option value="Need urgent help">Urgent help</option><option value="Medical emergency">Medical help</option><option value="Vehicle breakdown">Vehicle breakdown</option><option value="Lost and need directions">I am lost</option><option value="I feel unsafe">I feel unsafe</option><option value="Other emergency">Other</option></select>
-        <label for="safety-emergency-note">Add a note <span>Optional</span></label><textarea id="safety-emergency-note" maxlength="500" rows="3" placeholder="What should they know?"></textarea>
-        <label for="safety-emergency-recipient">Send to</label><select id="safety-emergency-recipient"><option value="device">Someone nearby (share from this device)</option>${contactOptions}${chatOptions}</select>
-        ${!auth.user ? `<p class="safety-small">Sign in to send an alert in Qipi. You can still share from your device.</p>` : ""}
-        <button class="button button-danger map-emergency-send" type="button" data-action="safety-emergency-share">${mapIcon("share")} Share emergency location</button>
-        <details class="safety-emergency-calls"><summary>Call emergency services in Cambodia</summary><div class="safety-emergency-list"><a href="tel:117"><strong>Police</strong><span>117 · Call</span></a><a href="tel:118"><strong>Fire</strong><span>118 · Call</span></a><a href="tel:119"><strong>Ambulance</strong><span>119 · Call</span></a></div><small>Qipi does not dispatch rescue services. These numbers may go unanswered or lack English speakers. <a href="https://www.gov.uk/foreign-travel-advice/cambodia/getting-help" target="_blank" rel="noopener noreferrer">Source: UK FCDO</a>.</small></details>
-      </section>`;
+      panel = `<dialog id="safety-emergency-dialog" class="map-emergency-dialog" aria-labelledby="safety-emergency-title">
+        <button class="map-emergency-backdrop" type="button" data-action="safety-close-panel" aria-label="Close emergency dialog"></button>
+        <section class="map-overlay-panel map-emergency-panel">
+          <div class="map-emergency-heading"><span class="map-emergency-mark">${mapIcon("shield-check")}</span><div><small>QIPI SAFETY</small><h2 id="safety-emergency-title">Ask for help</h2></div><button type="button" data-action="safety-close-panel" aria-label="Close emergency dialog">${mapIcon("close")}</button></div>
+          <p class="map-emergency-intro">Your current location will be included.</p>
+          <div class="map-emergency-fields"><label for="safety-emergency-type">What’s happening?<select id="safety-emergency-type"><option value="Need urgent help">Urgent help</option><option value="Medical emergency">Medical help</option><option value="Vehicle breakdown">Vehicle breakdown</option><option value="Lost and need directions">I am lost</option><option value="I feel unsafe">I feel unsafe</option><option value="Other emergency">Other</option></select></label>
+            <label for="safety-emergency-recipient">Send to<select id="safety-emergency-recipient"><option value="device">Share from this device</option>${contactOptions}${chatOptions}</select></label></div>
+          <label class="map-emergency-note-label" for="safety-emergency-note">Note <span>Optional</span></label><textarea id="safety-emergency-note" maxlength="240" rows="2" placeholder="Add a short note"></textarea>
+          ${!auth.user ? `<p class="safety-small map-emergency-signin">Sign in to send through Qipi. You can still share from your device.</p>` : ""}
+          <p id="safety-emergency-notice" class="map-emergency-notice" role="status" aria-live="polite"></p>
+          <button class="button button-danger map-emergency-send" type="button" data-action="safety-emergency-share">${mapIcon("share")} Share emergency location</button>
+          <details class="safety-emergency-calls"><summary>Call emergency services</summary><div class="safety-emergency-list"><a href="tel:117"><strong>Police</strong><span>117 · Call</span></a><a href="tel:118"><strong>Fire</strong><span>118 · Call</span></a><a href="tel:119"><strong>Ambulance</strong><span>119 · Call</span></a></div><small>Qipi does not dispatch responders. <a href="https://www.gov.uk/foreign-travel-advice/cambodia/getting-help" target="_blank" rel="noopener noreferrer">Emergency numbers source</a>.</small></details>
+        </section>
+      </dialog>`;
     } else if (mapPanel === "checkin") {
       panel = `<section class="map-overlay-panel map-checkin-panel" aria-label="Safety check-in">
         <div class="map-overlay-head"><strong>Check in</strong><button type="button" data-action="safety-close-panel" aria-label="Close check-in">${mapIcon("close")}</button></div>
@@ -92,16 +98,20 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
       <div class="explore-map-frame" id="safety-map-frame" aria-label="Map centered on ${esc(locationLabel)}">${mapFrameMarkup()}</div>
       <div class="explore-map-overlay">
         <div class="map-control-row">
-          <button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="search">${mapIcon("search")}<span>Search</span></button>
-          <button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="contacts">${mapIcon("users")}<span>Contacts</span></button>
-          <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong><small>${isLive ? "On" : "Off"}</small></span></button>
-          <button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency">${mapIcon("shield-check")}<span>Emergency</span></button>
+          <form id="safety-destination-form" class="map-search-bar"><label class="visually-hidden" for="safety-destination">Search places in Cambodia</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Where do you want to go?" autocomplete="off" maxlength="120" required /><button type="submit" aria-label="Search destinations">Search ${mapIcon("arrow-right")}</button></form>
+          <div class="map-quick-actions"><button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="contacts">${mapIcon("users")}<span>Contacts</span></button>
+            <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong><small>${isLive ? "On" : "Off"}</small></span></button>
+            <button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency">${mapIcon("shield-check")}<span>Emergency</span></button>
+          </div>
         </div>
         <div class="map-place-pill" id="safety-map-place"><span>${mapIcon("map-pin")}</span>${esc(locationLabel)}${mapPoint?.accuracy ? `<small>±${Math.round(mapPoint.accuracy)} m</small>` : ""}</div>
         <div class="map-bottom-controls"><button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button><button class="map-locate-button" type="button" data-action="safety-locate" aria-label="Locate me" title="Locate me">${mapIcon("map-pin")}</button></div>
         ${panel}<p id="explore-map-notice" class="map-status-notice" role="status"></p>
       </div>
     </div>`;
+    document.documentElement.classList.toggle("qipi-emergency-open", mapPanel === "emergency");
+    const emergencyDialog = $("#safety-emergency-dialog");
+    if (emergencyDialog && !emergencyDialog.open) emergencyDialog.showModal();
     mapContent().setAttribute("aria-busy", "false");
   }
 
@@ -126,7 +136,13 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     watchId = null;
   }
   function stopViewerPoll() { if (viewerTimer) clearInterval(viewerTimer); viewerTimer = null; }
-  function leave() { stopViewerPoll(); }
+  function leave() {
+    stopViewerPoll();
+    const emergencyDialog = $("#safety-emergency-dialog");
+    if (emergencyDialog?.open) emergencyDialog.close();
+    mapPanel = "";
+    document.documentElement.classList.remove("qipi-emergency-open");
+  }
 
   async function loadPrivate() {
     if (!auth.user) { contacts = []; checkins = []; session = null; shareToken = ""; renderCurrentSurface(); return; }
@@ -305,6 +321,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     searchQuery = query;
     destinations = [];
     selectedPlace = null;
+    mapPanel = "search";
     renderMapView();
     const target = $("#safety-destination-results");
     if (!mapConfig?.maptilerPublicKey) {
@@ -382,12 +399,38 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
       try {
         const result = await api("/api/conversations");
         emergencyRecipients = result.conversations || [];
-        if (mapPanel === "emergency") renderMapView();
+        const select = $("#safety-emergency-recipient");
+        if (mapPanel === "emergency" && select) {
+          select.insertAdjacentHTML("beforeend", emergencyRecipients.map(item => `<option value="${esc(item.id)}">Qipi chat · ${esc(item.profile?.displayName || item.profile?.username || "Traveler")}</option>`).join(""));
+        }
       } catch { /* The emergency share sheet and saved phone contacts remain available. */ }
     }
     if (panel === "search") $("#safety-destination")?.focus({ preventScroll: true });
+    if (panel === "emergency") $("#safety-emergency-type")?.focus({ preventScroll: true });
   }
-  function closeMapPanel() { mapPanel = ""; renderMapView(); }
+  function closeMapPanel() {
+    const wasEmergency = mapPanel === "emergency";
+    const emergencyDialog = $("#safety-emergency-dialog");
+    if (emergencyDialog?.open) emergencyDialog.close();
+    mapPanel = "";
+    renderMapView();
+    if (wasEmergency) document.querySelector('[data-action="safety-open-panel"][data-panel="emergency"]')?.focus({ preventScroll: true });
+  }
+
+  function handleEmergencyKeys(event) {
+    if (mapPanel !== "emergency") return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMapPanel();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = [...document.querySelectorAll(".map-emergency-panel button:not([disabled]), .map-emergency-panel select:not([disabled]), .map-emergency-panel textarea:not([disabled]), .map-emergency-panel a[href], .map-emergency-panel summary")].filter(node => node.getClientRects().length);
+    if (!focusable.length) return;
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  }
 
   async function shareEmergency() {
     const kind = $("#safety-emergency-type")?.value || "Need urgent help";
@@ -427,5 +470,6 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function emergency() { void openMapPanel("emergency"); }
   function onVisibility() { if (document.hidden) stopWatch(); else if (session?.active && shareToken) beginWatch(); if (!document.hidden && location.pathname === "/safety/live") updateViewer(); }
   document.addEventListener("visibilitychange", onVisibility);
+  document.addEventListener("keydown", handleEmergencyKeys);
   return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth };
 }

@@ -13,6 +13,7 @@ import { createProfileController } from "./js/profile.js";
 import { createFeedController } from "./js/feed.js";
 import { createTripCard } from "./js/trip-card.js";
 import { createAppState } from "./js/state.js";
+import { createSafetyController } from "./js/safety.js";
 
 // Application state and shared helpers.
 const auth = new QipiAuth();
@@ -27,10 +28,11 @@ const { usernameFromPath, profileIdFromLocation, pageUrl, viewFromLocation, setL
 const { enhanceSelects, syncEnhancedSelect, syncEnhancedSelects, closeEnhancedSelect } = createSelectControls();
 const { showDialogLoading, renderDialogError, renderSettingsAccountLoading, skeletonPostsMarkup, renderTripListLoading, renderRoutesLoading, renderLoadingError } = createLoadingViews({ t, showDialog });
 const { api, event } = createApiClient({ auth, state, t });
+const safety = createSafetyController({ api, auth, setPageView, toast, openAuth });
 const { appMediaUrl, storagePublicUrl, avatarContents, uploadImage } = createMediaClient({ auth, t });
 const tripCardMarkup = createTripCard({ state, t, label, dateParts, dateLabel, routeFor, avatarContents, appMediaUrl });
 const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadTrips, openFeedPage, openExplorePage, openTripsPage, renderFeedLoading, loadFeedData } = createFeedController({
-  state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage,
+  state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage, safety,
   tripCardMarkup: (trip) => tripCardMarkup(trip)
 });
 const { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, openMobileSearch, closeMobileSearch, bindSearchEvents } = createSearchController({
@@ -47,6 +49,7 @@ function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY,
 let entryReturnView = "feed";
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
+  else if (entryReturnView === "explore") await openExplorePage();
   else if (entryReturnView === "profile") {
     const profileId = profileIdFromLocation() || auth.user?.id;
     if (profileId) await openProfile(profileId);
@@ -187,6 +190,7 @@ function renderSettings() {
   $("#settings-transport").value = state.preferences.defaultTransport;
   $("#settings-cost-style").value = state.preferences.defaultCostStyle;
   $("#settings-safety-reminders").checked = state.preferences.safetyReminders;
+  safety.renderSettingsContacts();
   syncEnhancedSelects();
 }
 
@@ -202,6 +206,8 @@ function setPageView(view, { preserveUrl = false } = {}) {
   const isSignup = view === "signup";
   const isProfile = view === "profile";
   const isMessages = view === "messages";
+  const isSafety = view === "safety-live";
+  if (!isSafety && view !== "explore") safety.leave();
   if (!isMessages && state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
   main.classList.toggle("entry-open", isEntry);
   main.classList.toggle("settings-open", isSettings);
@@ -210,6 +216,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);
+  main.classList.toggle("safety-open", isSafety);
   main.classList.toggle("messages-thread-open", isMessages && Boolean(state.conversationId));
   $("#search-filter-panel").hidden = !isSearchResults;
   document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
@@ -221,14 +228,15 @@ function setPageView(view, { preserveUrl = false } = {}) {
     if (item.classList.contains("active")) item.setAttribute("aria-current", "page");
     else item.removeAttribute("aria-current");
   });
-  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view):not(#safety-view)").forEach((section) => {
+    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
   $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
   $("#profile-view").hidden = !isProfile;
   $("#signup-view").hidden = !isSignup;
   $("#messages-view").hidden = !isMessages;
+  $("#safety-view").hidden = !isSafety;
   if (isSettings) renderSettings();
   if (isProfile) renderProfile();
   if (isMessages && !auth.user) renderMessagesSignIn();
@@ -251,6 +259,9 @@ async function openSettings() {
     renderSettingsAccountLoading();
     await refreshMe();
     renderSettings();
+    await safety.loadContactsForSettings();
+  } else {
+    safety.renderSettingsContacts();
   }
 }
 
@@ -264,6 +275,8 @@ async function refreshMe() {
 }
 
 async function navigateToView(view) {
+  if (view === "safety") return safety.openExploreMap();
+  if (view === "safety-live") return safety.openLive();
   if (view === "feed") return openFeedPage();
   if (view === "explore") return openExplorePage();
   if (view === "trips") return openTripsPage();
@@ -332,11 +345,28 @@ function updateConversationPreview(message) {
   syncConversations(next);
 }
 
+function messageBodyMarkup(body) {
+  const value = String(body || "");
+  const pattern = /https?:\/\/[^\s]+\/safety\/live#[A-Za-z0-9_-]{40,100}/g;
+  let html = "", offset = 0;
+  for (const match of value.matchAll(pattern)) {
+    html += esc(value.slice(offset, match.index));
+    try {
+      const url = new URL(match[0]);
+      if (url.origin === location.origin || url.origin === "https://qipi.vercel.app") {
+        html += `<a href="${esc(url.href)}">Open shared location</a>`;
+      } else html += esc(match[0]);
+    } catch { html += esc(match[0]); }
+    offset = match.index + match[0].length;
+  }
+  return html + esc(value.slice(offset));
+}
+
 function renderMessageThreadMarkup() {
   const profile = state.conversationProfile;
   if (!profile) return `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`;
   const messages = state.messages;
-  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${esc(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
+  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
 async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
@@ -478,7 +508,7 @@ async function openTrip(id, deepLink = true) {
     if (requestId !== state.tripRequestId) return;
     const isHost = Boolean(state.hostKeys[id] || state.me?.trips.some((owned) => owned.id === id));
     const statusText = requestStatus ? t(requestStatus === "approved" ? "requestApproved" : requestStatus === "declined" ? "requestDeclined" : "requestPending") : "";
-    const primary = isHost
+    const primary = trip.kind === "story" ? "" : isHost
       ? `<button class="button button-primary" type="button" data-action="manage-trip" data-id="${esc(id)}">${esc(t("manageRequests"))} ${icon("arrow-up-right")}</button>`
       : requestStatus
         ? `<span class="status-chip ${esc(requestStatus)}">${esc(statusText)}</span>`
@@ -488,33 +518,34 @@ async function openTrip(id, deepLink = true) {
             ? ""
             : `<button class="button button-primary" type="button" data-action="join-trip" data-id="${esc(id)}">${esc(t("joinTrip"))} ${icon("arrow-up-right")}</button>`;
     showDialog("trip-dialog", `
-      <p class="dialog-kicker">${esc(label(routeFor(trip.routeId)?.title))} / ${esc(dateLabel(trip.date))}</p><h2 id="trip-dialog-title">${esc(trip.title)}</h2><p class="dialog-intro">${esc(t("hostedBy"))} ${esc(trip.hostName)} · ${esc(trip.availableSpots)} ${esc(t("spots"))}</p>
-      <div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(trip.departureTime)}</span><span class="fact-pill">${icon("truck")} ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${icon("users")} ${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div>
-      <div class="dialog-section"><h3>${esc(t("meetingArea"))}</h3><p class="dialog-intro">${esc(trip.meetingArea)}</p></div>
-      <div class="dialog-section"><h3>${esc(t("aboutTrip"))}</h3><p class="dialog-intro">${esc(trip.notes || "—")}</p></div>
-      <div class="note-box">${esc(t("noContact"))}</div>
+      <p class="dialog-kicker">${esc(trip.destination || label(routeFor(trip.routeId)?.title))} / ${esc(dateLabel(trip.createdAt?.slice(0, 10) || trip.date))}</p><h2 id="trip-dialog-title">${esc(trip.title)}</h2><p class="dialog-intro">${esc(t("hostedBy"))} ${esc(trip.hostName)}${trip.kind === "story" ? "" : ` · ${esc(trip.availableSpots)} ${esc(t("spots"))}`}</p>
+      ${trip.kind === "story" ? "" : `<div class="detail-facts"><span class="fact-pill">${icon("clock")} ${esc(trip.departureTime)}</span><span class="fact-pill">${icon("truck")} ${esc(trip.transport === "motorbike" ? t("motorbike") : trip.transport === "car" ? t("car") : t("mixed"))}</span><span class="fact-pill">${icon("users")} ${esc(trip.costStyle === "shared" ? t("sharedCosts") : trip.costStyle === "free" ? t("freeTrip") : t("ownCosts"))}</span></div><div class="dialog-section"><h3>${esc(t("meetingArea"))}</h3><p class="dialog-intro">${esc(trip.meetingArea)}</p></div>`}
+      <div class="dialog-section"><h3>${trip.kind === "story" ? "Story" : esc(t("aboutTrip"))}</h3><p class="dialog-intro">${esc(trip.notes || "—")}</p></div>
+      ${trip.kind === "story" ? "" : `<div class="note-box">${esc(t("noContact"))}</div>`}
       <div class="dialog-actions">${primary}<button class="button button-ghost" type="button" data-action="share-trip" data-id="${esc(id)}">${esc(t("shareTrip"))} ${icon("arrow-up-right")}</button></div>
       <div id="requests-panel"></div>
-      <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">${esc(t("reportTrip"))}</button></div></div>`);
+      <div class="dialog-section"><div class="dialog-actions">${isHost && trip.status === "open" ? `<button class="plain-button" type="button" data-action="close-trip" data-id="${esc(id)}">${esc(t("closeTrip"))}</button>` : ""}<button class="plain-button danger-link" type="button" data-action="open-report" data-type="trip" data-id="${esc(id)}">Report post</button></div></div>`);
   } catch (error) { if (requestId === state.tripRequestId) { renderDialogError("trip-dialog", "retry-trip", id); toast(error.message || t("failed")); } }
 }
 
 function openCreate(selectedRoute = "") {
   showDialog("create-dialog", `
-    <p class="dialog-kicker">QIPI / ${esc(t("postTrip"))}</p><h2 id="create-dialog-title">${esc(t("createTitle"))}</h2><p class="dialog-intro">${esc(t("createIntro"))}</p>
+    <p class="dialog-kicker">QIPI / POST</p><h2 id="create-dialog-title">Share your travels</h2>
     <form id="create-form"><div class="form-grid">
+      <div class="field span-2"><label for="post-kind">What are you sharing?</label><select id="post-kind" name="kind"><option value="story">Travel story</option><option value="trip">Trip others can join</option></select></div>
       <div class="field"><label for="host-name">${esc(t("yourName"))}</label><input id="host-name" name="hostName" maxlength="40" minlength="2" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div>
-      <div class="field"><label for="trip-title">${esc(t("tripTitle"))}</label><input id="trip-title" name="title" maxlength="80" minlength="5" required /></div>
-      <div class="field span-2"><label for="trip-route">${esc(t("route"))}</label><select id="trip-route" name="routeId" required><option value="">—</option>${state.routes.map((route) => `<option value="${esc(route.id)}" ${route.id === selectedRoute ? "selected" : ""}>${esc(label(route.title))}</option>`).join("")}</select></div>
+      <div class="field"><label for="trip-title">Title</label><input id="trip-title" name="title" maxlength="80" minlength="5" required /></div>
+      <div class="field span-2"><label for="post-destination">Destination</label><input id="post-destination" name="destination" maxlength="120" minlength="2" placeholder="Anywhere you've explored or plan to go" required value="${esc(label(routeFor(selectedRoute)?.title))}" /></div>
+      <div class="field span-2"><label for="trip-notes">Caption</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="Tell people about this place or your plan"></textarea></div>
+      <div class="field span-2"><label for="trip-image">Photo</label><input id="trip-image" type="file" accept="image/jpeg,image/png,image/webp" /><small>${esc(t("imageUploadHint"))}</small><div id="trip-image-preview" class="trip-image-preview" hidden></div></div>
+    </div><fieldset id="trip-only-fields" class="form-grid" disabled hidden><legend>Trip details</legend>
       <div class="field"><label for="trip-date">${esc(t("travelDate"))}</label><input id="trip-date" name="date" type="date" min="${dateToday()}" required /></div>
       <div class="field"><label for="trip-time">${esc(t("departureTime"))}</label><input id="trip-time" name="departureTime" type="time" value="07:00" required /></div>
       <div class="field"><label for="trip-transport">${esc(t("transport"))}</label><select id="trip-transport" name="transport"><option value="motorbike" ${state.preferences.defaultTransport === "motorbike" ? "selected" : ""}>${esc(t("motorbike"))}</option><option value="car" ${state.preferences.defaultTransport === "car" ? "selected" : ""}>${esc(t("car"))}</option><option value="mixed" ${state.preferences.defaultTransport === "mixed" ? "selected" : ""}>${esc(t("mixed"))}</option></select></div>
       <div class="field"><label for="trip-seats">${esc(t("openPlaces"))}</label><input id="trip-seats" name="seats" type="number" min="1" max="12" value="3" required /></div>
       <div class="field span-2"><label for="trip-meeting">${esc(t("meetingAreaLabel"))}</label><input id="trip-meeting" name="meetingArea" minlength="3" maxlength="80" required /><small>${esc(t("meetingAreaHint"))}</small></div>
       <div class="field span-2"><label for="trip-cost">${esc(t("costStyle"))}</label><select id="trip-cost" name="costStyle"><option value="own" ${state.preferences.defaultCostStyle === "own" ? "selected" : ""}>${esc(t("ownCosts"))}</option><option value="shared" ${state.preferences.defaultCostStyle === "shared" ? "selected" : ""}>${esc(t("sharedCosts"))}</option><option value="free" ${state.preferences.defaultCostStyle === "free" ? "selected" : ""}>${esc(t("freeTrip"))}</option></select></div>
-      <div class="field span-2"><label for="trip-image">${esc(t("tripPhotoLabel"))}</label><input id="trip-image" type="file" accept="image/jpeg,image/png,image/webp" /><small>${esc(t("imageUploadHint"))}</small><div id="trip-image-preview" class="trip-image-preview" hidden></div></div>
-      <div class="field span-2"><label for="trip-notes">${esc(t("tripNotes"))}</label><textarea id="trip-notes" name="notes" maxlength="500" placeholder="${esc(t("tripNotesHint"))}"></textarea></div>
-    </div>${state.preferences.safetyReminders ? `<div class="note-box settings-safety-note">${esc(t("safetyReminder"))}</div>` : ""}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("createTripButton"))} ${icon("arrow-up-right")}</button><p class="small-copy">${esc(t("hostDeviceNote"))}</p></form>`);
+    </fieldset>${state.preferences.safetyReminders ? `<div class="note-box settings-safety-note">${esc(t("safetyReminder"))}</div>` : ""}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">Share post ${icon("arrow-up-right")}</button></form>`);
 }
 function openJoin(id) {
   showDialog("join-dialog", `<p class="dialog-kicker">QIPI / ${esc(t("joinTrip"))}</p><h2 id="join-dialog-title">${esc(t("joinTitle"))}</h2><p class="dialog-intro">${esc(t("joinIntro"))}</p><form id="join-form" data-trip-id="${esc(id)}"><div class="field"><label for="join-name">${esc(t("travelerName"))}</label><input id="join-name" name="travelerName" minlength="2" maxlength="40" required value="${esc(displayName() || localStorage.getItem("qipi:nickname") || "")}" /></div><div class="field"><label for="join-message">${esc(t("shortMessage"))}</label><textarea id="join-message" name="message" maxlength="280"></textarea></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(t("sendRequest"))} ${icon("arrow-up-right")}</button></form>`);
@@ -685,12 +716,14 @@ async function authSuccess() {
   startChatNotifications();
   renderSettings();
   renderTrips();
+  if (state.view === "settings") await safety.loadContactsForSettings();
   const wasEntryPage = state.view === "entry";
   if (wasEntryPage) {
     await restoreEntryReturnView();
     if (state.view === "messages") await openMessages(state.conversationId);
   }
   else if (state.view === "messages") await openMessages(state.conversationId);
+  else if (state.view === "explore") await safety.openExploreMap();
   closeDialogs();
   const action = pendingAction;
   pendingAction = null;
@@ -698,7 +731,7 @@ async function authSuccess() {
   else {
     // A shared profile link should resume on that profile without first
     // fetching or painting the feed.
-    if (wasEntryPage && entryReturnView !== "profile") await loadFeedData();
+    if (wasEntryPage && entryReturnView === "feed") await loadFeedData();
     await openStartupDeepLink();
   }
 }
@@ -708,6 +741,32 @@ document.addEventListener("click", async (eventTarget) => {
   const button = eventTarget.target.closest("[data-action]");
   if (!button) return;
   const { action, id, type, request, decision, mode } = button.dataset;
+  if (action.startsWith("safety-")) {
+    eventTarget.preventDefault();
+    try {
+      if (action === "safety-sign-in") openAuth("signin");
+      else if (action === "safety-delete-contact") await safety.deleteContact(id);
+      else if (action === "safety-checkin") await safety.checkIn(button.dataset.status);
+      else if (action === "safety-start-share") await safety.startShare();
+      else if (action === "safety-stop-share") await safety.stopShare();
+      else if (action === "safety-toggle-live") await safety.toggleLiveLocation();
+      else if (action === "safety-copy-link") await safety.copyLink();
+      else if (action === "safety-send-in-app") await safety.listShareRecipients();
+      else if (action === "safety-send-recipient") await safety.sendShareToConversation(id);
+      else if (action === "safety-locate") await safety.currentLocation();
+      else if (action === "safety-choose-destination") await safety.chooseDestination(Number(button.dataset.index));
+      else if (action === "safety-select-destination") safety.selectDestination(Number(button.dataset.index));
+      else if (action === "safety-current-share") await safety.shareCurrent();
+      else if (action === "safety-refresh-live") await safety.updateViewer();
+      else if (action === "safety-emergency") safety.emergency();
+      else if (action === "safety-open-panel") await safety.openMapPanel(button.dataset.panel);
+      else if (action === "safety-close-panel") safety.closeMapPanel();
+      else if (action === "safety-emergency-share") await safety.shareEmergency();
+      else if (action === "safety-check-in-panel") safety.openMapPanel("checkin");
+      else if (action === "safety-open-settings") await openSettings();
+    } catch (error) { toast(error.message || "Safety action failed"); }
+    return;
+  }
   if (action === "toggle-password") {
     const input = document.getElementById(button.dataset.target);
     if (!input) return;
@@ -723,6 +782,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "close-mobile-search") { closeMobileSearch(); return; }
   if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; $(".search-clear").hidden = true; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
   if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
+  if (action === "explore-destination") { submitSearch(button.dataset.destination || ""); return; }
   if (action === "remove-recent-search") {
     state.recentSearches = state.recentSearches.filter((item) => item !== button.dataset.query);
     saveLocal("qipi:recent-searches", state.recentSearches);
@@ -778,7 +838,7 @@ document.addEventListener("click", async (eventTarget) => {
     saveEntryChoice("guest");
     await restoreEntryReturnView();
     // Profile deep links have their own data request and loading state.
-    if (entryReturnView !== "profile") await loadFeedData();
+    if (entryReturnView === "feed") await loadFeedData();
     await openStartupDeepLink();
     return;
   }
@@ -934,6 +994,13 @@ document.addEventListener("keydown", (eventTarget) => {
 
 document.addEventListener("change", (eventTarget) => {
   const input = eventTarget.target;
+  if (input.id === "post-kind") {
+    const tripFields = $("#trip-only-fields");
+    const isTrip = input.value === "trip";
+    tripFields.hidden = !isTrip;
+    tripFields.disabled = !isTrip;
+    return;
+  }
   if (input.id === "trip-image") {
     const file = input.files?.[0];
     const preview = $("#trip-image-preview");
@@ -1019,6 +1086,14 @@ document.addEventListener("error", (eventTarget) => {
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "safety-contact-form" || form.id === "safety-destination-form") {
+    eventTarget.preventDefault();
+    try {
+      if (form.id === "safety-contact-form") await safety.submitContact(form);
+      else safety.destination(form);
+    } catch (error) { toast(error.message || "Could not save contact"); }
+    return;
+  }
   if (form.id === "profile-edit-form") {
     eventTarget.preventDefault();
     const submit = form.querySelector("button[type=submit]");
@@ -1139,10 +1214,9 @@ document.addEventListener("submit", async (eventTarget) => {
 });
 
 enhanceSelects();
-$("#trip-route-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
+$("#trip-kind-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
 bindSearchEvents();
 $("#search-upcoming-only").addEventListener("change", (eventTarget) => { state.searchFilters.upcoming = eventTarget.target.checked; syncSearchFilterControls(); renderTrips(); });
-$("#search-route-filter").addEventListener("change", (eventTarget) => { state.searchFilters.routeId = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
 $("#search-transport-filter").addEventListener("change", (eventTarget) => { state.searchFilters.transport = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
 $("#settings-language").addEventListener("change", (eventTarget) => {
   state.lang = ["en", "km", "zh"].includes(eventTarget.target.value) ? eventTarget.target.value : "en";
@@ -1214,10 +1288,11 @@ async function initialize() {
     history.replaceState(history.state, "", pageUrl(entryReturnView));
   }
   const showEntryImmediately = !signupRoute && !auth.session && !auth.recovery && !entryChoice();
-  if (showEntryImmediately) {
+  const publicSafetyShare = entryReturnView === "safety-live";
+  if (showEntryImmediately && !publicSafetyShare) {
     document.documentElement.dataset.entryPending = "true";
   }
-  if (!showEntryImmediately && !signupRoute) {
+  if ((!showEntryImmediately || publicSafetyShare) && !signupRoute) {
     if (hasStartupProfile) {
       state.profileId = startupProfileId;
       setPageView("profile", { preserveUrl: true });
@@ -1225,7 +1300,6 @@ async function initialize() {
     } else {
       setPageView(entryReturnView, { preserveUrl: true });
       if (entryReturnView === "feed") renderFeedLoading();
-      else if (entryReturnView === "explore") renderRoutesLoading();
       else if (["trips", "search-results"].includes(entryReturnView)) renderTripListLoading("#trip-list", 2);
       else if (entryReturnView === "saved") renderTripListLoading("#trip-list", 2);
     }
@@ -1238,11 +1312,14 @@ async function initialize() {
     if (auth.user && entryReturnView !== "messages") await refreshMe();
   } catch (error) { toast(error.message || t("failed")); }
   renderAccount();
-  if (state.view === "settings" || (signupRoute && auth.user)) renderSettings();
+  if (state.view === "settings" || (signupRoute && auth.user)) {
+    renderSettings();
+    if (state.view === "settings" && auth.user) void safety.loadContactsForSettings();
+  }
   if (auth.user) {
     saveEntryChoice("account");
     document.documentElement.removeAttribute("data-entry-pending");
-  } else if (!signupRoute && !auth.recovery && !entryChoice()) {
+  } else if (!signupRoute && !auth.recovery && !entryChoice() && !publicSafetyShare) {
     setPageView("entry", { preserveUrl: true });
   } else {
     document.documentElement.removeAttribute("data-entry-pending");
@@ -1261,9 +1338,10 @@ async function initialize() {
       if (ownProfileRoute) await openProfile(startupProfileId, true, startupQuery.get("tab") || "posts");
     } else if (entryReturnView === "saved") await openSavedTrips();
     else if (entryReturnView === "messages" && auth.user) await openMessages(state.conversationId);
-    else if (["feed", "explore", "trips", "search-results"].includes(entryReturnView)) {
+    else if (entryReturnView === "safety-live") await safety.openLive();
+    else if (entryReturnView === "explore") await openExplorePage();
+    else if (["feed", "trips", "search-results"].includes(entryReturnView)) {
       await loadFeedData();
-      if (entryReturnView === "explore" && $("#trip-list [data-action='retry-feed']")) renderLoadingError("#route-grid", "retry-explore");
     }
   }
   if (state.view !== "entry") await openStartupDeepLink();

@@ -14,8 +14,8 @@ function editProfileForm({ profile, styles, t, avatarContents }) {
 
 export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, isEditing, t, avatarContents }) {
   const styles = profile.interests || [];
-  const routeCount = Number(profile.routeCount) || new Set(trips.map((trip) => trip.routeId)).size;
-  const upcomingCount = trips.filter((trip) => trip.date >= dateToday()).length;
+  const tripCount = trips.filter((trip) => (trip.kind || "trip") === "trip").length;
+  const upcomingCount = trips.filter((trip) => (trip.kind || "trip") === "trip" && trip.date >= dateToday()).length;
   const action = isOwnProfile
     ? `<button class="button button-ghost profile-edit-trigger" type="button" data-action="edit-profile" aria-label="${esc(t("editProfile"))}">${icon("pencil")}<span>${esc(t("profileEditAction"))}</span></button>`
     : `${!profile.isDemo ? `<button class="button button-ghost profile-message" type="button" data-action="open-message" data-id="${esc(profile.id)}" aria-label="${esc(t("sendMessage"))}" title="${esc(t("sendMessage"))}">${icon("chat")}</button>` : ""}<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-label="${esc(t(isFollowing ? "following" : "follow"))}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>`;
@@ -33,7 +33,7 @@ export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, i
         <div class="profile-identity"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}</div>
         <div class="profile-actions">${action}<button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}" aria-label="${esc(t("shareProfile"))}">${icon("share")}<span>${esc(t("profileShareAction"))}</span></button></div>
       </div>
-      ${isEditing && isOwnProfile ? editProfileForm({ profile, styles, t, avatarContents }) : `<div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${routeCount}</strong><span>${esc(t("profileRoutes"))}</span></div><div><strong>${upcomingCount}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>${profile.bio || styles.length ? `<div class="profile-about">${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interestLabel(interest))}</span>`).join("")}</div>` : ""}</div>` : ""}`}
+      ${isEditing && isOwnProfile ? editProfileForm({ profile, styles, t, avatarContents }) : `<div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${tripCount}</strong><span>Trips</span></div><div><strong>${upcomingCount}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>${profile.bio || styles.length ? `<div class="profile-about">${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interestLabel(interest))}</span>`).join("")}</div>` : ""}</div>` : ""}`}
     </div>
   </section>`;
 }

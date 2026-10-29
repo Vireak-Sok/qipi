@@ -12,6 +12,8 @@ export function readRuntimeConfig(env = process.env) {
     supabaseUrl,
     secretKey: (env.SUPABASE_SECRET_KEY || "").trim(),
     publishableKey: (env.SUPABASE_PUBLISHABLE_KEY || "").trim(),
+    maptilerPublicKey: (env.MAPTILER_PUBLIC_KEY || "").trim(),
+    openrouteserviceKey: (env.OPENROUTESERVICE_API_KEY || "").trim(),
     adminToken: env.QIPI_ADMIN_TOKEN || "",
     hosted: Boolean(env.VERCEL)
   };

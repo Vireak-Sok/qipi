@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "Qipi",
-  description: "Qipi is a Cambodia travel community for sharing routes, weekend plans and stories from the road.",
+  description: "Qipi is a Cambodia travel community for stories, trip plans, and safer journeys.",
   icons: { icon: "/favicon.svg" }
 };
 

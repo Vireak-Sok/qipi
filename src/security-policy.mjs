@@ -7,6 +7,7 @@ export function contentSecurityPolicy({ nonce, supabaseUrl = "", development = f
   else if (nonce) styles.push("'nonce-" + nonce + "'");
   const connections = ["'self'"];
   if (supabaseUrl) connections.push(new URL(supabaseUrl).origin);
+  connections.push("https://api.maptiler.com");
   if (development) connections.push("ws:");
 
   return [
@@ -17,6 +18,7 @@ export function contentSecurityPolicy({ nonce, supabaseUrl = "", development = f
     "connect-src " + connections.join(" "),
     "base-uri 'self'",
     "form-action 'self'",
-    "object-src 'none'"
+    "object-src 'none'",
+    "frame-src 'self' https://www.openstreetmap.org"
   ].join("; ");
 }

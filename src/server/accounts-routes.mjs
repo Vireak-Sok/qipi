@@ -89,7 +89,7 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     const follows = data.follows || [];
     const memberTrips = demoProfile ? [] : data.trips
       .filter((trip) => trip.hostUserId === id && !trip.hidden)
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       .map((trip) => publicTrip(trip, data, actorId));
     const profile = ownProfile || demoProfile || storedProfile || (memberTrips.length ? {
       id,
@@ -101,7 +101,7 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     const trips = demoProfile
       ? data.trips
         .filter((trip) => trip.demoUserId === id && !trip.hidden)
-        .sort((a, b) => b.date.localeCompare(a.date))
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .map((trip) => publicTrip(trip, data, actorId))
       : memberTrips;
     return respond(200, {
@@ -116,7 +116,6 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
         bio: profile.bio || "",
         isDemo: Boolean(demoProfile),
         postCount: trips.length,
-        routeCount: new Set(trips.map((trip) => trip.routeId)).size,
         followerCount: follows.filter((follow) => follow.targetId === id).length,
         followedByViewer: Boolean(followerId && follows.some((follow) => follow.targetId === id && follow.followerId === followerId))
       },

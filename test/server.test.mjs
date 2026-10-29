@@ -75,6 +75,48 @@ test("Supabase Auth protects posting and ties trip controls to accounts", async 
   } finally { await app.close(); }
 });
 
+test("Safety contacts stay private and live links stop exposing location when revoked", async () => {
+  const users = { owner: { id: "owner-id" }, other: { id: "other-id" } };
+  const app = await fixture({ authVerifier: { verify: async token => users[token] || null } });
+  const owner = { authorization: "Bearer owner" };
+  const other = { authorization: "Bearer other" };
+  try {
+    assert.equal((await app.request("/api/safety/contacts")).status, 401);
+    const saved = await app.request("/api/safety/contacts", "POST", { name: "Friend", phone: "+855 12 345 678" }, owner);
+    assert.equal(saved.status, 201);
+    assert.equal((await app.request("/api/safety/contacts", "GET", undefined, other)).body.contacts.length, 0);
+    assert.equal((await app.request(`/api/safety/contacts/${saved.body.contact.id}`, "DELETE", undefined, other)).status, 404);
+    const started = await app.request("/api/safety/sessions", "POST", { minutes: 15 }, owner);
+    assert.equal(started.status, 201);
+    const id = started.body.session.id;
+    assert.equal((await app.request("/api/safety/live", "GET", undefined, { "x-qipi-share-token": "invalid" })).status, 404);
+    assert.equal((await app.request(`/api/safety/sessions/${id}`, "PATCH", { latitude: 11.56, longitude: 104.92, accuracy: 12 }, other)).status, 404);
+    assert.equal((await app.request(`/api/safety/sessions/${id}`, "PATCH", { latitude: 11.56, longitude: 104.92, accuracy: 12 }, owner)).status, 200);
+    const live = await app.request("/api/safety/live", "GET", undefined, { "x-qipi-share-token": started.body.token });
+    assert.equal(live.body.session.latitude, 11.56);
+    assert.equal(live.body.session.longitude, 104.92);
+    assert.equal((await app.request(`/api/safety/sessions/${id}`, "PATCH", { stop: true }, owner)).status, 200);
+    assert.equal((await app.request("/api/safety/live", "GET", undefined, { "x-qipi-share-token": started.body.token })).status, 404);
+  } finally { await app.close(); }
+});
+
+test("Travel stories accept any destination without a fixed route or trip logistics", async () => {
+  const app = await fixture({ authVerifier: { verify: async token => token === "author" ? { id: "author-id", displayName: "Author" } : token === "reader" ? { id: "reader-id", displayName: "Reader" } : null } });
+  try {
+    const created = await app.request("/api/trips", "POST", {
+      kind: "story", destination: "Battambang", title: "A walk through Battambang", hostName: "Author",
+      notes: "A relaxed evening by the river."
+    }, { authorization: "Bearer author" });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.trip.kind, "story");
+    assert.equal(created.body.trip.destination, "Battambang");
+    assert.equal(created.body.trip.routeId, "");
+    const feed = await app.request("/api/trips");
+    assert.ok(feed.body.trips.some(item => item.id === created.body.trip.id));
+    assert.equal((await app.request(`/api/trips/${created.body.trip.id}/requests`, "POST", { travelerName: "Reader" }, { authorization: "Bearer reader" })).status, 409);
+  } finally { await app.close(); }
+});
+
 test("access tokens are checked against Supabase Auth, not trusted from the browser", async () => {
   const token = "test-access-token-with-enough-characters";
   const verifier = new SupabaseAuthVerifier({

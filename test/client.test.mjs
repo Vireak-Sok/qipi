@@ -182,7 +182,7 @@ test("shared shell components preserve unique IDs and omit Saved from both navig
   assert.equal(new Set(ids).size, ids.length);
   assert.doesNotMatch(navigation(), /saved-trips/);
   assert.doesNotMatch(navigation({ mobile: true }), /saved-trips/);
-  assert.equal((navigation({ mobile: true }).match(/<(a|button)\b/g) || []).length, 5);
+  assert.equal((navigation({ mobile: true }).match(/<(a|button)\b/g) || []).length, 6);
   for (const id of ["settings-view", "profile-view", "signup-view", "trip-list", "auth-dialog"]) assert.ok(ids.includes(id));
 });
 

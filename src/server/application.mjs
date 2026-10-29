@@ -10,8 +10,11 @@ import { handleTripsRoutes } from "./trips-routes.mjs";
 import { handleCommunityRoutes } from "./community-routes.mjs";
 import { handleMessagesRoutes } from "./messages-routes.mjs";
 import { SupabaseChatRepository } from "../chat-repository.mjs";
+import { SafetyRepository } from "../safety-repository.mjs";
+import { handleSafetyRoutes } from "./safety-routes.mjs";
+import { handleMapRoutes } from "./map-routes.mjs";
 
-const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes, handleMessagesRoutes];
+const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes, handleMessagesRoutes, handleSafetyRoutes, handleMapRoutes];
 
 const defaultDataFile = join(process.cwd(), "data", "store.json");
 const defaultPublicDir = join(process.cwd(), "public");
@@ -27,6 +30,7 @@ export function createQipiHandler({
   store = createQipiStore({ dataFile })
 } = {}) {
   const recentWrites = new Map();
+  const safety = new SafetyRepository({ url: config.supabaseUrl && config.secretKey ? config.supabaseUrl : "", key: config.secretKey });
   const authOrigin = authVerifier && config.supabaseUrl ? new URL(config.supabaseUrl).origin : "";
 
   async function userFor(req, { required = false } = {}) {
@@ -75,11 +79,13 @@ export function createQipiHandler({
         return json(res, 200, {
           authEnabled: Boolean(authVerifier),
           supabaseUrl: authVerifier ? config.supabaseUrl : "",
-          publishableKey: authVerifier ? config.publishableKey : ""
+          publishableKey: authVerifier ? config.publishableKey : "",
+          maptilerPublicKey: config.maptilerPublicKey || "",
+          navigationEnabled: Boolean(config.maptilerPublicKey && config.openrouteserviceKey)
         });
       }
       const context = {
-        req, res, path, method, url, store, userFor, adminToken,
+        req, res, path, method, url, store, userFor, adminToken, safety, config,
         chat: config.supabaseUrl && config.secretKey
           ? new SupabaseChatRepository({ url: config.supabaseUrl, key: config.secretKey })
           : null

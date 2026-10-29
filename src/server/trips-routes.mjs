@@ -36,7 +36,7 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
     const data = await store.read();
     const actorId = req.headers["x-qipi-actor"] || "";
     const routeId = url.searchParams.get("route");
-    const includeClosed = url.searchParams.get("includeClosed") === "true";
+    const upcomingOnly = url.searchParams.get("upcoming") === "true";
     const ids = url.searchParams.has("ids") ? url.searchParams.get("ids").split(",").filter(Boolean) : null;
     if (ids && (ids.length > 100 || ids.some(id => !/^[a-z0-9-]{1,64}$/i.test(id)))) throw new HttpError(400, "Provide at most 100 valid trip IDs");
     const selectedIds = ids ? new Set(ids) : null;
@@ -49,9 +49,11 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
     if (cursor && limit === null) throw new HttpError(400, "A trip cursor requires a page limit");
     const today = todayInCambodia();
     let trips = data.trips
-      .filter((trip) => !trip.hidden && (includeClosed || (trip.status === "open" && trip.date >= today)))
+      .filter((trip) => !trip.hidden && (!upcomingOnly || ((trip.kind || "trip") === "trip" && trip.status === "open" && trip.date >= today)))
       .filter((trip) => (!routeId || trip.routeId === routeId) && (!selectedIds || selectedIds.has(trip.id)))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.departureTime.localeCompare(b.departureTime) || a.id.localeCompare(b.id));
+      .sort((a, b) => upcomingOnly || limit !== null
+        ? a.date.localeCompare(b.date) || a.departureTime.localeCompare(b.departureTime) || a.id.localeCompare(b.id)
+        : b.createdAt.localeCompare(a.createdAt));
     if (cursor) trips = trips.filter((trip) => compareTripCursor(trip, cursor) > 0);
     const hasMore = limit !== null && trips.length > limit;
     if (limit !== null) trips = trips.slice(0, limit);
@@ -88,33 +90,37 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
   if (path === "/api/trips" && method === "POST") {
     const user = await userFor(req, { required: true });
     const input = await body(req);
-    if (!routeById.has(input.routeId)) throw new HttpError(400, "Choose a route");
+    const kind = input.kind === "story" ? "story" : "trip";
+    const routeId = input.routeId && routeById.has(input.routeId) ? input.routeId : "";
+    const destination = text(input.destination || (routeId ? routeById.get(routeId).title.en : ""), "destination", 2, 120);
     const mediaPath = input.mediaPath == null || input.mediaPath === "" ? "" : text(input.mediaPath, "mediaPath", 1, 180);
     if (mediaPath && (!user || !new RegExp(`^users/${user.id}/trips/[0-9a-f-]{36}\\.(?:jpg|png|webp)$`, "i").test(mediaPath))) {
       throw new HttpError(400, "Trip image must be uploaded to your account");
     }
-    const seats = Number(input.seats);
-    if (!Number.isInteger(seats) || seats < 1 || seats > 12) {
+    const seats = kind === "story" ? 0 : Number(input.seats);
+    if (kind === "trip" && (!Number.isInteger(seats) || seats < 1 || seats > 12)) {
       throw new HttpError(400, "seats must be between 1 and 12");
     }
     const ownerToken = user ? null : token();
     const trip = {
       id: randomUUID(),
-      routeId: input.routeId,
+      kind,
+      routeId,
+      destination,
       title: text(input.title, "title", 5, 80),
-      date: dateField(input.date, "date", { future: true }),
-      departureTime: timeField(input.departureTime),
-      transport: choice(input.transport, "transport", ["motorbike", "car", "mixed"]),
+      date: kind === "story" ? todayInCambodia() : dateField(input.date, "date", { future: true }),
+      departureTime: kind === "story" ? "00:00" : timeField(input.departureTime),
+      transport: kind === "story" ? "mixed" : choice(input.transport, "transport", ["motorbike", "car", "mixed"]),
       seats,
-      meetingArea: text(input.meetingArea, "meetingArea", 3, 80),
-      costStyle: choice(input.costStyle, "costStyle", ["own", "shared", "free"]),
+      meetingArea: kind === "story" ? "" : text(input.meetingArea, "meetingArea", 3, 80),
+      costStyle: kind === "story" ? "free" : choice(input.costStyle, "costStyle", ["own", "shared", "free"]),
       notes: optionalText(input.notes, "notes", 500),
       hostName: text(input.hostName, "hostName", 2, 40),
       hostAvatarPath: user?.avatarPath || "",
       mediaPath,
       ownerTokenHash: ownerToken ? digest(ownerToken) : null,
       hostUserId: user?.id || null,
-      status: "open",
+      status: kind === "story" ? "published" : "open",
       hidden: false,
       createdAt: new Date().toISOString()
     };
@@ -163,6 +169,7 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
     const requestToken = user ? null : token();
     const request = await store.mutate((data) => {
       const trip = findTrip(data, requestsMatch[1]);
+      if (trip.kind === "story") throw new HttpError(409, "This post is not a trip");
       if (user && trip.hostUserId === user.id) throw new HttpError(409, "You cannot join your own trip");
       if (user && data.joinRequests.some((item) => item.tripId === trip.id && item.travelerUserId === user.id)) {
         throw new HttpError(409, "You have already requested to join this trip");

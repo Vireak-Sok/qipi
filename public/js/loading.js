@@ -30,6 +30,7 @@ export function createLoadingViews({ t, showDialog }) {
 
   function renderRoutesLoading(inExplore = false) {
     const grid = $("#route-grid");
+    if (!grid) return;
     grid.setAttribute("aria-busy", "true");
     grid.innerHTML = inExplore
       ? `<div class="skeleton-explore-routes" aria-hidden="true">${Array.from({ length: 3 }, () => `<span class="skeleton-explore-card"><i></i><b></b><b></b></span>`).join("")}</div>`

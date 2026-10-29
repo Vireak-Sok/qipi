@@ -1095,7 +1095,7 @@ button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):
 }
 @media(max-width:700px) {
   .mobile-nav {
-    grid-template-columns: repeat(6,minmax(0,1fr));
+    grid-template-columns: repeat(5,minmax(0,1fr));
   }
   .mobile-nav small {
     font-size: 9px;

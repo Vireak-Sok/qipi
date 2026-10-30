@@ -209,19 +209,19 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
   gap: 10px;
   width: 100%;
   min-width: 0;
-  min-height: 58px;
-  padding: 6px 7px 6px 16px;
+  min-height: var(--search-control-height, 54px);
+  padding: 4px 6px 4px 14px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
-  border-radius: 17px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--surface-card) 96%, transparent);
   box-shadow: 0 10px 32px #102b2b24;
   backdrop-filter: blur(18px);
 }
-.map-search-bar > .heroicon { width: 19px; height: 19px; flex: 0 0 19px; color: var(--brand-strong); }
+.map-search-bar > .heroicon { width: 18px; height: 18px; flex: 0 0 18px; color: var(--brand-strong); }
 .map-search-bar input {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: 40px;
   flex: 1;
   padding: 0;
   border: 0;
@@ -232,7 +232,7 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 }
 .map-search-bar input::placeholder { color: var(--text-secondary); opacity: .88; }
 .map-search-bar:focus-within { border-color: var(--brand-strong); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 45%, transparent), 0 10px 32px #102b2b24; }
-.map-search-bar .map-clear-destination { width: 42px; min-width: 42px; min-height: 42px; padding: 0; border-radius: 50%; color: var(--text-secondary); background: transparent; }
+.map-search-bar .map-clear-destination { width: 40px; min-width: 40px; min-height: 40px; padding: 0; border-radius: 50%; color: var(--text-secondary); background: transparent; }
 .map-search-bar .map-clear-destination:hover { color: var(--text-primary); background: var(--surface-selected); filter: none; }
 .map-search-bar .map-clear-destination[hidden] { display: none; }
 .map-quick-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 9px; min-width: 0; }
@@ -244,7 +244,7 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 .map-quick-actions .map-control-button:focus-visible,.map-quick-actions .map-live-toggle:focus-visible { outline: 3px solid color-mix(in srgb,var(--focus-ring) 70%,transparent); outline-offset: 2px; }
 .map-quick-actions .map-control-button:active,.map-quick-actions .map-live-toggle:active { transform: translateY(1px); }
 .explore-open .map-search-wrap { position: relative; width: 100%; max-width: 420px; min-width: 0; }
-.explore-open .map-search-wrap .map-search-panel { top: calc(100% + 9px); right: auto; left: 0; width: 100%; max-height: min(60dvh, 480px); overflow-y: auto; }
+.explore-open .map-search-wrap .map-search-panel { top: calc(100% + 9px); right: auto; left: 0; width: 100%; max-width: none; max-height: min(60dvh, 480px); overflow-y: auto; }
 .map-search-panel[hidden] { display: none !important; }
 .map-search-panel .map-overlay-head { margin-bottom: 6px; }
 .map-suggestion-skeleton { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 4px; }
@@ -346,7 +346,7 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 @media (max-width: 700px) {
   .explore-open.app-layout { inset: calc(var(--app-header-height) - 1px) 0 calc(66px + env(safe-area-inset-bottom)); }
   .explore-open .map-control-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 10px; }
-  .map-search-bar { min-height: 52px; padding: 5px 6px 5px 12px; border-radius: 15px; }
+  .map-search-bar { min-height: 52px; padding: 5px 6px 5px 14px; border-radius: 14px; }
   .map-search-bar input { min-height: 40px; font-size: 13px; }
   .map-search-bar .map-clear-destination { width: 38px; min-width: 38px; min-height: 38px; }
   .map-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -476,7 +476,7 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
     padding: 14px;
   }
   .explore-open .map-search-wrap { position: relative; width: 100%; max-width: none; min-width: 0; }
-  .explore-open .map-search-wrap .map-search-panel { top: calc(100% + 8px); right: auto; left: 0; width: min(100%, 460px); max-height: min(55dvh, 440px); overflow: auto; }
+  .explore-open .map-search-wrap .map-search-panel { top: calc(100% + 8px); right: auto; left: 0; width: 100%; max-width: none; max-height: min(55dvh, 440px); overflow: auto; }
   .explore-open .map-quick-actions { justify-content: flex-start; flex-wrap: wrap; gap: 7px; }
   .explore-open .map-floating-actions { right: 16px; bottom: 16px; }
 }

@@ -61,6 +61,18 @@ export class SupabaseChatRepository {
     } });
   }
 
+  searchMessages(conversationIds, query) {
+    if (!conversationIds.length) return Promise.resolve([]);
+    const safeQuery = String(query || "").replace(/[\\%_*(),]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
+    if (!safeQuery) return Promise.resolve([]);
+    return this.request("qipi_messages", { query: {
+      select: "id,conversation_id,sender_id,body,created_at",
+      conversation_id: `in.(${conversationIds.join(",")})`,
+      body: `ilike.*${safeQuery}*`,
+      order: "created_at.desc,id.desc", limit: "100"
+    } });
+  }
+
   async sendMessage(conversationId, senderId, body) {
     const rows = await this.request("qipi_messages", {
       method: "POST", query: { select: "id,conversation_id,sender_id,body,created_at,read_at" },

@@ -128,7 +128,6 @@
 .settings-card #settings-trusted-contacts .safety-contact a,.settings-card #settings-trusted-contacts .safety-contact button { min-height: 34px; padding: 5px 9px; border: 1px solid var(--border-soft); border-radius: 9px; background: var(--surface-selected); text-decoration: none; }
 .settings-card #settings-trusted-contacts .safety-empty { padding-block: 4px; }
 .explore-open .feed-column>.stories-section { align-self: stretch; }
-.explore-open .right-rail .trend-card { display: none; }
 @media (max-width: 1300px) and (min-width: 701px) {
   .map-control-row { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
   .map-control-button,.map-live-toggle,.map-emergency-button { width: 100%; min-width: 0; }
@@ -251,6 +250,9 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 }
 .map-search-bar button:hover { filter: brightness(.96); }
 .map-search-bar button .heroicon { width: 16px; height: 16px; }
+.map-search-bar .map-clear-destination { width: 42px; min-width: 42px; min-height: 42px; padding: 0; border-radius: 50%; color: var(--text-secondary); background: transparent; }
+.map-search-bar .map-clear-destination:hover { color: var(--text-primary); background: var(--surface-selected); filter: none; }
+.map-search-bar .map-clear-destination[hidden] { display: none; }
 .map-quick-actions { display: flex; align-items: flex-start; justify-content: flex-end; gap: 9px; min-width: 0; }
 .map-quick-actions .map-control-button,
 .map-quick-actions .map-live-toggle,
@@ -433,4 +435,70 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 }
 @media (prefers-reduced-motion: reduce) {
   .explore-map-initial-skeleton::after,.map-loading-skeleton::after,.map-suggestion-skeleton i,.map-suggestion-skeleton span { animation: none; }
+}
+
+/* Desktop Explore stays inside the same three-column page shell as the feed. */
+@media (min-width: 701px) {
+  .explore-open.app-layout {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    display: grid;
+    width: min(1480px, calc(100% - 48px));
+    max-width: 1480px;
+    height: auto;
+    min-height: 0;
+    margin: 0 auto;
+    padding: var(--page-top-gap) 0 28px;
+    overflow: visible;
+    background: transparent;
+  }
+  .explore-open .left-rail { display: block !important; }
+  .explore-open .right-rail { display: flex !important; }
+  .explore-open .feed-column { display: grid; width: auto; height: auto; min-height: 0; gap: 14px; }
+  .explore-open .feed-column > #routes {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .explore-open #explore-map-content { position: relative; width: 100%; height: auto; min-height: 0; }
+  .explore-open .explore-map-shell {
+    width: 100%;
+    height: min(680px, calc(100dvh - var(--page-sticky-top) - 36px));
+    min-height: 500px;
+    border: 1px solid var(--border-soft);
+    border-radius: 18px;
+    box-shadow: var(--surface-shadow);
+  }
+  .explore-open .explore-map-frame .safety-map iframe,.explore-open .safety-map-fallback { min-height: 500px; }
+  .explore-open .map-control-row {
+    position: absolute;
+    inset: 0 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 9px;
+    padding: 14px;
+  }
+  .explore-open .map-search-wrap { position: relative; width: 100%; max-width: none; min-width: 0; }
+  .explore-open .map-search-wrap .map-search-panel { top: calc(100% + 8px); right: auto; left: 0; width: min(100%, 460px); max-height: min(55dvh, 440px); overflow: auto; }
+  .explore-open .map-quick-actions { justify-content: flex-start; flex-wrap: wrap; gap: 7px; }
+  .explore-open .map-floating-actions { right: 16px; bottom: 16px; }
+}
+
+/* Keep the immersive, edge-to-edge map treatment on phones. */
+@media (max-width: 700px) {
+  .explore-open.app-layout { position: fixed; inset: calc(var(--app-header-height) - 1px) 0 calc(66px + env(safe-area-inset-bottom)); z-index: 20; display: block; width: 100%; max-width: none; height: auto; min-height: 0; margin: 0; padding: 0; overflow: hidden; background: var(--surface-canvas); }
+  .explore-open .left-rail,.explore-open .right-rail { display: none !important; }
+  .explore-open .feed-column { display: block; width: 100%; height: 100%; min-height: 0; gap: 0; }
+  .explore-open .feed-column > #routes { display: block; width: 100%; height: 100%; min-height: 0; padding: 0; overflow: hidden; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .explore-open #explore-map-content,.explore-open .explore-map-shell { width: 100%; height: 100%; min-height: 0; }
+  .explore-open .explore-map-shell { border: 0; border-radius: 0; box-shadow: none; }
+  .explore-open .explore-map-frame .safety-map iframe,.explore-open .safety-map-fallback { min-height: 0; }
 }

@@ -1,37 +1,73 @@
 import { $, esc, icon, saveLocal } from "./core.js";
 
 export function createSearchController({ state, t, api, renderRoutes, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast }) {
+  let searchRequestId = 0;
   function setSearch(value) {
     const query = value.trim();
     state.search = query.toLocaleLowerCase();
-    if ($("#feed-search")) $("#feed-search").value = query;
-    if ($("#mobile-feed-search")) $("#mobile-feed-search").value = query;
-    if ($(".search-clear")) $(".search-clear").hidden = !query;
-    renderRoutes(); renderTrips();
+    const input = $("#home-search-input");
+    if (input) input.value = query;
+    const clear = $(".home-search-clear");
+    if (clear) clear.hidden = !query;
+    const results = $("#user-search-results");
+    if (results && (state.view !== "search-results" || !query)) results.hidden = true;
+    renderRoutes();
+    renderTrips();
+  }
+
+  function renderUserSearchResults(profiles = [], query = state.search) {
+    const target = $("#user-search-results");
+    if (!target) return;
+    const matches = (profiles || []).filter((profile) => profile.id !== state.me?.id);
+    target.hidden = false;
+    target.innerHTML = `<div class="user-search-results-head"><h2>${esc(t("searchPeopleHeading"))}</h2><span>${matches.length}</span></div>${matches.length
+      ? `<div class="user-search-result-list">${matches.map((profile) => {
+        const name = profile.displayName || profile.username || t("traveler");
+        const letter = Array.from(name.trim())[0] || "Q";
+        const username = profile.username || profile.id;
+        return `<a class="user-search-result" href="/${encodeURIComponent(username)}" data-action="open-profile" data-id="${esc(profile.id)}"><span class="user-search-avatar">${esc(letter.toLocaleUpperCase())}</span><span><strong>${esc(name)}</strong><small>@${esc(username)}</small></span><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-right"></use></svg></a>`;
+      }).join("")}</div>`
+      : `<p class="user-search-empty">${esc(t("searchPeopleEmpty"))}</p>`}`;
   }
 
   function submitSearch(value) {
-    setSearch(value);
-    saveRecentSearch(value);
+    const query = value.trim();
+    setSearch(query);
+    saveRecentSearch(query);
     state.filter = "";
     state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+    state.searchProfiles = [];
     syncSearchFilterControls();
     closeDesktopSearch();
-    closeMobileSearch({ save: false });
     setPageView("search-results");
+    const userResults = $("#user-search-results");
+    if (userResults) userResults.hidden = true;
     renderTripListLoading("#trip-list", 2);
-    loadSearchResults();
+    void loadSearchResults();
   }
 
-  async function loadSearchResults() {
-    try {
-      const { trips } = await api("/api/trips");
-      state.trips = trips;
+  async function loadSearchResults({ loadPosts = true } = {}) {
+    const query = state.search.trim();
+    const requestId = ++searchRequestId;
+    const tripRequest = (loadPosts ? api("/api/trips") : Promise.resolve({ trips: state.trips })).then((result) => {
+      if (requestId !== searchRequestId || state.view !== "search-results") return;
+      state.trips = result.trips || [];
       renderTrips();
-    } catch (error) {
+    }).catch((error) => {
+      if (requestId !== searchRequestId || state.view !== "search-results") return;
       renderLoadingError("#trip-list", "retry-search");
       toast(error.message || t("failed"));
-    }
+    });
+    const peopleRequest = (query ? api(`/api/profiles/search?q=${encodeURIComponent(query)}`) : Promise.resolve({ profiles: [] })).then((result) => {
+      if (requestId !== searchRequestId || state.view !== "search-results") return;
+      state.searchProfiles = result.profiles || [];
+      renderUserSearchResults(state.searchProfiles, query);
+    }).catch(() => {
+      if (requestId !== searchRequestId || state.view !== "search-results") return;
+      state.searchProfiles = [];
+      renderUserSearchResults([], query);
+    });
+    await Promise.allSettled([tripRequest, peopleRequest]);
   }
 
   function saveRecentSearch(value) {
@@ -43,55 +79,55 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
   }
 
   function renderSearchRecents() {
-    const rowMarkup = (query) => '<li class="search-recent-row"><button type="button" class="search-recent-select" data-action="select-recent-search" data-query="' + esc(query) + '"><span class="search-recent-icon">' + icon("clock") + '</span><span class="search-recent-text">' + esc(query) + '</span></button><button type="button" class="search-recent-remove" data-action="remove-recent-search" data-query="' + esc(query) + '" aria-label="' + esc(t("removeRecentSearch")) + ': ' + esc(query) + '"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button></li>';
-    const desktopQuery = $("#feed-search")?.value.trim().toLocaleLowerCase() || "";
-    const mobileQuery = $("#mobile-feed-search")?.value.trim().toLocaleLowerCase() || "";
-    for (const [id, query] of [["search-recents-list", mobileQuery], ["desktop-search-recents", desktopQuery]]) {
-      const list = $("#" + id);
-      if (!list) continue;
-      const recent = state.recentSearches.filter((item) => !query || item.toLocaleLowerCase().includes(query));
-      list.innerHTML = recent.length
-        ? '<ul class="search-recent-list">' + recent.map(rowMarkup).join("") + '</ul>'
-        : '<p class="search-recents-empty">' + esc(query ? t("searchRecentNoMatch") : t("searchRecentEmpty")) + '</p>';
-    }
+    const target = $("#home-search-recents");
+    if (!target) return;
+    const query = $("#home-search-input")?.value.trim().toLocaleLowerCase() || "";
+    const rowMarkup = (item) => `<li class="search-recent-row"><button type="button" class="search-recent-select" data-action="select-recent-search" data-query="${esc(item)}"><span class="search-recent-icon">${icon("clock")}</span><span class="search-recent-text">${esc(item)}</span></button><button type="button" class="search-recent-remove" data-action="remove-recent-search" data-query="${esc(item)}" aria-label="${esc(t("removeRecentSearch"))}: ${esc(item)}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#close"></use></svg></button></li>`;
+    const recent = state.recentSearches.filter((item) => !query || item.toLocaleLowerCase().includes(query));
+    target.innerHTML = recent.length
+      ? `<ul class="search-recent-list">${recent.map(rowMarkup).join("")}</ul>`
+      : `<p class="search-recents-empty">${esc(query ? t("searchRecentNoMatch") : t("searchRecentEmpty"))}</p>`;
   }
 
   function openDesktopSearch() {
-    const panel = $("#desktop-search-panel");
-    if (!panel || window.matchMedia("(max-width: 700px)").matches) return;
+    const panel = $("#home-search-recents-panel");
+    if (!panel) return;
     panel.hidden = false;
+    $("#home-search-input")?.setAttribute("aria-expanded", "true");
     renderSearchRecents();
   }
 
   function closeDesktopSearch() {
-    const panel = $("#desktop-search-panel");
+    const panel = $("#home-search-recents-panel");
     if (panel) panel.hidden = true;
-  }
-
-  function openMobileSearch() {
-    const dialog = $("#search-dialog");
-    if (!dialog?.open) dialog?.showModal();
-    renderSearchRecents();
-    requestAnimationFrame(() => $("#mobile-feed-search")?.focus());
-  }
-
-  function closeMobileSearch({ save = true } = {}) {
-    if (save) saveRecentSearch($("#mobile-feed-search")?.value || "");
-    $("#search-dialog")?.close();
+    $("#home-search-input")?.setAttribute("aria-expanded", "false");
   }
 
   function bindSearchEvents() {
-    $("#feed-search").addEventListener("focus", openDesktopSearch);
-    $("#feed-search").addEventListener("input", renderSearchRecents);
-    $("#feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
-    $("#mobile-feed-search").addEventListener("input", (eventTarget) => { $(".search-clear").hidden = !eventTarget.target.value; renderSearchRecents(); });
-    $("#mobile-feed-search").addEventListener("keydown", (eventTarget) => { if (eventTarget.key === "Enter") { eventTarget.preventDefault(); submitSearch(eventTarget.target.value); eventTarget.target.blur(); } });
-    document.addEventListener("click", (eventTarget) => { if (!$("#desktop-search-wrap")?.contains(eventTarget.target)) closeDesktopSearch(); });
+    const form = $("#home-search-form");
+    const input = $("#home-search-input");
+    if (!form || !input) return;
+    input.addEventListener("focus", openDesktopSearch);
+    input.addEventListener("input", () => {
+      $(".home-search-clear").hidden = !input.value;
+      renderSearchRecents();
+    });
+    form.addEventListener("submit", (eventTarget) => {
+      eventTarget.preventDefault();
+      submitSearch(input.value);
+      input.blur();
+    });
+    document.addEventListener("click", (eventTarget) => {
+      if (!$("#home-search")?.contains(eventTarget.target)) closeDesktopSearch();
+    });
     document.addEventListener("keydown", (eventTarget) => {
-      const panel = $("#desktop-search-panel");
-      if (eventTarget.key === "Escape" && panel && !panel.hidden) { closeDesktopSearch(); $("#feed-search").blur(); }
+      const panel = $("#home-search-recents-panel");
+      if (eventTarget.key === "Escape" && panel && !panel.hidden) {
+        closeDesktopSearch();
+        input.blur();
+      }
     });
   }
 
-  return { setSearch, submitSearch, loadSearchResults, renderSearchRecents, openDesktopSearch, closeDesktopSearch, openMobileSearch, closeMobileSearch, bindSearchEvents };
+  return { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, bindSearchEvents };
 }

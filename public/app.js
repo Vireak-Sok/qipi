@@ -35,7 +35,7 @@ const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadT
   state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage, safety,
   tripCardMarkup: (trip) => tripCardMarkup(trip)
 });
-const { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, openMobileSearch, closeMobileSearch, bindSearchEvents } = createSearchController({
+const { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, bindSearchEvents } = createSearchController({
   state, t, api, renderRoutes, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
 });
 const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = createProfileController({
@@ -213,7 +213,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("settings-open", isSettings);
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
-  document.documentElement.classList.toggle("qipi-map-fullscreen", isExplore);
+  document.documentElement.classList.toggle("qipi-map-fullscreen", isExplore && window.matchMedia("(max-width: 700px)").matches);
   main.classList.toggle("search-results-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);
@@ -230,8 +230,9 @@ function setPageView(view, { preserveUrl = false } = {}) {
     else item.removeAttribute("aria-current");
   });
   document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view):not(#safety-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "home-search" && view !== "feed") || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
   });
+  if (view === "feed") $("#home-search")?.classList.remove("is-hidden");
   $("#entry-view").hidden = !isEntry;
   settings.hidden = !isSettings;
   $("#profile-view").hidden = !isProfile;
@@ -248,6 +249,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   if (!preserveUrl && location.pathname + location.search + location.hash !== nextLocation) {
     history.replaceState(history.state, "", nextLocation);
   }
+  previousHomeSearchScroll = 0;
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
@@ -305,6 +307,17 @@ function renderMessagesSignIn() {
 
 function messageListMarkup({ inboxLoading = false, inboxError = false } = {}) {
   const conversations = state.conversations;
+  const query = state.messageSearch.trim().toLocaleLowerCase();
+  if (query) {
+    if (query.length < 2) return `<p class="message-search-empty">${esc(t("messageSearchTypeMore"))}</p>`;
+    const people = state.messagePeople.filter((profile) => profile.id !== auth.user?.id);
+    const history = state.messageHistoryMatches;
+    const results = [];
+    if (people.length) results.push(`<section class="message-search-group"><h2>${esc(t("messageSearchPeopleHeading"))}</h2>${people.map((profile) => `<button class="message-search-hit" type="button" data-action="open-message" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span class="message-search-hit-copy"><strong>${esc(profile.displayName || profile.username || t("traveler"))}</strong><small>@${esc(profile.username || "")}</small></span></button>`).join("")}</section>`);
+    if (history.length) results.push(`<section class="message-search-group"><h2>${esc(t("messageSearchHistoryHeading"))}</h2>${history.map((item) => `<button class="message-search-hit" type="button" data-action="open-conversation" data-id="${esc(item.conversationId)}">${messageAvatar(item.profile)}<span class="message-search-hit-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.body)}</small></span></button>`).join("")}</section>`);
+    if (state.messageSearchLoading) return `<div class="message-search-loading" role="status">${esc(t("messageSearchLoading"))}</div>`;
+    return results.length ? `<div class="message-search-results">${results.join("")}</div>` : `<p class="message-search-empty">${esc(t("messageSearchEmpty"))}</p>`;
+  }
   return inboxLoading
     ? `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`
     : inboxError
@@ -315,12 +328,11 @@ function messageListMarkup({ inboxLoading = false, inboxError = false } = {}) {
 }
 
 function renderMessageSidebarList() {
-  const sidebar = $("#messages-content .message-sidebar");
-  const current = sidebar?.lastElementChild;
-  if (!current || current.classList.contains("message-sidebar-head")) return;
+  const current = $("#message-inbox-list");
+  if (!current) return;
   const scrollTop = current.scrollTop;
-  current.outerHTML = messageListMarkup();
-  sidebar.lastElementChild.scrollTop = scrollTop;
+  current.innerHTML = messageListMarkup();
+  current.scrollTop = scrollTop;
 }
 
 function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoading = loading, inboxError = false } = {}) {
@@ -328,7 +340,8 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
   if (!content) return;
   content.setAttribute("aria-busy", String(loading));
   const list = messageListMarkup({ inboxLoading, inboxError });
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1></header>${list}</aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
+  const messageSearchLabel = t("messageSearchPlaceholder");
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
@@ -757,6 +770,7 @@ document.addEventListener("click", async (eventTarget) => {
       else if (action === "safety-locate") await safety.currentLocation();
       else if (action === "safety-choose-destination") await safety.chooseDestination(Number(button.dataset.index));
       else if (action === "safety-select-destination") safety.selectDestination(Number(button.dataset.index));
+      else if (action === "safety-clear-destination") safety.clearDestinationSearch();
       else if (action === "safety-current-share") await safety.shareCurrent();
       else if (action === "safety-refresh-live") await safety.updateViewer();
       else if (action === "safety-emergency") safety.emergency();
@@ -779,9 +793,7 @@ document.addEventListener("click", async (eventTarget) => {
     input.focus({ preventScroll: true });
     return;
   }
-  if (action === "open-mobile-search") { openMobileSearch(); return; }
-  if (action === "close-mobile-search") { closeMobileSearch(); return; }
-  if (action === "clear-mobile-search") { $("#mobile-feed-search").value = ""; $(".search-clear").hidden = true; renderSearchRecents(); $("#mobile-feed-search")?.focus(); return; }
+  if (action === "clear-home-search") { $("#home-search-input").value = ""; $(".home-search-clear").hidden = true; renderSearchRecents(); $("#home-search-input")?.focus(); return; }
   if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
   if (action === "explore-destination") { submitSearch(button.dataset.destination || ""); return; }
   if (action === "remove-recent-search") {
@@ -797,7 +809,6 @@ document.addEventListener("click", async (eventTarget) => {
     setSearch("");
     syncSearchFilterControls();
     closeDesktopSearch();
-    closeMobileSearch({ save: false });
     await openFeedPage();
     return;
   }
@@ -866,7 +877,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfile(); return; }
   if (action === "close-dialog") { closeDialogs(); setLink(); }
   if (action === "open-route") openRoute(id);
-  if (action === "open-profile") { await openProfile(id); return; }
+  if (action === "open-profile") { eventTarget.preventDefault(); await openProfile(id); return; }
   if (action === "profile-back") {
     const returnView = state.profileReturnView || "feed";
     state.profile = null;
@@ -1217,6 +1228,48 @@ document.addEventListener("submit", async (eventTarget) => {
 enhanceSelects();
 $("#trip-kind-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
 bindSearchEvents();
+let messageSearchTimer = null;
+let messageSearchRequestId = 0;
+document.addEventListener("input", (eventTarget) => {
+  const input = eventTarget.target;
+  if (input.id !== "message-search") return;
+  const query = input.value.trim();
+  state.messageSearch = query;
+  state.messagePeople = [];
+  state.messageHistoryMatches = [];
+  state.messageSearchLoading = query.length >= 2;
+  const requestId = ++messageSearchRequestId;
+  clearTimeout(messageSearchTimer);
+  renderMessageSidebarList();
+  if (query.length < 2) return;
+  messageSearchTimer = setTimeout(async () => {
+    const encoded = encodeURIComponent(query);
+    const [people, history] = await Promise.allSettled([
+      api(`/api/profiles/search?q=${encoded}`),
+      api(`/api/conversations/search?q=${encoded}`)
+    ]);
+    if (requestId !== messageSearchRequestId || state.view !== "messages" || state.messageSearch.trim() !== query) return;
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    state.messagePeople = people.status === "fulfilled"
+      ? (people.value.profiles || []).filter((profile) => uuid.test(profile.id) && profile.id !== auth.user?.id)
+      : [];
+    state.messageHistoryMatches = history.status === "fulfilled" ? (history.value.messages || []) : [];
+    state.messageSearchLoading = false;
+    renderMessageSidebarList();
+  }, 280);
+});
+let previousHomeSearchScroll = window.scrollY;
+window.addEventListener("scroll", () => {
+  const homeSearch = $("#home-search");
+  const currentScroll = window.scrollY;
+  const direction = currentScroll - previousHomeSearchScroll;
+  previousHomeSearchScroll = currentScroll;
+  if (!homeSearch || state.view !== "feed" || Math.abs(direction) < 4) return;
+  homeSearch.classList.toggle("is-hidden", direction < 0);
+}, { passive: true });
+window.addEventListener("resize", () => {
+  document.documentElement.classList.toggle("qipi-map-fullscreen", state.view === "explore" && window.matchMedia("(max-width: 700px)").matches);
+});
 $("#search-upcoming-only").addEventListener("change", (eventTarget) => { state.searchFilters.upcoming = eventTarget.target.checked; syncSearchFilterControls(); renderTrips(); });
 $("#search-transport-filter").addEventListener("change", (eventTarget) => { state.searchFilters.transport = eventTarget.target.value; syncSearchFilterControls(); renderTrips(); });
 $("#settings-language").addEventListener("change", (eventTarget) => {
@@ -1247,8 +1300,7 @@ document.querySelectorAll("a[data-page-view]").forEach((anchor) => anchor.addEve
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (eventTarget) => {
     if (eventTarget.target === dialog) {
-      if (dialog.id === "search-dialog") closeMobileSearch();
-      else { dialog.close(); setLink(); }
+      dialog.close(); setLink();
     }
   });
 });
@@ -1282,7 +1334,7 @@ async function initialize() {
   }
   if (entryReturnView === "search-results") {
     state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();
-    if ($("#feed-search")) $("#feed-search").value = startupQuery.get("q") || "";
+    if ($("#home-search-input")) $("#home-search-input").value = startupQuery.get("q") || "";
   }
   const legacyHash = ["#feed", "#routes", "#trips", "#saved", "#settings", "#search", "#entry", "#signup", "#profile"].includes(location.hash);
   if (currentPath === "/index.html" || (currentPath === "/" && legacyHash)) {
@@ -1343,6 +1395,7 @@ async function initialize() {
     else if (entryReturnView === "explore") await openExplorePage();
     else if (["feed", "trips", "search-results"].includes(entryReturnView)) {
       await loadFeedData();
+      if (entryReturnView === "search-results") await loadSearchResults({ loadPosts: false });
     }
   }
   if (state.view !== "entry") await openStartupDeepLink();

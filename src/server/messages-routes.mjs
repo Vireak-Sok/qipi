@@ -39,6 +39,33 @@ export async function handleMessagesRoutes({ req, res, path, method, store, user
     return respond(200, { conversations: result.filter(Boolean) });
   }
 
+  if (path === "/api/conversations/search" && method === "GET") {
+    const query = new URL(req.url || "/", "http://localhost").searchParams.get("q")?.trim().slice(0, 80) || "";
+    if (query.length < 2) return respond(200, { messages: [] });
+    const conversations = await chat.conversationsFor(user.id);
+    if (!conversations.length) return respond(200, { messages: [] });
+    const [messages, data] = await Promise.all([
+      chat.searchMessages(conversations.map((conversation) => conversation.id), query),
+      store.read()
+    ]);
+    const profilesByConversation = new Map(conversations.map((conversation) => {
+      const otherId = conversation.user_low === user.id ? conversation.user_high : conversation.user_low;
+      const profile = publicProfile(data, otherId);
+      return [conversation.id, profile ? {
+        id: profile.id,
+        username: profile.username || profileUsername(profile.displayName, profile.id),
+        displayName: profile.displayName || "Traveler",
+        avatarPath: profile.avatarPath || ""
+      } : null];
+    }));
+    return respond(200, { messages: messages.filter((message) => profilesByConversation.get(message.conversation_id)).map((message) => ({
+      conversationId: message.conversation_id,
+      body: message.body,
+      createdAt: message.created_at,
+      profile: profilesByConversation.get(message.conversation_id)
+    })) });
+  }
+
   if (path === "/api/conversations" && method === "POST") {
     const input = await body(req);
     const targetId = text(input.targetId, "targetId", 36, 36);

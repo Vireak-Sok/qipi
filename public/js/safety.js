@@ -111,7 +111,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
       <div class="explore-map-frame${safetyMap(mapPoint.latitude, mapPoint.longitude) ? " is-loading" : ""}" id="safety-map-frame" aria-label="Map">${mapFrameMarkup()}</div>
       <div class="explore-map-overlay">
         <div class="map-control-row">
-          <div class="map-search-wrap"><form id="safety-destination-form" class="map-search-bar" role="search"><label class="visually-hidden" for="safety-destination">Search destinations</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or destinations" autocomplete="off" maxlength="120" aria-controls="safety-destination-results" aria-expanded="${String(mapPanel === "search")}" required /><button type="submit" aria-label="Search destinations">Search ${mapIcon("arrow-right")}</button></form><section class="map-overlay-panel map-search-panel" aria-label="Suggested places" ${mapPanel === "search" ? "" : "hidden"}><div class="map-overlay-head"><strong>Suggested places</strong><button type="button" data-action="safety-close-panel" aria-label="Close suggestions">${mapIcon("close")}</button></div><div id="safety-destination-results" class="map-search-results" aria-live="polite">${searchResultsMarkup()}</div></section></div>
+          <div class="map-search-wrap"><form id="safety-destination-form" class="map-search-bar" role="search"><label class="visually-hidden" for="safety-destination">Search destinations</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or destinations" autocomplete="off" maxlength="120" aria-controls="safety-destination-results" aria-expanded="${String(mapPanel === "search")}" required /><button class="map-clear-destination" type="button" data-action="safety-clear-destination" aria-label="Clear destination" ${searchQuery ? "" : "hidden"}>${mapIcon("close")}</button></form><section class="map-overlay-panel map-search-panel" aria-label="Suggested places" ${mapPanel === "search" ? "" : "hidden"}><div class="map-overlay-head"><strong>Suggested places</strong><button type="button" data-action="safety-close-panel" aria-label="Close suggestions">${mapIcon("close")}</button></div><div id="safety-destination-results" class="map-search-results" aria-live="polite">${searchResultsMarkup()}</div></section></div>
           <div class="map-quick-actions"><button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="contacts">${mapIcon("users")}<span>Contacts</span></button>
             <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong></span></button>
             <button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button>
@@ -192,6 +192,8 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function handleDestinationInput(event) {
     if (event.target?.id !== "safety-destination") return;
     searchQuery = event.target.value.trim();
+    const clearButton = $(".map-clear-destination");
+    if (clearButton) clearButton.hidden = !searchQuery;
     showSearchPanel();
     destinations = [];
     selectedPlace = null;
@@ -430,6 +432,20 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     renderMapFrame(mapPoint);
     $("#safety-destination-results").innerHTML = searchResultsMarkup();
   }
+
+  function clearDestinationSearch() {
+    clearTimeout(suggestionTimer);
+    suggestionController?.abort();
+    suggestionController = null;
+    suggestionRevision += 1;
+    searchQuery = "";
+    destinations = [];
+    selectedPlace = null;
+    mapPoint = currentPoint || fallbackPoint;
+    mapPanel = "";
+    renderMapView();
+    $("#safety-destination")?.focus({ preventScroll: true });
+  }
   async function chooseDestination(index) {
     const chosen = destinations[index];
     if (!chosen) return;
@@ -553,5 +569,5 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function onVisibility() { if (document.hidden) stopWatch(); else if (session?.active && shareToken) beginWatch(); if (!document.hidden && location.pathname === "/safety/live") updateViewer(); }
   document.addEventListener("visibilitychange", onVisibility);
   document.addEventListener("keydown", handleEmergencyKeys);
-  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth };
+  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth };
 }

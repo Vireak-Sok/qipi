@@ -7,7 +7,7 @@ export function PageSurface({ region }) {
   return <Tag {...region.props} dangerouslySetInnerHTML={{ __html: region.html }} />;
 }
 export function QipiShell() {
-  const { skipLink, topbar, leftRail, rightRail, mobileSearch, mobileNav, dialogs, toast } = shellRegions;
+  const { skipLink, topbar, leftRail, rightRail, mobileNav, dialogs, toast } = shellRegions;
   return <>
     <PageSurface region={skipLink} />
     <PageSurface region={topbar} />
@@ -16,7 +16,6 @@ export function QipiShell() {
       <main className="feed-column" id="feed">{pageRegions.map(region => <PageSurface key={region.props.id || region.props.className} region={region} />)}</main>
       <PageSurface region={rightRail} />
     </div>
-    <PageSurface region={mobileSearch} />
     <PageSurface region={mobileNav} />
     {dialogs.map(region => <PageSurface key={region.props.id} region={region} />)}
     <PageSurface region={toast} />

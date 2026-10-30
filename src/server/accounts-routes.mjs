@@ -6,6 +6,28 @@ import { publicTrip } from "./trips.mjs";
 
 export async function handleAccountsRoutes({ req, res, path, method, store, userFor }) {
   const respond = createResponder(res);
+  if (path === "/api/profiles/search" && method === "GET") {
+    const query = new URL(req.url || "/", "http://localhost").searchParams.get("q")?.trim().slice(0, 80) || "";
+    if (query.length < 2) return respond(200, { profiles: [] });
+    const data = await store.read();
+    const matches = new Map();
+    const addProfile = (profile) => {
+      if (!profile?.id || matches.has(profile.id)) return;
+      const displayName = String(profile.displayName || "Traveler");
+      const username = String(profile.username || profileUsername(displayName, profile.id));
+      if (`${displayName} ${username}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
+        matches.set(profile.id, { id: profile.id, displayName, username, avatarPath: profile.avatarPath || "" });
+      }
+    };
+    (data.profiles || []).forEach(addProfile);
+    (data.demoUsers || []).forEach((profile) => addProfile({ ...profile, username: profileUsername(profile.displayName, profile.id) }));
+    for (const trip of data.trips || []) {
+      if (trip.hidden || !trip.hostUserId) continue;
+      addProfile({ id: trip.hostUserId, displayName: trip.hostName, avatarPath: trip.hostAvatarPath || "" });
+    }
+    const profiles = [...matches.values()].sort((a, b) => a.displayName.localeCompare(b.displayName)).slice(0, 12);
+    return respond(200, { profiles });
+  }
   if (path === "/api/me/profile" && method === "PUT") {
     const user = await userFor(req, { required: true });
     if (!user) throw new HttpError(503, "Authentication is not configured");

@@ -18,13 +18,23 @@ import { createSafetyController } from "./js/safety.js";
 // Application state and shared helpers.
 const auth = new QipiAuth();
 const state = createAppState();
+state.guestSavedTrips = [...state.savedTrips];
 const t = (key) => copy[state.lang][key] || copy.en[key] || key;
 const label = (value) => value?.[state.lang] || value?.en || "";
 const displayName = () => auth.user?.user_metadata?.display_name?.trim() || auth.user?.email?.split("@")[0] || "";
 let toastTimeout;
+let chatNotificationRequest = null;
+let chatNotificationRequestUserId = "";
+let chatNotificationViewerId = "";
+let chatNotificationBaselineReady = false;
+let historyRestoring = false;
+let historyPreserving = false;
+let locationRestoreRequestId = 0;
+let pendingBackAction = null;
+let pendingBackResolve = null;
 
 // Controllers share the same state; render callbacks run only after initialization.
-const { usernameFromPath, profileIdFromLocation, pageUrl, viewFromLocation, setLink } = createRouter(state);
+const { usernameFromPath, profileIdFromLocation, pageUrl, viewFromLocation, setLink, pushPage, replacePage, markCurrent, canGoBack } = createRouter(state);
 const { enhanceSelects, syncEnhancedSelect, syncEnhancedSelects, closeEnhancedSelect } = createSelectControls();
 const { showDialogLoading, renderDialogError, renderSettingsAccountLoading, skeletonPostsMarkup, renderTripListLoading, renderRoutesLoading, renderLoadingError } = createLoadingViews({ t, showDialog });
 const { api, event } = createApiClient({ auth, state, t });
@@ -87,6 +97,20 @@ function setError(form, message) {
 function closeDialogs() {
   document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
 }
+function isLocationBackedDialog(dialog) {
+  if (!dialog || !["route-dialog", "trip-dialog"].includes(dialog.id)) return false;
+  return dialog.id === "route-dialog"
+    ? Boolean(new URLSearchParams(location.search).get("route"))
+    : /^\/post\/[^/]+\/?$/.test(location.pathname) || Boolean(new URLSearchParams(location.search).get("trip"));
+}
+function closeAppDialog(dialog) {
+  if (isLocationBackedDialog(dialog) && canGoBack()) {
+    history.back();
+    return;
+  }
+  dialog?.close();
+  if (isLocationBackedDialog(dialog)) setLink();
+}
 function showDialog(id, html) {
   closeDialogs();
   const dialog = document.getElementById(id);
@@ -101,6 +125,7 @@ function applyLanguage() {
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => { node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel)); });
   if ($("#settings-language")) $("#settings-language").value = state.lang;
   renderAccount(); renderRoutes(); renderFilter(); renderTrips();
+  renderProfileSuggestions();
   if (state.view === "profile") renderProfile();
   if (state.view === "settings") renderSettings();
   renderChatNotifications();
@@ -139,13 +164,21 @@ function renderChatNotifications() {
   if (button) button.setAttribute("aria-label", total ? `${t("notifications")} (${label})` : t("notifications"));
   const list = $("#notification-messages");
   const empty = $("#notifications-panel .notification-empty");
+  const enableAlerts = $("[data-action='enable-browser-notifications']");
+  if (enableAlerts) enableAlerts.hidden = !auth.user || typeof Notification === "undefined" || Notification.permission !== "default";
   if (!list || !empty) return;
   list.hidden = unread.length === 0;
   empty.hidden = unread.length > 0;
-  list.innerHTML = unread.map((item) => `<button class="notification-message" type="button" data-action="open-notification-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="notification-message-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span><b class="notification-message-count">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b></button>`).join("");
+  list.innerHTML = unread
+    .sort((a, b) => new Date(b.lastMessage?.created_at || b.updatedAt || 0) - new Date(a.lastMessage?.created_at || a.updatedAt || 0))
+    .map((item) => `<button class="notification-message" type="button" data-action="open-notification-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="notification-message-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span><b class="notification-message-count">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b></button>`).join("");
 }
 
 function syncConversations(conversations, { updateSidebar = false } = {}) {
+  const previous = new Map(state.conversations.map((item) => [item.id, item.lastMessage?.id]));
+  const incoming = chatNotificationBaselineReady && auth.user
+    ? (conversations || []).filter((item) => item.unreadCount > 0 && item.lastMessage?.sender_id !== auth.user.id && item.lastMessage?.id && (!previous.has(item.id) || previous.get(item.id) !== item.lastMessage.id))
+    : [];
   const next = (conversations || []).map((item) => state.view === "messages" && state.conversationProfile && item.id === state.conversationId
     ? { ...item, unreadCount: 0 }
     : item);
@@ -153,6 +186,7 @@ function syncConversations(conversations, { updateSidebar = false } = {}) {
   state.conversations = next;
   if (changed) renderChatNotifications();
   if (changed && updateSidebar && state.view === "messages") renderMessageSidebarList();
+  incoming.forEach(showIncomingMessageNotification);
   return changed;
 }
 
@@ -160,21 +194,60 @@ async function refreshChatNotifications() {
   const userId = auth.user?.id;
   if (!userId || document.hidden) return;
   if (state.view === "messages" && !state.conversationId && state.messagePoll) return;
-  try {
-    const result = await api("/api/conversations");
-    if (auth.user?.id !== userId) return;
-    syncConversations(result.conversations, { updateSidebar: true });
-  } catch {
-    if (!auth.user) { state.conversations = []; renderChatNotifications(); }
+  if (chatNotificationRequest && chatNotificationRequestUserId === userId) return chatNotificationRequest;
+  const request = (async () => {
+    try {
+      const result = await api("/api/conversations");
+      if (auth.user?.id !== userId) return;
+      syncConversations(result.conversations, { updateSidebar: true });
+      chatNotificationBaselineReady = true;
+    } catch {
+      // Keep the last known unread count visible; a later foreground poll retries.
+    }
+  })();
+  chatNotificationRequest = request;
+  chatNotificationRequestUserId = userId;
+  try { await request; }
+  finally {
+    if (chatNotificationRequest === request) {
+      chatNotificationRequest = null;
+      chatNotificationRequestUserId = "";
+    }
   }
 }
 
 function startChatNotifications() {
   if (state.chatNotificationPoll) clearInterval(state.chatNotificationPoll);
   state.chatNotificationPoll = null;
+  const viewerId = auth.user?.id || "";
+  if (viewerId !== chatNotificationViewerId) {
+    chatNotificationViewerId = viewerId;
+    chatNotificationBaselineReady = false;
+    state.conversations = [];
+    renderChatNotifications();
+  }
   if (!auth.user) { state.conversations = []; renderChatNotifications(); return; }
   refreshChatNotifications();
-  state.chatNotificationPoll = setInterval(refreshChatNotifications, 20000);
+  state.chatNotificationPoll = setInterval(refreshChatNotifications, 12000);
+}
+
+function showIncomingMessageNotification(conversation) {
+  const sender = conversation.profile?.displayName || conversation.profile?.username || t("traveler");
+  const message = String(conversation.lastMessage?.body || t("newMessage")).replace(/\s+/g, " ").trim().slice(0, 160);
+  if (document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
+    try {
+      const notification = new Notification(sender, { body: message, tag: `qipi-message-${conversation.id}`, icon: "/favicon.svg" });
+      notification.onclick = () => {
+        window.focus();
+        window.location.assign(`/messages/${encodeURIComponent(conversation.id)}`);
+        notification.close();
+      };
+    } catch { /* Browser notifications are an optional enhancement. */ }
+    return;
+  }
+  if (document.visibilityState === "visible" && (state.view !== "messages" || state.conversationId !== conversation.id)) {
+    toast(`${t("newMessageFrom")} ${sender}`);
+  }
 }
 
 function renderSettings() {
@@ -192,6 +265,44 @@ function renderSettings() {
   $("#settings-safety-reminders").checked = state.preferences.safetyReminders;
   safety.renderSettingsContacts();
   syncEnhancedSelects();
+}
+
+function renderProfileSuggestions() {
+  const list = $("#people-suggestions");
+  const strip = $("#traveler-strip");
+  const stripList = $("#traveler-strip-list");
+  const profiles = state.profileSuggestions || [];
+  if (list) {
+    list.setAttribute("aria-busy", String(state.profileSuggestionsLoading));
+    list.innerHTML = state.profileSuggestionsLoading && !profiles.length
+      ? `<span class="people-suggestion-skeleton"></span><span class="people-suggestion-skeleton"></span><span class="people-suggestion-skeleton"></span>`
+      : profiles.length ? profiles.map((profile) => `<div class="people-suggestion"><button class="people-suggestion-person" type="button" data-action="open-profile" data-id="${esc(profile.id)}"><span class="people-suggestion-avatar">${avatarContents(profile.displayName, profile.avatarPath || "")}</span><span class="people-suggestion-copy"><strong>${esc(profile.displayName)}</strong><small>@${esc(profile.username || "")}</small></span></button><button class="people-follow ${profile.followedByViewer ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-pressed="${Boolean(profile.followedByViewer)}" ${state.pendingFollows.has(profile.id) ? "disabled" : ""}>${esc(t(profile.followedByViewer ? "following" : "follow"))}</button></div>`).join("")
+        : `<p class="people-suggestion-empty">${esc(t("noSuggestedTravelers"))}</p>`;
+  }
+  if (strip && stripList) {
+    strip.hidden = state.view !== "feed" || !profiles.length;
+    stripList.innerHTML = profiles.map((profile) => `<button class="traveler-bubble" type="button" data-action="open-profile" data-id="${esc(profile.id)}" aria-label="${esc(profile.displayName)} @${esc(profile.username || "")}"><span class="traveler-bubble-ring"><span>${avatarContents(profile.displayName, profile.avatarPath || "")}</span></span><small>${esc(profile.displayName)}</small></button>`).join("");
+  }
+}
+
+async function loadProfileSuggestions() {
+  const requestId = ++state.profileSuggestionsRequestId;
+  const viewerId = auth.user?.id || "";
+  state.profileSuggestionsLoading = true;
+  renderProfileSuggestions();
+  try {
+    const result = await api("/api/profiles/suggestions");
+    if (requestId !== state.profileSuggestionsRequestId || viewerId !== (auth.user?.id || "")) return;
+    state.profileSuggestions = result.profiles || [];
+  } catch {
+    if (requestId !== state.profileSuggestionsRequestId) return;
+    state.profileSuggestions = [];
+  } finally {
+    if (requestId === state.profileSuggestionsRequestId) {
+      state.profileSuggestionsLoading = false;
+      renderProfileSuggestions();
+    }
+  }
 }
 
 function setPageView(view, { preserveUrl = false } = {}) {
@@ -243,14 +354,13 @@ function setPageView(view, { preserveUrl = false } = {}) {
   if (isProfile) renderProfile();
   if (isMessages && !auth.user) renderMessagesSignIn();
   renderRoutes();
+  renderProfileSuggestions();
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-profile-pending");
-  const nextLocation = pageUrl(view);
-  if (!preserveUrl && location.pathname + location.search + location.hash !== nextLocation) {
-    history.replaceState(history.state, "", nextLocation);
-  }
+  if (preserveUrl || historyRestoring || historyPreserving) markCurrent(view);
+  else pushPage(view);
   previousHomeSearchScroll = 0;
-  window.scrollTo({ top: 0, behavior: "instant" });
+  if (!historyRestoring) window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
@@ -277,6 +387,33 @@ async function refreshMe() {
   catch { state.me = null; }
 }
 
+async function syncAccountSavedTrips() {
+  const userId = auth.user?.id;
+  if (!userId) return false;
+  try {
+    const guestIds = [...new Set(state.guestSavedTrips)];
+    for (let offset = 0; offset < guestIds.length; offset += 100) {
+      await api("/api/me/saved/import", {
+        method: "POST",
+        data: { tripIds: guestIds.slice(offset, offset + 100) }
+      });
+      if (auth.user?.id !== userId) return false;
+    }
+    const result = await api("/api/me/saved");
+    if (auth.user?.id !== userId) return false;
+    state.savedTrips = result.tripIds || [];
+    state.guestSavedTrips = [];
+    try { localStorage.removeItem("qipi:saved-trips"); } catch {}
+    if (state.view === "profile" && state.profileTab === "saved") await loadSavedTrips();
+    renderTrips();
+    if (state.view === "profile") renderProfile();
+    return true;
+  } catch (error) {
+    toast(error.message || t("failed"));
+    return false;
+  }
+}
+
 async function navigateToView(view) {
   if (view === "safety") return safety.openExploreMap();
   if (view === "safety-live") return safety.openLive();
@@ -293,6 +430,97 @@ async function navigateToView(view) {
   }
   setPageView(view);
 }
+
+function goBackOrNavigate(fallbackView, afterBack = null) {
+  if (canGoBack()) {
+    pendingBackAction = afterBack;
+    return new Promise((resolve) => {
+      pendingBackResolve = resolve;
+      history.back();
+    });
+  }
+
+  if (fallbackView === "messages") state.conversationId = "";
+  replacePage(fallbackView);
+  return Promise.resolve(navigateToView(fallbackView)).then(() => afterBack?.());
+}
+
+async function restoreBrowserLocation() {
+  const requestId = ++locationRestoreRequestId;
+  historyRestoring = true;
+  const previousView = state.view;
+  const query = new URLSearchParams(location.search);
+  const view = viewFromLocation(Boolean(profileIdFromLocation()));
+  const path = location.pathname.replace(/\/+$/, "") || "/";
+  const messageMatch = path.match(/^\/messages(?:\/([^/]+))?$/);
+  const postMatch = path.match(/^\/post\/([^/]+)$/);
+  const routeId = query.get("route");
+  const tripIdFromQuery = query.get("trip");
+  try {
+    closeDialogs();
+    state.routeRequestId += 1;
+    state.tripRequestId += 1;
+    state.profileRequestId += 1;
+    state.profileEditing = false;
+
+    if (view !== "profile") {
+      state.profile = null;
+      state.profileId = "";
+      state.profileUsername = "";
+    } else if (previousView !== "profile") {
+      state.profileReturnView = previousView === "entry" ? "feed" : previousView;
+    }
+
+    if (view === "profile") {
+      const profileId = profileIdFromLocation();
+      if (profileId) await openProfile(profileId, false, query.get("tab") || "posts");
+      else setPageView("feed", { preserveUrl: true });
+    } else if (view === "messages") {
+      let conversationId = "";
+      try { conversationId = messageMatch?.[1] ? decodeURIComponent(messageMatch[1]) : ""; } catch { conversationId = messageMatch?.[1] || ""; }
+      await openMessages(conversationId);
+    } else if (view === "search-results") {
+      state.search = (query.get("q") || "").trim().toLocaleLowerCase();
+      if ($("#home-search-input")) $("#home-search-input").value = query.get("q") || "";
+      setPageView("search-results", { preserveUrl: true });
+      renderTripListLoading("#trip-list", 2);
+      await loadSearchResults();
+    } else if (view === "saved") {
+      if (auth.user) await openProfile(auth.user.id, false, "saved");
+      else {
+        setPageView("feed", { preserveUrl: true });
+        pendingAction = openSavedTrips;
+        openAuth("signin");
+      }
+    } else if (view === "settings") await openSettings();
+    else if (view === "explore") await openExplorePage();
+    else if (view === "trips") await openTripsPage();
+    else if (view === "signup") setPageView("signup", { preserveUrl: true });
+    else if (view === "safety-live") await safety.openLive();
+    else if (view === "entry") setPageView("entry", { preserveUrl: true });
+    else if (postMatch || tripIdFromQuery) setPageView("feed", { preserveUrl: true });
+    else await openFeedPage();
+
+    if (requestId !== locationRestoreRequestId) return;
+    if (routeId) await openRoute(routeId, false);
+    else if (postMatch || tripIdFromQuery) {
+      let tripId = postMatch?.[1] || tripIdFromQuery;
+      try { tripId = decodeURIComponent(tripId); } catch {}
+      await openTrip(tripId, false);
+    }
+  } finally {
+    if (requestId !== locationRestoreRequestId) return;
+    historyRestoring = false;
+    const afterBack = pendingBackAction;
+    const resolveBack = pendingBackResolve;
+    pendingBackAction = null;
+    pendingBackResolve = null;
+    if (afterBack) await afterBack();
+    resolveBack?.();
+  }
+}
+
+window.addEventListener("popstate", restoreBrowserLocation);
 
 function messageAvatar(profile) {
   return `<span class="profile-avatar message-avatar">${avatarContents(profile.displayName || "Traveler", profile.avatarPath || "")}</span>`;
@@ -484,11 +712,11 @@ async function refreshInbox(requestId) {
 // Route and trip actions.
 async function openRoute(id, deepLink = true) {
   const requestId = ++state.routeRequestId;
+  if (deepLink) setLink("route", id);
   showDialogLoading("route-dialog", "route-dialog-title");
   try {
     const { route, updates } = await api(`/api/routes/${encodeURIComponent(id)}`);
     if (requestId !== state.routeRequestId) return;
-    if (deepLink) setLink("route", id);
     event("route_viewed", id);
     showDialog("route-dialog", `
       <p class="dialog-kicker">${esc(t("routeGuide"))} / ${esc(label(route.label))}</p><h2 id="route-dialog-title">${esc(label(route.title))}</h2><p class="dialog-intro">${esc(label(route.summary))}</p>
@@ -505,11 +733,11 @@ async function openRoute(id, deepLink = true) {
 
 async function openTrip(id, deepLink = true) {
   const requestId = ++state.tripRequestId;
+  if (deepLink) setLink("trip", id);
   showDialogLoading("trip-dialog", "trip-dialog-title");
   try {
     const { trip } = await api(`/api/trips/${encodeURIComponent(id)}`);
     if (requestId !== state.tripRequestId) return;
-    if (deepLink) setLink("trip", id);
     event("trip_viewed", id);
     let requestStatus = state.me?.requests.find((request) => request.trip.id === id)?.status || "";
     const ownRequest = state.requestKeys[id];
@@ -709,13 +937,13 @@ async function openStartupDeepLink() {
   const postMatch = location.pathname.match(/^\/post\/([^/]+)\/?$/);
   if (pending?.routeId || query.has("route")) {
     const id = pending?.routeId || query.get("route");
-    setLink("route", id);
+    setLink("route", id, { replace: true });
     await openRoute(id, false);
   }
   else if (pending?.tripId || query.has("trip") || postMatch) {
     let id = pending?.tripId || query.get("trip") || postMatch[1];
     try { id = decodeURIComponent(id); } catch {}
-    setLink("trip", id);
+    setLink("trip", id, { replace: true });
     await openTrip(id, false);
   }
   else if (profileIdFromLocation()) {
@@ -726,6 +954,8 @@ async function openStartupDeepLink() {
 
 async function authSuccess() {
   await refreshMe();
+  await syncAccountSavedTrips();
+  void loadProfileSuggestions();
   renderAccount();
   startChatNotifications();
   renderSettings();
@@ -733,7 +963,9 @@ async function authSuccess() {
   if (state.view === "settings") await safety.loadContactsForSettings();
   const wasEntryPage = state.view === "entry";
   if (wasEntryPage) {
-    await restoreEntryReturnView();
+    historyPreserving = true;
+    try { await restoreEntryReturnView(); }
+    finally { historyPreserving = false; }
     if (state.view === "messages") await openMessages(state.conversationId);
   }
   else if (state.view === "messages") await openMessages(state.conversationId);
@@ -809,14 +1041,26 @@ document.addEventListener("click", async (eventTarget) => {
     setSearch("");
     syncSearchFilterControls();
     closeDesktopSearch();
-    await openFeedPage();
+    await goBackOrNavigate("feed");
     return;
   }
   if (action === "toggle-notifications") {
     const panel = $("#notifications-panel");
     panel.hidden = !panel.hidden;
     button.setAttribute("aria-expanded", String(!panel.hidden));
-    if (!panel.hidden) refreshChatNotifications();
+    if (!panel.hidden) {
+      renderChatNotifications();
+      refreshChatNotifications();
+    }
+    return;
+  }
+  if (action === "enable-browser-notifications") {
+    if (typeof Notification === "undefined") { toast(t("browserAlertsUnavailable")); return; }
+    try {
+      const permission = await Notification.requestPermission();
+      renderChatNotifications();
+      toast(t(permission === "granted" ? "browserAlertsEnabled" : "browserAlertsBlocked"));
+    } catch { toast(t("browserAlertsUnavailable")); }
     return;
   }
   if (action === "close-notifications") {
@@ -842,16 +1086,19 @@ document.addEventListener("click", async (eventTarget) => {
     return;
   }
   if (action === "open-conversation") { await openMessages(id, { useCachedInbox: true }); return; }
-  if (action === "messages-back") { await openMessages(); return; }
+  if (action === "messages-back") { await goBackOrNavigate("messages"); return; }
   if (action === "messages-sign-in") { openAuth("signin"); return; }
   if (action === "retry-messages") { await openMessages(state.conversationId); return; }
   if (action === "entry-guest") {
     button.disabled = true;
     saveEntryChoice("guest");
-    await restoreEntryReturnView();
-    // Profile deep links have their own data request and loading state.
-    if (entryReturnView === "feed") await loadFeedData();
-    await openStartupDeepLink();
+    historyPreserving = true;
+    try {
+      await restoreEntryReturnView();
+      // Profile deep links have their own data request and loading state.
+      if (entryReturnView === "feed") await loadFeedData();
+      await openStartupDeepLink();
+    } finally { historyPreserving = false; }
     return;
   }
   if (action === "entry-account") { openSignupPage("entry"); return; }
@@ -859,8 +1106,9 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
   if (action === "signup-previous") { setSignupStep(1); return; }
   if (action === "signup-exit") {
-    await navigateToView(signupReturnTarget.view);
-    if (signupReturnTarget.dialog === "signin") openAuth("signin");
+    await goBackOrNavigate(signupReturnTarget.view, () => {
+      if (signupReturnTarget.dialog === "signin") openAuth("signin");
+    });
     return;
   }
   if (action === "signup-sign-in") { openAuth("signin"); return; }
@@ -875,7 +1123,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "retry-trip") { await openTrip(id); return; }
   if (action === "edit-profile") { state.profileEditing = true; renderProfile(); return; }
   if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfile(); return; }
-  if (action === "close-dialog") { closeDialogs(); setLink(); }
+  if (action === "close-dialog") { closeAppDialog(button.closest("dialog")); return; }
   if (action === "open-route") openRoute(id);
   if (action === "open-profile") { eventTarget.preventDefault(); await openProfile(id); return; }
   if (action === "profile-back") {
@@ -884,8 +1132,7 @@ document.addEventListener("click", async (eventTarget) => {
     state.profileId = "";
     state.profileUsername = "";
     state.profileRequestId += 1;
-    setLink();
-    await navigateToView(returnView);
+    await goBackOrNavigate(returnView);
     return;
   }
   if (action === "open-trip") openTrip(id);
@@ -901,10 +1148,33 @@ document.addEventListener("click", async (eventTarget) => {
     else openAuth("signin");
   }
   if (action === "auth-mode") openAuth(mode);
-  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.profileTab = "posts"; await auth.signOut(); startChatNotifications(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
+  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.savedTrips = [...state.guestSavedTrips]; saveLocal("qipi:saved-trips", state.guestSavedTrips); state.profileTab = "posts"; await auth.signOut(); void loadProfileSuggestions(); startChatNotifications(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
   if (action === "toggle-save") {
-    state.savedTrips = state.savedTrips.includes(id) ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
-    saveLocal("qipi:saved-trips", state.savedTrips);
+    if (auth.user && state.guestSavedTrips.length && !await syncAccountSavedTrips()) return;
+    state.pendingSaves ||= new Set();
+    if (state.pendingSaves.has(id)) return;
+    state.pendingSaves.add(id);
+    const previousSavedTrips = [...state.savedTrips];
+    const wasSaved = state.savedTrips.includes(id);
+    state.savedTrips = wasSaved ? state.savedTrips.filter((item) => item !== id) : [...state.savedTrips, id];
+    if (!auth.user) {
+      state.guestSavedTrips = [...state.savedTrips];
+      saveLocal("qipi:saved-trips", state.guestSavedTrips);
+    }
+    // Update the bookmark immediately; the signed-in change is persisted in the background.
+    renderTrips();
+    if (state.view === "profile") renderProfile();
+    if (auth.user) {
+      try {
+        const result = await api("/api/me/saved", { method: "PUT", data: { tripId: id, saved: !wasSaved } });
+        state.savedTrips = result.tripIds || [];
+      } catch (error) {
+        state.savedTrips = previousSavedTrips;
+        toast(error.message || t("failed"));
+      } finally {
+        state.pendingSaves.delete(id);
+      }
+    } else state.pendingSaves.delete(id);
     renderTrips();
     if (state.view === "profile") renderProfile();
   }
@@ -949,17 +1219,36 @@ document.addEventListener("click", async (eventTarget) => {
     return;
   }
   if (action === "toggle-follow") {
-    if (!state.profile || state.profile.id !== id) return;
-    button.disabled = true;
+    const suggestion = state.profileSuggestions.find((profile) => profile.id === id);
+    const isCurrentProfile = state.profile?.id === id;
+    if ((!suggestion && !isCurrentProfile) || state.pendingFollows.has(id)) return;
+    const following = button.getAttribute("aria-pressed") !== "true";
+    const previousSuggestion = suggestion ? { ...suggestion } : null;
+    const previousProfile = isCurrentProfile ? { ...state.profile } : null;
+    state.pendingFollows.add(id);
+    if (suggestion) {
+      state.profileSuggestions = state.profileSuggestions.map((profile) => profile.id === id
+        ? { ...profile, followedByViewer: following, followerCount: Math.max(0, (Number(profile.followerCount) || 0) + (following ? 1 : -1)) }
+        : profile);
+    }
+    if (isCurrentProfile) {
+      state.profile = { ...state.profile, followedByViewer: following, followerCount: Math.max(0, (Number(state.profile.followerCount) || 0) + (following ? 1 : -1)) };
+    }
+    renderProfileSuggestions();
+    if (isCurrentProfile) renderProfile();
     try {
-      const following = button.getAttribute("aria-pressed") !== "true";
       const result = await api(`/api/profiles/${encodeURIComponent(id)}/follow`, { method: "POST", data: { following } });
-      if (state.profile?.id === id) {
-        state.profile = { ...state.profile, ...result };
-        renderProfile();
-      }
-    } catch (error) { toast(error.message || t("failed")); }
-    finally { if (button.isConnected) button.disabled = false; }
+      if (state.profile?.id === id) state.profile = { ...state.profile, ...result };
+      state.profileSuggestions = state.profileSuggestions.map((profile) => profile.id === id ? { ...profile, ...result } : profile);
+    } catch (error) {
+      if (previousProfile && state.profile?.id === id) state.profile = previousProfile;
+      if (previousSuggestion) state.profileSuggestions = state.profileSuggestions.map((profile) => profile.id === id ? previousSuggestion : profile);
+      toast(error.message || t("failed"));
+    } finally {
+      state.pendingFollows.delete(id);
+      renderProfileSuggestions();
+      if (state.profile?.id === id) renderProfile();
+    }
     return;
   }
   if (action === "manage-trip") manageTrip(id);
@@ -1264,8 +1553,104 @@ window.addEventListener("scroll", () => {
   const currentScroll = window.scrollY;
   const direction = currentScroll - previousHomeSearchScroll;
   previousHomeSearchScroll = currentScroll;
-  if (!homeSearch || state.view !== "feed" || Math.abs(direction) < 4) return;
-  homeSearch.classList.toggle("is-hidden", direction < 0);
+  if (!homeSearch || state.view !== "feed") return;
+  if (currentScroll <= 1) {
+    homeSearch.classList.remove("is-hidden");
+    return;
+  }
+  if (homeSearch.contains(document.activeElement)) {
+    homeSearch.classList.remove("is-hidden");
+    return;
+  }
+  if (Math.abs(direction) < 2) return;
+  homeSearch.classList.toggle("is-hidden", direction > 0);
+}, { passive: true });
+
+const feedRefreshIndicator = $("#feed-refresh-indicator");
+const feedRefreshLabel = $("#feed-refresh-label");
+const feedPullThreshold = 76;
+let feedPullGesture = null;
+let feedPullRefreshing = false;
+let feedPullHideTimer = null;
+
+function hideFeedRefreshIndicator({ animate = true } = {}) {
+  if (!feedRefreshIndicator) return;
+  clearTimeout(feedPullHideTimer);
+  feedRefreshIndicator.classList.remove("is-active", "is-ready", "is-refreshing");
+  feedRefreshIndicator.setAttribute("aria-busy", "false");
+  feedRefreshIndicator.style.setProperty("--pull-offset", "0px");
+  const hide = () => { if (!feedPullRefreshing) feedRefreshIndicator.hidden = true; };
+  if (animate) feedPullHideTimer = setTimeout(hide, 220);
+  else hide();
+}
+
+function updateFeedRefreshIndicator(distance) {
+  if (!feedRefreshIndicator) return;
+  const ready = distance >= feedPullThreshold;
+  feedRefreshIndicator.hidden = false;
+  feedRefreshIndicator.classList.add("is-active");
+  feedRefreshIndicator.classList.toggle("is-ready", ready);
+  feedRefreshIndicator.style.setProperty("--pull-offset", `${Math.min(distance * 0.48, 44)}px`);
+  feedRefreshLabel.textContent = t(ready ? "releaseToRefresh" : "pullToRefresh");
+}
+
+async function finishFeedPull() {
+  const shouldRefresh = Boolean(feedPullGesture?.active && feedPullGesture.distance >= feedPullThreshold && !state.feedRequestActive && state.view === "feed");
+  feedPullGesture = null;
+  if (!shouldRefresh) {
+    if (!feedPullRefreshing) hideFeedRefreshIndicator();
+    return;
+  }
+  feedPullRefreshing = true;
+  clearTimeout(feedPullHideTimer);
+  feedRefreshIndicator.classList.remove("is-ready");
+  feedRefreshIndicator.classList.add("is-active", "is-refreshing");
+  feedRefreshIndicator.setAttribute("aria-busy", "true");
+  feedRefreshIndicator.style.setProperty("--pull-offset", "44px");
+  feedRefreshLabel.textContent = t("refreshingFeed");
+  try { await loadFeedData({ preserveContent: true }); }
+  finally {
+    feedPullRefreshing = false;
+    hideFeedRefreshIndicator();
+  }
+}
+
+window.addEventListener("touchstart", (eventTarget) => {
+  if (!window.matchMedia("(max-width: 700px)").matches || state.view !== "feed" || window.scrollY > 1 || state.feedRequestActive || feedPullRefreshing || eventTarget.touches.length !== 1) return;
+  const target = eventTarget.target instanceof Element ? eventTarget.target : null;
+  if (target?.closest("input, textarea, select, [contenteditable='true'], iframe, .home-search")) return;
+  const touch = eventTarget.touches[0];
+  feedPullGesture = { startX: touch.clientX, startY: touch.clientY, distance: 0, active: false };
+}, { passive: true });
+
+window.addEventListener("touchmove", (eventTarget) => {
+  const gesture = feedPullGesture;
+  if (!gesture || eventTarget.touches.length !== 1) return;
+  const touch = eventTarget.touches[0];
+  const deltaX = touch.clientX - gesture.startX;
+  const deltaY = touch.clientY - gesture.startY;
+  if (Math.abs(deltaX) > Math.max(10, deltaY * 0.9) || window.scrollY > 1 || state.view !== "feed") {
+    feedPullGesture = null;
+    if (!feedPullRefreshing) hideFeedRefreshIndicator({ animate: false });
+    return;
+  }
+  if (deltaY <= 0) {
+    gesture.active = false;
+    gesture.distance = 0;
+    if (!feedPullRefreshing) hideFeedRefreshIndicator({ animate: false });
+    return;
+  }
+  if (deltaY < 8) return;
+  gesture.active = true;
+  gesture.distance = deltaY;
+  if (eventTarget.cancelable) eventTarget.preventDefault();
+  updateFeedRefreshIndicator(deltaY);
+}, { passive: false });
+
+window.addEventListener("touchend", () => { if (feedPullGesture) void finishFeedPull(); }, { passive: true });
+window.addEventListener("touchcancel", () => {
+  feedPullGesture = null;
+  if (!feedPullRefreshing) hideFeedRefreshIndicator();
 }, { passive: true });
 window.addEventListener("resize", () => {
   document.documentElement.classList.toggle("qipi-map-fullscreen", state.view === "explore" && window.matchMedia("(max-width: 700px)").matches);
@@ -1300,7 +1685,16 @@ document.querySelectorAll("a[data-page-view]").forEach((anchor) => anchor.addEve
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (eventTarget) => {
     if (eventTarget.target === dialog) {
-      dialog.close(); setLink();
+      closeAppDialog(dialog);
+    }
+  });
+  dialog.addEventListener("cancel", (eventTarget) => {
+    if (!isLocationBackedDialog(dialog)) return;
+    if (canGoBack()) {
+      eventTarget.preventDefault();
+      history.back();
+    } else {
+      queueMicrotask(() => { if (!dialog.open) setLink(); });
     }
   });
 });
@@ -1363,8 +1757,10 @@ async function initialize() {
     // Loading the user's trip/request summary here added two unrelated requests
     // before the inbox could start, so fetch it only on pages that need it.
     if (auth.user && entryReturnView !== "messages") await refreshMe();
+    if (auth.user) await syncAccountSavedTrips();
   } catch (error) { toast(error.message || t("failed")); }
   renderAccount();
+  void loadProfileSuggestions();
   if (state.view === "settings" || (signupRoute && auth.user)) {
     renderSettings();
     if (state.view === "settings" && auth.user) void safety.loadContactsForSettings();
@@ -1384,21 +1780,27 @@ async function initialize() {
   if (signupRoute && !auth.user) openSignupPage();
   else {
     document.documentElement.removeAttribute("data-signup-pending");
-    if (signupRoute && auth.user) setPageView("settings");
-  }
-  if (state.view !== "entry" && !signupRoute) {
-    if (hasStartupProfile) {
-      if (ownProfileRoute) await openProfile(startupProfileId, true, startupQuery.get("tab") || "posts");
-    } else if (entryReturnView === "saved") await openSavedTrips();
-    else if (entryReturnView === "messages" && auth.user) await openMessages(state.conversationId);
-    else if (entryReturnView === "safety-live") await safety.openLive();
-    else if (entryReturnView === "explore") await openExplorePage();
-    else if (["feed", "trips", "search-results"].includes(entryReturnView)) {
-      await loadFeedData();
-      if (entryReturnView === "search-results") await loadSearchResults({ loadPosts: false });
+    if (signupRoute && auth.user) {
+      replacePage("settings");
+      setPageView("settings", { preserveUrl: true });
     }
   }
-  if (state.view !== "entry") await openStartupDeepLink();
+  historyPreserving = true;
+  try {
+    if (state.view !== "entry" && !signupRoute) {
+      if (hasStartupProfile) {
+        if (ownProfileRoute) await openProfile(startupProfileId, false, startupQuery.get("tab") || "posts");
+      } else if (entryReturnView === "saved") await openSavedTrips();
+      else if (entryReturnView === "messages" && auth.user) await openMessages(state.conversationId);
+      else if (entryReturnView === "safety-live") await safety.openLive();
+      else if (entryReturnView === "explore") await openExplorePage();
+      else if (["feed", "trips", "search-results"].includes(entryReturnView)) {
+        await loadFeedData();
+        if (entryReturnView === "search-results") await loadSearchResults({ loadPosts: false });
+      }
+    }
+    if (state.view !== "entry") await openStartupDeepLink();
+  } finally { historyPreserving = false; }
   if (auth.recovery) openAuth("reset");
   startChatNotifications();
 }

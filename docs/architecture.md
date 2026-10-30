@@ -22,7 +22,7 @@ The existing browser controllers own the contents of those static regions. The s
 
 Public profiles are stored independently of posts. `PUT /api/me/profile` synchronizes only public fields from the server-verified Supabase user and preserves the assigned username when a display name changes. Existing ID-based and derived demo links still resolve. A new member becomes discoverable after their first authenticated application session; accounts that have never opened Qipi are not backfilled automatically.
 
-Saved IDs retain the existing device-local browser storage. The owner-only tab is a UI collection, not server-side cross-device bookmarks. Old saved IDs remain intact. Moving this to per-user storage later needs an authenticated bookmark repository and an explicit import of legacy device bookmarks.
+Signed-in bookmarks are stored in the shared application store under the owning account and returned newest first. Guest bookmarks stay in browser storage until sign-in, when the app imports them into the account. The owner-only Saved tab renders the same post cards as the feed. The current JSONB store remains suitable only for a small pilot; move bookmarks into an indexed relational table with the other social data as usage grows.
 
 ## Data boundaries
 

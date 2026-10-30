@@ -60,7 +60,7 @@ Use [.env.example](.env.example) as a list of environment variable names. Never 
 - Authenticated one-to-one text chat with an inbox, unread counts, message history, and periodic refresh. Apply [0003_qipi_chat.sql](supabase/migrations/0003_qipi_chat.sql) to Supabase before enabling chat on a hosted project.
 - A Safety area with Cambodia emergency call links, private trusted contacts, check-ins, and revocable 15/30/60-minute live location links. A member can send an active location link to an existing Qipi conversation. Location updates require an open, visible browser tab, GPS permission, and connectivity. Qipi does not dispatch emergency responders or automatically alert contacts.
 - Destination search through MapTiler and driving instructions through openrouteservice when configured. The destination map uses OpenStreetMap's pilot embed and links to an interactive route map. There is no offline or background turn-by-turn navigation.
-- Search results and filters, removable recent-search history, and saved trips in the owner’s profile tab.
+- Search results and filters, removable recent-search history, and saved posts in the owner's profile tab. Guest saves stay on the device and are imported to the signed-in account at sign-in.
 - Reporting and a small moderation dashboard for route notes, reports, and trip hiding.
 - Local file-backed demo data in `data/store.json`, created automatically on first run. On Vercel, the same API uses the Supabase row instead of the local file.
 

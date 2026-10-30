@@ -84,18 +84,20 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
     $("#trip-list").innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-feed">${esc(t("retry"))}</button></div>`;
   }
 
-  async function loadFeedData() {
-    if (state.feedRequestActive) return;
+  async function loadFeedData({ preserveContent = false } = {}) {
+    if (state.feedRequestActive) return false;
     state.feedRequestActive = true;
-    if ($("#route-grid")?.getAttribute("aria-busy") !== "true") renderFeedLoading();
+    if (!preserveContent && $("#route-grid")?.getAttribute("aria-busy") !== "true") renderFeedLoading();
     try {
       const [routeResult, tripResult] = await Promise.all([api("/api/routes"), api("/api/trips")]);
       state.routes = routeResult.routes;
       state.trips = tripResult.trips;
       applyLanguage();
+      return true;
     } catch (error) {
-      renderFeedError();
+      if (!preserveContent || $("#trip-list")?.getAttribute("aria-busy") === "true") renderFeedError();
       toast(error.message || t("failed"));
+      return false;
     } finally {
       state.feedRequestActive = false;
     }

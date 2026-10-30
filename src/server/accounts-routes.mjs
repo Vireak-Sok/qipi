@@ -28,6 +28,48 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     const profiles = [...matches.values()].sort((a, b) => a.displayName.localeCompare(b.displayName)).slice(0, 12);
     return respond(200, { profiles });
   }
+  if (path === "/api/profiles/suggestions" && method === "GET") {
+    const user = await userFor(req);
+    const actorId = req.headers["x-qipi-actor"] || "";
+    const viewerId = user ? `user:${user.id}` : actorId ? `device:${actorId}` : "";
+    const data = await store.read();
+    const people = new Map();
+    const addPerson = (person, isDemo = false) => {
+      if (!person?.id || person.id === user?.id || !/^[a-z0-9-]{1,64}$/i.test(String(person.id))) return;
+      const id = String(person.id);
+      const existing = people.get(id) || {};
+      const displayName = String(person.displayName || person.hostName || existing.displayName || "Traveler");
+      people.set(id, {
+        id,
+        displayName,
+        username: String(person.username || existing.username || profileUsername(displayName, id)),
+        avatarPath: person.avatarPath || person.hostAvatarPath || existing.avatarPath || "",
+        isDemo: Boolean(isDemo || existing.isDemo),
+        postCount: existing.postCount || 0
+      });
+    };
+    (data.profiles || []).forEach((profile) => addPerson(profile));
+    (data.demoUsers || []).forEach((profile) => addPerson(profile, true));
+    for (const trip of data.trips || []) {
+      if (trip.hidden) continue;
+      const id = trip.demoUserId || trip.hostUserId;
+      if (!id) continue;
+      addPerson({ id, hostName: trip.hostName, hostAvatarPath: trip.hostAvatarPath }, Boolean(trip.demoUserId));
+      const person = people.get(String(id));
+      if (person) person.postCount += 1;
+    }
+    const follows = data.follows || [];
+    const suggestions = [...people.values()]
+      .filter((person) => !viewerId || !follows.some((follow) => follow.targetId === person.id && follow.followerId === viewerId))
+      .map((person) => ({
+        ...person,
+        followerCount: follows.filter((follow) => follow.targetId === person.id).length,
+        followedByViewer: Boolean(viewerId && follows.some((follow) => follow.targetId === person.id && follow.followerId === viewerId))
+      }))
+      .sort((a, b) => b.postCount - a.postCount || b.followerCount - a.followerCount || a.displayName.localeCompare(b.displayName))
+      .slice(0, 5);
+    return respond(200, { profiles: suggestions });
+  }
   if (path === "/api/me/profile" && method === "PUT") {
     const user = await userFor(req, { required: true });
     if (!user) throw new HttpError(503, "Authentication is not configured");
@@ -53,6 +95,65 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
         .filter((item) => item.trip && !item.trip.hidden)
         .map((item) => ({ id: item.id, status: item.status, trip: publicTrip(item.trip, data) }))
     });
+  }
+  if (path === "/api/me/saved" && method === "GET") {
+    const user = await userFor(req, { required: true });
+    if (!user) throw new HttpError(503, "Authentication is not configured");
+    const data = await store.read();
+    const tripsById = new Map(data.trips.filter((trip) => !trip.hidden).map((trip) => [trip.id, trip]));
+    const tripIds = (data.bookmarks || [])
+      .filter((bookmark) => bookmark.userId === user.id && tripsById.has(bookmark.tripId))
+      .sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")))
+      .map((bookmark) => bookmark.tripId);
+    return respond(200, { tripIds });
+  }
+  if (path === "/api/me/saved" && method === "PUT") {
+    const user = await userFor(req, { required: true });
+    if (!user) throw new HttpError(503, "Authentication is not configured");
+    const input = await body(req);
+    const tripId = text(input.tripId, "tripId", 36, 36);
+    if (!/^[0-9a-f-]{36}$/i.test(tripId)) throw new HttpError(400, "tripId is invalid");
+    if (typeof input.saved !== "boolean") throw new HttpError(400, "saved must be true or false");
+    const result = await store.mutate((data) => {
+      data.bookmarks ||= [];
+      if (input.saved) {
+        const trip = data.trips.find((item) => item.id === tripId && !item.hidden);
+        if (!trip) throw new HttpError(404, "Post not found");
+        if (!data.bookmarks.some((bookmark) => bookmark.userId === user.id && bookmark.tripId === tripId)) {
+          data.bookmarks.push({ userId: user.id, tripId, savedAt: new Date().toISOString() });
+        }
+      } else {
+        data.bookmarks = data.bookmarks.filter((bookmark) => !(bookmark.userId === user.id && bookmark.tripId === tripId));
+      }
+      const visibleIds = new Set(data.trips.filter((trip) => !trip.hidden).map((trip) => trip.id));
+      const tripIds = data.bookmarks
+        .filter((bookmark) => bookmark.userId === user.id && visibleIds.has(bookmark.tripId))
+        .sort((a, b) => String(b.savedAt || "").localeCompare(String(a.savedAt || "")))
+        .map((bookmark) => bookmark.tripId);
+      return { tripIds };
+    });
+    return respond(200, result);
+  }
+  if (path === "/api/me/saved/import" && method === "POST") {
+    const user = await userFor(req, { required: true });
+    if (!user) throw new HttpError(503, "Authentication is not configured");
+    const input = await body(req);
+    if (!Array.isArray(input.tripIds) || input.tripIds.length > 100 || input.tripIds.some((id) => typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id))) {
+      throw new HttpError(400, "Provide up to 100 valid post IDs");
+    }
+    const tripIds = [...new Set(input.tripIds)];
+    const result = await store.mutate((data) => {
+      data.bookmarks ||= [];
+      const available = new Set(data.trips.filter((trip) => !trip.hidden).map((trip) => trip.id));
+      let imported = 0;
+      for (const tripId of tripIds) {
+        if (!available.has(tripId) || data.bookmarks.some((bookmark) => bookmark.userId === user.id && bookmark.tripId === tripId)) continue;
+        data.bookmarks.push({ userId: user.id, tripId, savedAt: new Date().toISOString() });
+        imported += 1;
+      }
+      return { imported };
+    });
+    return respond(200, result);
   }
   if (path === "/api/me/avatar" && method === "POST") {
     const user = await userFor(req, { required: true });

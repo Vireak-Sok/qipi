@@ -2,7 +2,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 
-const emptyStore = () => ({ trips: [], joinRequests: [], routeUpdates: [], reports: [], events: [], likes: [], follows: [], media: [] });
+const emptyStore = () => ({ trips: [], joinRequests: [], routeUpdates: [], reports: [], events: [], likes: [], follows: [], bookmarks: [], media: [] });
 
 function validateStore(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Store data is missing or invalid");
@@ -13,6 +13,8 @@ function validateStore(data) {
     if (data[key] === undefined) data[key] = [];
     if (!Array.isArray(data[key])) throw new Error(`Store field ${key} is missing or invalid`);
   }
+  if (data.bookmarks === undefined) data.bookmarks = [];
+  if (!Array.isArray(data.bookmarks)) throw new Error("Store field bookmarks is missing or invalid");
   if (data.media === undefined) data.media = [];
   if (!Array.isArray(data.media)) throw new Error("Store field media is missing or invalid");
   return data;

@@ -1,6 +1,38 @@
 import { PAGE_PATHS, RESERVED_SEGMENTS, profilePath, postPath } from "./route-config.js";
 export function createRouter(state, { location = window.location, history = window.history } = {}) {
   const reservedPaths = RESERVED_SEGMENTS;
+  const historyEntry = (view, sequence) => ({
+    ...(history.state || {}),
+    qipiNavigation: true,
+    qipiSequence: sequence,
+    qipiView: view
+  });
+  function replaceUrl(url, view = state.view) {
+    const sequence = history.state?.qipiNavigation ? history.state.qipiSequence || 0 : 0;
+    history.replaceState(historyEntry(view, sequence), "", url);
+  }
+  function pushUrl(url, view = state.view) {
+    if (`${location.pathname}${location.search}${location.hash}` === url) {
+      replaceUrl(url, view);
+      return;
+    }
+    const sequence = history.state?.qipiNavigation ? history.state.qipiSequence || 0 : 0;
+    history.pushState(historyEntry(view, sequence + 1), "", url);
+  }
+  function pushPage(view) {
+    pushUrl(pageUrl(view), view);
+  }
+  function replacePage(view) {
+    replaceUrl(pageUrl(view), view);
+  }
+  function markCurrent(view = state.view) {
+    const sequence = history.state?.qipiNavigation ? history.state.qipiSequence || 0 : 0;
+    const currentUrl = `${location.pathname}${location.search}${location.hash}`;
+    history.replaceState(historyEntry(view, sequence), "", currentUrl);
+  }
+  function canGoBack() {
+    return Boolean(history.state?.qipiNavigation && Number(history.state.qipiSequence) > 0);
+  }
   function usernameFromPath() {
     const match = location.pathname.match(/^\/([^/]+)\/?$/);
     if (!match) return "";
@@ -55,20 +87,23 @@ export function createRouter(state, { location = window.location, history = wind
     return paths[path] || "feed";
   }
 
-  function setLink(param, id) {
+  function setLink(param, id, { replace = false } = {}) {
     if (param === "profile" && id) {
       const tab = ["saved", "joining"].includes(state.profileTab) ? "?tab=" + state.profileTab : "";
-      history.replaceState({}, "", profilePath(id) + tab);
+      replaceUrl(profilePath(id) + tab, "profile");
       return;
     }
     if (param === "trip" && id) {
-      history.replaceState({}, "", postPath(id));
+      if (replace) replaceUrl(postPath(id));
+      else pushUrl(postPath(id));
       return;
     }
     const url = new URL(pageUrl(state.view), location.origin);
     if (param && id) url.searchParams.set(param, id);
-    history.replaceState({}, "", url.pathname + url.search);
+    const nextUrl = url.pathname + url.search;
+    if (param === "route" && id && !replace) pushUrl(nextUrl);
+    else replaceUrl(nextUrl);
   }
 
-  return { usernameFromPath, profileIdFromLocation, pagePath, pageUrl, viewFromLocation, setLink };
+  return { usernameFromPath, profileIdFromLocation, pagePath, pageUrl, viewFromLocation, setLink, pushPage, replacePage, markCurrent, canGoBack };
 }

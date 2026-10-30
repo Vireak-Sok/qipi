@@ -15,7 +15,6 @@ export function createProfileController({ state, auth, t, label, displayName, us
     state.profile = null;
     state.profileEditing = false;
     state.profileId = id;
-    if (deepLink) setLink("profile", state.profileUsername);
     renderProfileLoading();
     setPageView("profile", { preserveUrl: !deepLink });
     try {
@@ -74,7 +73,8 @@ export function createProfileController({ state, auth, t, label, displayName, us
   function savedCollectionMarkup() {
     if (state.savedLoading) return `<div class="trip-list" aria-busy="true">${skeletonPostsMarkup(2)}</div>`;
     if (state.savedError) return `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-saved">${esc(t("retry"))}</button></div>`;
-    const trips = state.savedTripRecords.filter(trip => state.savedTrips.includes(trip.id));
+    const tripsById = new Map(state.savedTripRecords.map((trip) => [trip.id, trip]));
+    const trips = state.savedTrips.map((id) => tripsById.get(id)).filter(Boolean);
     return `<div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("savedEmptyTitle"))}</h3><p>${esc(t("savedEmptyBody"))}</p><button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button></div>`}</div>`;
   }
   async function selectProfileTab(tab) {

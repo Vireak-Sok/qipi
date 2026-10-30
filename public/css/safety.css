@@ -346,7 +346,7 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 @media (max-width: 700px) {
   .explore-open.app-layout { inset: calc(var(--app-header-height) - 1px) 0 calc(66px + env(safe-area-inset-bottom)); }
   .explore-open .map-control-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 10px; }
-  .map-search-bar { min-height: 52px; padding: 5px 6px 5px 14px; border-radius: 14px; }
+  .map-search-bar { min-height: var(--search-control-height, 54px); padding: 5px 6px 5px 14px; border-radius: 14px; }
   .map-search-bar input { min-height: 40px; font-size: 13px; }
   .map-search-bar .map-clear-destination { width: 38px; min-width: 38px; min-height: 38px; }
   .map-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }

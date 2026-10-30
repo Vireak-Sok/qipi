@@ -18,7 +18,7 @@ function position() {
 
 export function createSafetyController({ api, auth, setPageView, toast, openAuth }) {
   let contacts = [], checkins = [], session = null, shareToken = "", watchId = null, viewerTimer = null, lastPositionAt = 0;
-  let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", emergencyRecipients = [], suggestionTimer = null, suggestionController = null, suggestionRevision = 0, mapSelectionRevision = 0;
+  let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", emergencyRecipients = [], suggestionTimer = null, suggestionController = null, suggestionRevision = 0, mapSelectionRevision = 0, suppressSearchFocus = false;
   const fallbackPoint = { latitude: 11.5564, longitude: 104.9282, label: "Phnom Penh, Cambodia" };
   let mapPoint = fallbackPoint;
   const content = () => $("#safety-content");
@@ -146,7 +146,11 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (mapPanel === "search") mapPanel = "";
     $(".map-search-panel")?.setAttribute("hidden", "");
     $("#safety-destination")?.setAttribute("aria-expanded", "false");
-    if (restoreFocus) $("#safety-destination")?.focus({ preventScroll: true });
+    const input = $("#safety-destination");
+    if (restoreFocus && input && document.activeElement !== input) {
+      suppressSearchFocus = true;
+      input.focus({ preventScroll: true });
+    }
   }
 
   async function fetchDestinationSuggestions(rawQuery) {
@@ -185,6 +189,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
 
   function handleDestinationFocus(event) {
     if (event.target?.id !== "safety-destination") return;
+    if (suppressSearchFocus) { suppressSearchFocus = false; return; }
     showSearchPanel();
     if (!searchQuery) $("#safety-destination-results").innerHTML = searchResultsMarkup();
   }
@@ -212,7 +217,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
 
   function handleSearchOutside(event) {
-    if (mapPanel === "search" && !event.target.closest(".map-search-wrap")) hideSearchPanel();
+    if (mapPanel === "search" && !event.target.closest?.(".map-search-wrap")) hideSearchPanel();
   }
 
   function renderSettingsContacts() {

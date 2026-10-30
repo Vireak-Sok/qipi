@@ -232,30 +232,17 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 }
 .map-search-bar input::placeholder { color: var(--text-secondary); opacity: .88; }
 .map-search-bar:focus-within { border-color: var(--brand-strong); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 45%, transparent), 0 10px 32px #102b2b24; }
-.map-search-bar button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 88px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  color: var(--action-text);
-  background: var(--action-bg);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
-}
-.map-search-bar button:hover { filter: brightness(.96); }
-.map-search-bar button .heroicon { width: 16px; height: 16px; }
 .map-search-bar .map-clear-destination { width: 42px; min-width: 42px; min-height: 42px; padding: 0; border-radius: 50%; color: var(--text-secondary); background: transparent; }
 .map-search-bar .map-clear-destination:hover { color: var(--text-primary); background: var(--surface-selected); filter: none; }
 .map-search-bar .map-clear-destination[hidden] { display: none; }
-.map-quick-actions { display: flex; align-items: flex-start; justify-content: flex-end; gap: 9px; min-width: 0; }
-.map-quick-actions .map-control-button,
-.map-quick-actions .map-live-toggle,
+.map-quick-actions { display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 9px; min-width: 0; }
+.map-quick-actions .map-control-button,.map-quick-actions .map-live-toggle { position: relative; width: auto; max-width: none; min-width: 0; min-height: 48px; padding: 6px 13px 6px 8px; border: 1px solid color-mix(in srgb,var(--border-soft) 82%,transparent); border-radius: 15px; background: color-mix(in srgb,var(--surface-card) 96%,transparent); box-shadow: 0 7px 22px #102b2b1a; }
+.map-quick-actions .map-control-button { gap: 9px; }
+.map-quick-actions .map-control-button .heroicon { box-sizing: border-box; width: 32px; height: 32px; padding: 7px; border-radius: 11px; color: var(--brand-strong); background: var(--surface-selected); }
+.map-quick-actions .map-live-toggle.is-on { border-color: color-mix(in srgb,#15936f 45%,var(--border-soft)); background: color-mix(in srgb,#15936f 10%,var(--surface-card)); }
+.map-quick-actions .map-live-toggle.is-on .map-live-copy strong { color: var(--brand-strong); }
+.map-quick-actions .map-control-button:focus-visible,.map-quick-actions .map-live-toggle:focus-visible { outline: 3px solid color-mix(in srgb,var(--focus-ring) 70%,transparent); outline-offset: 2px; }
+.map-quick-actions .map-control-button:active,.map-quick-actions .map-live-toggle:active { transform: translateY(1px); }
 .explore-open .map-search-wrap { position: relative; width: 100%; max-width: 420px; min-width: 0; }
 .explore-open .map-search-wrap .map-search-panel { top: calc(100% + 9px); right: auto; left: 0; width: 100%; max-height: min(60dvh, 480px); overflow-y: auto; }
 .map-search-panel[hidden] { display: none !important; }
@@ -276,7 +263,6 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
 .map-floating-actions .map-emergency-button:hover { background: #b52a3a; transform: translateY(-1px); }
 .map-floating-actions .map-emergency-button .heroicon { width: 25px; height: 25px; }
 .map-quick-actions .map-checkin-button { min-height: 48px; }
-.map-search-bar button .heroicon { width: 16px; height: 16px; }
 .map-live-copy strong { font-size: 11px; }
 .map-overlay-panel { border-color: color-mix(in srgb, var(--border-soft) 84%, transparent); border-radius: 18px; box-shadow: 0 18px 48px #0d292b36; }
 .map-overlay-head > strong { font-size: 14px; letter-spacing: -.01em; }
@@ -362,14 +348,17 @@ html.qipi-map-fullscreen body.social-app { height: 100dvh; min-height: 0; paddin
   .explore-open .map-control-row { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 10px; }
   .map-search-bar { min-height: 52px; padding: 5px 6px 5px 12px; border-radius: 15px; }
   .map-search-bar input { min-height: 40px; font-size: 13px; }
-  .map-search-bar button { min-width: 76px; min-height: 40px; padding-inline: 11px; border-radius: 11px; font-size: 11px; }
+  .map-search-bar .map-clear-destination { width: 38px; min-width: 38px; min-height: 38px; }
   .map-quick-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .map-quick-actions .map-control-button,.map-quick-actions .map-live-toggle { min-width: 0; min-height: 43px; padding-inline: 7px; border-radius: 12px; font-size: 10px; }
+  .map-quick-actions .map-control-button,.map-quick-actions .map-live-toggle { min-width: 0; min-height: 43px; padding: 5px 7px; border-radius: 12px; font-size: 10px; }
+  .map-quick-actions .map-control-button,.map-quick-actions .map-live-toggle { width: 100%; }
   .map-quick-actions .map-control-button { gap: 5px; }
-  .map-quick-actions .map-control-button .heroicon { width: 16px; height: 16px; }
+  .map-quick-actions .map-control-button .heroicon { width: 27px; height: 27px; padding: 5px; border-radius: 9px; }
   .map-live-toggle { justify-content: center; gap: 5px; }
   .map-toggle-track { width: 30px; height: 18px; flex-basis: 30px; padding: 3px; }
   .map-toggle-track i { width: 12px; height: 12px; }
+  .map-live-toggle .map-toggle-track { width: 26px; height: 16px; flex-basis: 26px; padding: 2px; }
+  .map-live-toggle.is-on .map-toggle-track i { transform: translateX(10px); }
   .map-live-toggle.is-on .map-toggle-track i { transform: translateX(12px); }
   .map-live-copy strong { font-size: 9px; }
   .explore-open .map-search-wrap .map-search-panel { top: calc(100% + 7px); right: auto; left: 0; width: 100%; max-height: min(52dvh, 390px); padding: 13px; }

@@ -374,6 +374,7 @@ body.social-app {
 @media (max-width: 700px) {
   .topbar-inner.shell { width: calc(100% - 28px); height: 61px; }
   .app-layout:not(.explore-open) { width: 100%; }
+  .profile-open.app-layout { width: 100%; max-width: none; padding-inline: 16px; box-sizing: border-box; }
   .app-layout:not(.settings-open):not(.profile-open):not(.messages-open):not(.explore-open):not(.entry-open):not(.signup-open):not(.search-results-open) {
     width: 100%;
     max-width: none;

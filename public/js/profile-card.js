@@ -1,5 +1,5 @@
 import { TRAVEL_OPTIONS } from "./shared.js";
-import { esc, icon, dateToday } from "./core.js";
+import { esc, icon } from "./core.js";
 
 function editProfileForm({ profile, styles, t, avatarContents }) {
   return `<form class="profile-edit-form" id="profile-edit-form">
@@ -14,26 +14,26 @@ function editProfileForm({ profile, styles, t, avatarContents }) {
 
 export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, isEditing, t, avatarContents }) {
   const styles = profile.interests || [];
-  const tripCount = trips.filter((trip) => (trip.kind || "trip") === "trip").length;
-  const upcomingCount = trips.filter((trip) => (trip.kind || "trip") === "trip" && trip.date >= dateToday()).length;
   const action = isOwnProfile
     ? `<button class="button button-ghost profile-edit-trigger" type="button" data-action="edit-profile" aria-label="${esc(t("editProfile"))}">${icon("pencil")}<span>${esc(t("profileEditAction"))}</span></button>`
-    : `${!profile.isDemo ? `<button class="button button-ghost profile-message" type="button" data-action="open-message" data-id="${esc(profile.id)}" aria-label="${esc(t("sendMessage"))}" title="${esc(t("sendMessage"))}">${icon("chat")}</button>` : ""}<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-label="${esc(t(isFollowing ? "following" : "follow"))}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>`;
+    : `<button class="button button-primary profile-follow ${isFollowing ? "is-following" : ""}" type="button" data-action="toggle-follow" data-id="${esc(profile.id)}" aria-label="${esc(t(isFollowing ? "following" : "follow"))}" aria-pressed="${isFollowing}">${icon(isFollowing ? "check" : "plus")}<span>${esc(t(isFollowing ? "following" : "follow"))}</span></button>${!profile.isDemo ? `<button class="button button-ghost profile-message" type="button" data-action="open-message" data-id="${esc(profile.id)}" aria-label="${esc(t("sendMessage"))}" title="${esc(t("sendMessage"))}">${icon("chat")}<span>${esc(t("sendMessage"))}</span></button>` : ""}`;
   const interestLabel = (interest) => {
     const key = `travel${interest.split("-").map((part) => part[0]?.toUpperCase() + part.slice(1)).join("")}`;
     const translated = t(key);
     return translated && translated !== key ? translated : interest.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
-  return `<section class="profile-card settings-card">
-    <div class="profile-cover ${profile.isDemo ? "is-demo" : "is-member"}" aria-hidden="true"></div>
+  return `<section class="profile-card profile-identity-card ${isOwnProfile ? "is-own-profile" : "is-public-profile"}" aria-label="${esc(profile.displayName || t("profilePageTitle"))}">
     <div class="profile-card-main">
       <div class="profile-overview">
         <span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span>
-        <div class="profile-identity"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}</div>
-        <div class="profile-actions">${action}<button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}" aria-label="${esc(t("shareProfile"))}">${icon("share")}<span>${esc(t("profileShareAction"))}</span></button></div>
+        <div class="profile-summary">
+          <div class="profile-identity"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}</div>
+          ${!isEditing ? `<div class="profile-stats" aria-label="${esc(t("profilePageTitle"))} statistics"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${Number(profile.followingCount) || 0}</strong><span>${esc(t("following"))}</span></div></div>` : ""}
+        </div>
       </div>
-      ${isEditing && isOwnProfile ? editProfileForm({ profile, styles, t, avatarContents }) : `<div class="profile-stats"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${tripCount}</strong><span>Trips</span></div><div><strong>${upcomingCount}</strong><span>${esc(t("profileUpcoming"))}</span></div></div>${profile.bio || styles.length ? `<div class="profile-about">${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interestLabel(interest))}</span>`).join("")}</div>` : ""}</div>` : ""}`}
+      ${isEditing && isOwnProfile ? editProfileForm({ profile, styles, t, avatarContents }) : `${profile.bio || styles.length ? `<div class="profile-about">${profile.bio ? `<p class="profile-bio">${esc(profile.bio)}</p>` : ""}${styles.length ? `<div class="profile-interests">${styles.map((interest) => `<span>${esc(interestLabel(interest))}</span>`).join("")}</div>` : ""}</div>` : ""}`}
+      <div class="profile-actions">${action}<button class="button button-ghost profile-share" type="button" data-action="share-profile" data-id="${esc(profile.id)}" aria-label="${esc(t("shareProfile"))}">${icon("share")}<span>${esc(t("profileShareAction"))}</span></button></div>
     </div>
   </section>`;
 }

@@ -240,6 +240,7 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
         isDemo: Boolean(demoProfile),
         postCount: trips.length,
         followerCount: follows.filter((follow) => follow.targetId === id).length,
+        followingCount: follows.filter((follow) => follow.followerId === `user:${id}`).length,
         followedByViewer: Boolean(followerId && follows.some((follow) => follow.targetId === id && follow.followerId === followerId))
       },
       trips

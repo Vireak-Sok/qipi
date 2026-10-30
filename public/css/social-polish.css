@@ -352,6 +352,13 @@ body.social-app {
   .messages-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,880px) minmax(235px,280px); }
 }
 
+@media (min-width: 961px) and (max-width: 1120px) {
+  .profile-open.app-layout {
+    grid-template-columns: 190px minmax(400px,630px) 230px;
+    gap: 20px;
+  }
+}
+
 @media (max-width: 960px) and (min-width: 701px) {
   .app-layout:not(.settings-open):not(.profile-open):not(.messages-open):not(.explore-open):not(.entry-open):not(.signup-open):not(.search-results-open) {
     width: min(100% - 40px, 840px);

@@ -14,6 +14,7 @@ import { createFeedController } from "./js/feed.js";
 import { createTripCard } from "./js/trip-card.js";
 import { createAppState } from "./js/state.js";
 import { createSafetyController } from "./js/safety.js";
+import { createPwaController } from "./js/pwa.js";
 
 // Application state and shared helpers.
 const auth = new QipiAuth();
@@ -39,6 +40,7 @@ const { enhanceSelects, syncEnhancedSelect, syncEnhancedSelects, closeEnhancedSe
 const { showDialogLoading, renderDialogError, renderSettingsAccountLoading, skeletonPostsMarkup, renderTripListLoading, renderRoutesLoading, renderLoadingError } = createLoadingViews({ t, showDialog });
 const { api, event } = createApiClient({ auth, state, t });
 const safety = createSafetyController({ api, auth, setPageView, toast, openAuth });
+const pwa = createPwaController({ t, toast });
 const { appMediaUrl, storagePublicUrl, avatarContents, uploadImage } = createMediaClient({ auth, t });
 const tripCardMarkup = createTripCard({ state, t, label, dateParts, dateLabel, routeFor, avatarContents, appMediaUrl });
 const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadTrips, openFeedPage, openExplorePage, openTripsPage, renderFeedLoading, loadFeedData } = createFeedController({
@@ -264,6 +266,7 @@ function renderSettings() {
   $("#settings-cost-style").value = state.preferences.defaultCostStyle;
   $("#settings-safety-reminders").checked = state.preferences.safetyReminders;
   safety.renderSettingsContacts();
+  pwa.renderInstallSettings();
   syncEnhancedSelects();
 }
 
@@ -569,7 +572,7 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
   content.setAttribute("aria-busy", String(loading));
   const list = messageListMarkup({ inboxLoading, inboxError });
   const messageSearchLabel = t("messageSearchPlaceholder");
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><h1>${esc(t("messages"))}</h1><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><header class="message-thread-skeleton-head"><span class="message-thread-skeleton-back"></span><span class="message-thread-skeleton-avatar"></span><span class="message-thread-skeleton-profile"><i></i><i></i></span></header><div class="message-thread-skeleton-history"><i></i><i class="is-mine"></i><i></i><i class="is-mine"></i></div><div class="message-thread-skeleton-composer"><i></i><b></b></div></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
@@ -1014,6 +1017,7 @@ document.addEventListener("click", async (eventTarget) => {
     } catch (error) { toast(error.message || "Safety action failed"); }
     return;
   }
+  if (action === "install-app") { await pwa.install(); return; }
   if (action === "toggle-password") {
     const input = document.getElementById(button.dataset.target);
     if (!input) return;

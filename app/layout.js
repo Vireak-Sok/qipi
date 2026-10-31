@@ -5,7 +5,15 @@ import "./globals.css";
 export const metadata = {
   title: "Qipi",
   description: "Qipi is a Cambodia travel community for stories, trip plans, and safer journeys.",
-  icons: { icon: "/favicon.svg" }
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/pwa-192.png", sizes: "192x192", type: "image/png" }
+    ],
+    apple: [{ url: "/icons/pwa-180.png", sizes: "180x180", type: "image/png" }]
+  },
+  appleWebApp: { capable: true, title: "Qipi", statusBarStyle: "black-translucent" }
 };
 
 export const viewport = {

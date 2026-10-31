@@ -1,23 +1,30 @@
-# Qipi profile redesign — design QA
+# Qipi page consistency refinements — design QA
 
-## Result: blocked
+## Result: partial; mobile and data-backed states blocked
 
-### Visual reference
+### Visual references
 
-- User screenshots: `/tmp/codex-clipboard-c586c777-5c52-469d-aaa3-f125fb6c5bbb.png`, `/tmp/codex-clipboard-558475ee-54fd-4ab3-86d6-58e7ed2db9dc.png`, and `/tmp/codex-clipboard-99822b95-2209-4f5e-99b8-0ac14d1ab052.png`.
-- Local preview: `http://127.0.0.1:4173/dara-demo-emouser001`.
-- Captured and inspected the local profile in the in-app browser at its available desktop viewport (about 1100 × 900).
+- Mobile profile: `/tmp/codex-clipboard-33214dd6-b610-4fbe-9de6-2179b7176aff.png`
+- Desktop profile: `/tmp/codex-clipboard-e1809757-a862-47b8-81a8-609adbd390c8.png`
+- Local production preview: `http://127.0.0.1:4177`
+- Browser viewport shown: about 1100 × 880.
 
-### Checked
+### Checked in the local preview
 
-- Shared profile header places the avatar, name, username, and post/follower/following counts together.
-- Bio, interest tags, and profile actions follow the header with consistent spacing.
-- Posts render in a three-column square grid; uploaded media uses lazy loading and posts without media get a Qipi travel-art fallback.
-- Owner-only tabs and edit actions remain conditional. Public profiles retain follow, message (for non-demo users), and share actions.
-- Story highlights, the personal-profile overflow menu, and the dashboard are absent.
-- Responsive CSS rules are present for widths at or below 700 px and 360 px.
-- Production build, JavaScript syntax checks, and `git diff --check` passed.
+- Feed search presents one visible field without a second outlined form container.
+- At compact desktop width, the Settings content has balanced page margins and no longer sits underneath the fixed right rail.
+- The Messages page no longer displays a redundant “Messages” heading; its signed-out state remains intact.
+- Shared page headings use a smaller size hierarchy.
+- The production build completed successfully.
 
-### Blocker
+### Implementation reviewed
 
-The available in-app browser session did not provide a supported way to set a mobile viewport. The mobile breakpoints were reviewed in code, but the profile was not visually captured at a phone width. A mobile screenshot is needed to complete responsive visual QA.
+- Profile identity card and tabs use the framed card treatment again. The existing profile content order remains unchanged, and the loading state now uses the same card frame.
+- The message detail loading skeleton now includes header, conversation bubbles, and composer regions.
+- Mobile Settings width is constrained to provide equal side gutters; mobile title and message-skeleton sizing rules are present.
+
+### Blockers
+
+- The local profile API returned “Profile not found” for available slugs, so the populated profile card could not be visually compared against the references.
+- The local preview was signed out, so the message detail skeleton could not be reached beyond the sign-in gate.
+- The in-app browser viewport control did not change the captured viewport from about 1100 × 880; mobile spacing could not be visually verified. The mobile CSS was reviewed but needs a phone-width screenshot for final visual QA.

@@ -85,6 +85,10 @@ The app uses Next.js App Router with JavaScript, React, Tailwind CSS, and a Node
 
 The saved browser keys, public URLs, request/response shapes, and Supabase JSONB data format remain compatible. The synchronous startup script stays separate from application modules so saved themes and first-visit routing can apply before the app renders.
 
+## Progressive web app
+
+Qipi can be installed from a supported browser on HTTPS or localhost. The Settings page provides an install action when the browser exposes one; iPhone and iPad users can use the browser's **Add to Home Screen** command. A service worker caches the public app shell assets and an offline information page. It does not cache API responses, posts, messages, uploads, maps, or live locations, so browsing and sharing still require a connection.
+
 ## Demo limits and next step
 
 New posts, requests, messages, and Safety records belong to Supabase Auth accounts. Older pilot trips and requests still use browser-local tokens, so clearing local data can lose control of those older records. Chat and Safety data use separate private relational tables. There is no identity verification, payments, booking, automated SOS, or guaranteed background tracking. The Supabase JSONB row is suitable for a small pilot, but posts and interactions should move to indexed relational tables as usage grows. Before a larger public pilot, add stronger abuse controls, moderation operations, a custom SMTP provider, and a privacy review.

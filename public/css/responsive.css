@@ -282,7 +282,7 @@
 @media (max-width: 700px) {
   .mobile-nav .nav-message-badge { position: absolute; top: 1px; left: calc(50% + 4px); border: 1px solid var(--surface-card); }
 }
-.avatar-image.is-loaded,.post-media-image.is-loaded,.image-preview-photo.is-loaded { opacity: 1; }
+.avatar-image.is-loaded,.post-media-image.is-loaded,.profile-post-image.is-loaded,.image-preview-photo.is-loaded { opacity: 1; }
 .image-loading-indicator {
   position: absolute;
   top: 50%;
@@ -303,7 +303,7 @@
   margin: -8px 0 0 -8px;
   border-width: 2px;
 }
-.avatar-image.is-loaded + .image-loading-indicator,.post-media-image.is-loaded + .image-loading-indicator,.image-preview-photo.is-loaded + .image-loading-indicator { display: none; }
+.avatar-image.is-loaded + .image-loading-indicator,.post-media-image.is-loaded + .image-loading-indicator,.profile-post-image.is-loaded + .image-loading-indicator,.image-preview-photo.is-loaded + .image-loading-indicator { display: none; }
 .trip-image-preview { position: relative; }
 @media (prefers-reduced-motion: reduce) { .image-loading-indicator { animation-duration: 1.8s; } }
 

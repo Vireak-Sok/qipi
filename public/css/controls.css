@@ -44,7 +44,7 @@
   width: 20px;
   height: 20px;
 }
-button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):not(.notification-close):not(.settings-back):not(.account-button):not(.icon-button):not(.auth-switch button):not(.auth-forgot):not(.auth-subtle):not(.plain-button):not(.settings-signout):not(.mobile-nav button):not(.post-utility-action) {
+button:not(.profile-tab):not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close):not(.notification-close):not(.settings-back):not(.account-button):not(.icon-button):not(.auth-switch button):not(.auth-forgot):not(.auth-subtle):not(.plain-button):not(.settings-signout):not(.mobile-nav button):not(.post-utility-action) {
   min-height: var(--control-height);
 }
 @media(max-width:700px) {

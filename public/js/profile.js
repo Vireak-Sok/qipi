@@ -52,7 +52,7 @@ export function createProfileController({ state, auth, t, label, displayName, us
     if (!content) return;
     syncProfileHeading();
     content.setAttribute("aria-busy", "true");
-    content.innerHTML = `<div class="skeleton-profile" aria-hidden="true"><div class="skeleton-profile-overview"><i class="skeleton-profile-avatar"></i><div class="skeleton-profile-summary"><b></b><span></span><div class="skeleton-profile-stats"><i></i><i></i><i></i></div></div></div><span class="skeleton-profile-bio"></span><span class="skeleton-profile-bio short"></span><div class="skeleton-profile-actions"><i></i><i></i><i></i></div><div class="skeleton-profile-tabs"><i></i><i></i><i></i></div><div class="skeleton-profile-grid">${Array.from({ length: 6 }, () => "<i></i>").join("")}</div></div>`;
+    content.innerHTML = `<div class="skeleton-profile" aria-hidden="true"><div class="skeleton-profile-identity-card"><div class="skeleton-profile-overview"><i class="skeleton-profile-avatar"></i><div class="skeleton-profile-summary"><b></b><span></span><div class="skeleton-profile-stats"><i></i><i></i><i></i></div></div></div><span class="skeleton-profile-bio"></span><span class="skeleton-profile-bio short"></span><div class="skeleton-profile-actions"><i></i><i></i></div></div><div class="skeleton-profile-tabs"><i></i><i></i><i></i></div><div class="skeleton-profile-grid">${Array.from({ length: 6 }, () => "<i></i>").join("")}</div></div>`;
   }
 
   function syncProfileHeading(profile = state.profile) {

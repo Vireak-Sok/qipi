@@ -13,7 +13,15 @@ const staticFiles = new Map([
   ["/admin.html", ["admin.html", "text/html; charset=utf-8"]],
   ["/admin.js", ["admin.js", "text/javascript; charset=utf-8"]],
   ["/icons.svg", ["icons.svg", "image/svg+xml"]],
-  ["/favicon.svg", ["favicon.svg", "image/svg+xml"]]
+  ["/favicon.svg", ["favicon.svg", "image/svg+xml"]],
+  ["/manifest.webmanifest", ["manifest.webmanifest", "application/manifest+json; charset=utf-8"]],
+  ["/sw.js", ["sw.js", "text/javascript; charset=utf-8"]],
+  ["/offline.html", ["offline.html", "text/html; charset=utf-8"]],
+  ["/offline.css", ["offline.css", "text/css; charset=utf-8"]],
+  ["/icons/pwa-180.png", ["icons/pwa-180.png", "image/png"]],
+  ["/icons/pwa-192.png", ["icons/pwa-192.png", "image/png"]],
+  ["/icons/pwa-512.png", ["icons/pwa-512.png", "image/png"]],
+  ["/icons/pwa-maskable-512.png", ["icons/pwa-maskable-512.png", "image/png"]]
 ]);
 
 export async function serveStatic(req, res, path, { publicDir, authOrigin }) {

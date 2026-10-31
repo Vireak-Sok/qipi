@@ -278,6 +278,10 @@ body.social-app {
 .settings-symbol { width: 42px; height: 42px; border-radius: 14px; }
 .settings-card-heading h2 { font-size: 16px; }
 .settings-card-heading p { margin-top: 3px; font-size: 12px; }
+.settings-install-content { min-height: 38px; display: flex; align-items: center; }
+.settings-install-status { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
+.settings-install-button { display: inline-flex; align-items: center; gap: 9px; }
+.settings-install-button .heroicon { width: 17px; height: 17px; }
 
 .messages-page { border-radius: var(--social-radius-lg); }
 .messages-layout { border-radius: var(--social-radius-lg); box-shadow: 0 3px 14px color-mix(in srgb, var(--text-primary) 5%, transparent); }
@@ -328,6 +332,13 @@ body.social-app {
 }
 
 @media (min-width: 961px) and (max-width: 1120px) {
+  /* Keep the settings form clear of the fixed information rail at compact desktop widths. */
+  .settings-open.app-layout {
+    width: min(var(--social-content-width), calc(100% - 48px));
+    grid-template-columns: minmax(190px,220px) minmax(0,1fr);
+    gap: clamp(24px,3vw,34px);
+  }
+  .settings-open .right-rail { display: none; }
   .profile-open.app-layout {
     grid-template-columns: 190px minmax(400px,630px) 230px;
     gap: 20px;
@@ -444,4 +455,134 @@ body.social-app {
   .traveler-strip-list { gap: 11px; }
   .traveler-bubble { flex-basis: 64px; }
   .traveler-bubble-ring { width: 58px; height: 58px; }
+}
+
+/* Keep page surfaces and title hierarchy aligned across settings and profiles. */
+.settings-page,
+.profile-page { gap: 14px; }
+.settings-page > .settings-header,
+.profile-page > .settings-header { min-height: 56px; gap: 12px; }
+.settings-page > .settings-header h1,
+.profile-page > .settings-header h1,
+.search-results-title-row h1 {
+  font-size: 20px;
+  font-weight: 740;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+
+/* The field itself is the search control; avoid a second visible frame around it. */
+.home-search-form {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.home-search-field {
+  min-height: 48px;
+  padding-inline: 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--control-radius, 14px);
+  background: var(--surface-field);
+  box-shadow: none;
+}
+.home-search-field input { min-height: 46px; }
+.home-search-field:focus-within { box-shadow: 0 0 0 3px var(--focus-ring-soft); }
+
+/* Message thread loading mirrors the finished header, conversation, and composer. */
+.message-thread-skeleton {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  background: var(--surface-card);
+}
+.message-thread-skeleton-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface-card);
+}
+.message-thread-skeleton-back,
+.message-thread-skeleton-avatar,
+.message-thread-skeleton-profile i,
+.message-thread-skeleton-history i,
+.message-thread-skeleton-composer i,
+.message-thread-skeleton-composer b {
+  display: block;
+  background: linear-gradient(100deg,var(--skeleton-base,#e9eeea) 20%,var(--skeleton-highlight,#f7faf7) 38%,var(--skeleton-base,#e9eeea) 56%);
+  background-size: 220% 100%;
+  animation: qipi-shimmer 1.35s ease-in-out infinite;
+}
+.message-thread-skeleton-back { display: none; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; }
+.message-thread-skeleton-avatar { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 50%; }
+.message-thread-skeleton-profile { display: grid; gap: 7px; width: min(44%, 180px); }
+.message-thread-skeleton-profile i { height: 11px; border-radius: 8px; }
+.message-thread-skeleton-profile i + i { width: 65%; height: 9px; }
+.message-thread-skeleton-history {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  padding: 24px clamp(16px,4vw,44px);
+  background: var(--surface-canvas);
+}
+.message-thread-skeleton-history::before { content: ""; flex: 1 0 0; min-height: 0; }
+.message-thread-skeleton-history i { width: min(42%,280px); height: 52px; flex: 0 0 52px; border-radius: 17px 17px 17px 5px; }
+.message-thread-skeleton-history i.is-mine { align-self: flex-end; width: min(35%,240px); border-radius: 17px 17px 5px 17px; }
+.message-thread-skeleton-composer {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--surface-card);
+}
+.message-thread-skeleton-composer i { height: 46px; border-radius: var(--control-radius,14px); }
+.message-thread-skeleton-composer b { width: 46px; height: 46px; border-radius: 50%; }
+
+@media (max-width: 700px) {
+  .settings-open.app-layout {
+    width: calc(100% - 32px);
+    max-width: none;
+    margin-inline: auto;
+    padding-inline: 0;
+    box-sizing: border-box;
+  }
+  .settings-page,
+  .profile-page { gap: 12px; }
+  .settings-page > .settings-header,
+  .profile-page > .settings-header { min-height: 52px; gap: 10px; }
+  .settings-page > .settings-header h1,
+  .profile-page > .settings-header h1,
+  .search-results-title-row h1 { font-size: 18px; }
+  .home-search-field { min-height: 46px; }
+  .home-search-field input { min-height: 44px; }
+  .message-thread-skeleton-head { min-height: 64px; gap: 10px; padding: 8px 12px; }
+  .message-thread-skeleton-back { display: block; width: 40px; height: 40px; flex-basis: 40px; }
+  .message-thread-skeleton-avatar { width: 40px; height: 40px; flex-basis: 40px; }
+  .message-thread-skeleton-history { padding: 16px 12px; }
+  .message-thread-skeleton-composer { grid-template-columns: minmax(0,1fr) 44px; gap: 8px; padding: 10px 10px max(10px,env(safe-area-inset-bottom)); }
+  .message-thread-skeleton-composer i,.message-thread-skeleton-composer b { height: 44px; }
+  .message-thread-skeleton-composer b { width: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-thread-skeleton-back,
+  .message-thread-skeleton-avatar,
+  .message-thread-skeleton-profile i,
+  .message-thread-skeleton-history i,
+  .message-thread-skeleton-composer i,
+  .message-thread-skeleton-composer b { animation: none; }
 }

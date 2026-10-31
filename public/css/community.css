@@ -2723,7 +2723,7 @@
 :root[data-theme="dark"] .side-footer,:root[data-theme="dark"] .side-footer a {
   color: #98a99c;
 }
-button:not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close),input:not([type="checkbox"]):not([type="radio"]),select,textarea {
+button:not(.profile-tab):not(.mobile-create):not(.post-save):not(.round-arrow):not(.dialog-close),input:not([type="checkbox"]):not([type="radio"]),select,textarea {
   border-radius: var(--control-radius);
 }
 :root[data-theme="dark"] .feed-welcome,:root[data-theme="dark"] .feed-end,:root[data-theme="dark"] .social-app .empty-trips,:root[data-theme="dark"] .post-journey {

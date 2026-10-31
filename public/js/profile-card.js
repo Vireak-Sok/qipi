@@ -27,7 +27,7 @@ export function profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, i
     <div class="profile-card-main">
       <div class="profile-overview">
         <span class="profile-avatar profile-avatar-large">${avatarContents(profile.displayName, profile.avatarPath || "")}</span>
-        <div class="profile-summary">
+        <div class="profile-account-summary">
           <div class="profile-identity"><h2>${esc(profile.displayName || t("guestTraveler"))}</h2>${profile.username ? `<span class="profile-handle">@${esc(profile.username)}</span>` : ""}</div>
           ${!isEditing ? `<div class="profile-stats" aria-label="${esc(t("profilePageTitle"))} statistics"><div><strong>${Number(profile.postCount) || 0}</strong><span>${esc(t("posts"))}</span></div><div><strong>${Number(profile.followerCount) || 0}</strong><span>${esc(t("followers"))}</span></div><div><strong>${Number(profile.followingCount) || 0}</strong><span>${esc(t("following"))}</span></div></div>` : ""}
         </div>

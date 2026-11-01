@@ -982,16 +982,35 @@ function openReport(type, id) {
 }
 async function shareTrip(id) {
   const url = new URL("/post/" + encodeURIComponent(id), location.origin);
-  try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
-  catch { window.prompt(t("shareTrip"), url.toString()); }
+  const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords].find((item) => item.id === id);
+  await shareLink(url, { title: trip?.title || t("shareTrip"), text: trip?.notes || "", fallbackLabel: t("shareTrip") });
 }
 async function shareProfile(id) {
   const profile = state.profile?.id === id ? state.profile : null;
   const trip = [...state.trips, ...state.savedTripRecords].find((item) => item.profileId === id);
   const username = profile?.username || (id === usernameFromPath() ? id : profileUsernameForId(id, trip?.hostName));
   const url = new URL("/" + encodeURIComponent(username), location.origin);
-  try { await navigator.clipboard.writeText(url.toString()); toast(t("copied")); }
-  catch { window.prompt(t("shareProfile"), url.toString()); }
+  await shareLink(url, { title: profile?.displayName || trip?.hostName || t("shareProfile"), text: t("shareProfile"), fallbackLabel: t("shareProfile") });
+}
+async function shareLink(url, { title, text = "", fallbackLabel }) {
+  const shareData = { title, text, url: url.toString() };
+  if (typeof navigator.share === "function") {
+    try {
+      if (!navigator.canShare || navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+    }
+  }
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await navigator.clipboard.writeText(url.toString());
+    toast(t("copied"));
+  } catch {
+    window.prompt(fallbackLabel, url.toString());
+  }
 }
 
 // Sign-up and authentication flows.
@@ -1712,7 +1731,6 @@ document.addEventListener("submit", async (eventTarget) => {
 });
 
 enhanceSelects();
-$("#trip-kind-filter").addEventListener("change", (eventTarget) => { state.filter = eventTarget.target.value; renderTrips(); });
 bindSearchEvents();
 let messageSearchTimer = null;
 let messageSearchRequestId = 0;

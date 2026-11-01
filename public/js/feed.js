@@ -16,8 +16,6 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
     routeGrid.innerHTML = [...destinations.values()].sort((a, b) => b.count - a.count).map(place => `<button class="destination-card" type="button" data-action="explore-destination" data-destination="${esc(place.name)}"><span class="destination-card-art">${icon("map-pin")}</span><strong>${esc(place.name)}</strong><small>${place.count} ${place.count === 1 ? "post" : "posts"}</small></button>`).join("") || `<p class="small-copy">Destinations will appear as travelers share posts.</p>`;
   }
   function renderFilter() {
-    $("#trip-kind-filter").value = state.filter;
-    syncEnhancedSelect($("#trip-kind-filter"));
     syncSearchFilterControls();
   }
   function syncSearchFilterControls() {

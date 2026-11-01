@@ -5,6 +5,9 @@
   --social-radius-lg: 22px;
   --social-content-width: 1420px;
   --social-main-column-width: 760px;
+  --social-layout-gap: clamp(26px, 3vw, 48px);
+  --social-side-column-width: clamp(170px, calc((100vw - var(--social-main-column-width) - var(--social-layout-gap) - var(--social-layout-gap) - 48px) / 2), 230px);
+  --social-page-columns: minmax(0, var(--social-side-column-width)) minmax(0, min(var(--social-main-column-width), calc(100% - var(--social-side-column-width) - var(--social-side-column-width) - var(--social-layout-gap) - var(--social-layout-gap)))) minmax(0, var(--social-side-column-width));
 }
 
 body.social-app {
@@ -42,12 +45,12 @@ body.social-app {
 .top-actions .account-button { min-height: 42px; height: 42px; padding: 4px 12px 4px 5px; }
 .top-actions .account-avatar { width: 32px; height: 32px; }
 
-.app-layout:not(.settings-open):not(.profile-open):not(.messages-open):not(.explore-open):not(.entry-open):not(.signup-open) {
+.app-layout:not(.entry-open):not(.signup-open) {
   width: min(var(--social-content-width), calc(100% - 48px));
   max-width: var(--social-content-width);
-  grid-template-columns: minmax(190px, 220px) minmax(0, var(--social-main-column-width)) minmax(235px, 280px);
+  grid-template-columns: var(--social-page-columns);
   justify-content: center;
-  gap: clamp(26px, 3vw, 48px);
+  gap: var(--social-layout-gap);
   padding-top: var(--page-top-gap);
 }
 
@@ -189,16 +192,6 @@ body.social-app {
 
 .feed-trips .feed-section-head { align-items: center; margin: 3px 1px 12px; }
 .feed-section-head h2 { color: var(--text-primary); font-size: 17px; font-weight: 750; letter-spacing: -.035em; }
-.feed-filter select {
-  min-height: 38px;
-  padding: 0 34px 0 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  background-color: var(--surface-card);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 650;
-}
 .trip-list { gap: 16px; }
 .social-app .trip-card {
   padding: 0;
@@ -323,26 +316,11 @@ body.social-app {
 }
 
 @media (min-width: 961px) {
-  .messages-open.app-layout,
-  .profile-open.app-layout,
-  .settings-open.app-layout { width: min(var(--social-content-width), calc(100% - 48px)); max-width: var(--social-content-width); gap: clamp(26px,3vw,48px); }
-  .settings-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)); }
-  .profile-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px); }
-  .messages-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px); }
-}
-
-@media (min-width: 961px) and (max-width: 1120px) {
-  /* Keep the settings form clear of the fixed information rail at compact desktop widths. */
-  .settings-open.app-layout {
-    width: min(var(--social-content-width), calc(100% - 48px));
-    grid-template-columns: minmax(190px,220px) minmax(0,1fr);
-    gap: clamp(24px,3vw,34px);
-  }
-  .settings-open .right-rail { display: none; }
-  .profile-open.app-layout {
-    grid-template-columns: 190px minmax(0,var(--social-main-column-width)) 230px;
-    gap: 20px;
-  }
+  /* Keep the main column centered between equal-width side tracks on every page. */
+  #main.settings-open .right-rail { display: grid; visibility: hidden; pointer-events: none; }
+  #main.app-layout:not(.entry-open):not(.signup-open) .left-rail,
+  #main.app-layout:not(.entry-open):not(.signup-open) .right-rail { width: var(--social-side-column-width); }
+  #main.app-layout:not(.entry-open):not(.signup-open) .right-fab { width: var(--social-side-column-width); }
 }
 
 @media (max-width: 960px) and (min-width: 701px) {
@@ -380,7 +358,6 @@ body.social-app {
   .composer-create { width: 40px; height: 40px; min-height: 40px; border-radius: 12px; }
   .feed-trips .feed-section-head { margin: 1px 2px 9px; }
   .feed-section-head h2 { font-size: 16px; }
-  .feed-filter select { min-height: 36px; font-size: 11px; }
   .trip-list { gap: 12px; }
   .social-app .trip-card { border-radius: 15px; }
   .post-head { min-height: 58px; padding: 9px 11px; }
@@ -617,12 +594,8 @@ body.social-app {
 
 @media (min-width: 961px) {
   #main.search-page-open.app-layout {
-    grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px);
+    grid-template-columns: var(--social-page-columns);
   }
-}
-@media (min-width: 961px) and (max-width: 1120px) {
-  #main.search-page-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,1fr); }
-  #main.search-page-open .right-rail { display: none; }
 }
 
 /* Inbox and selected conversations share the same top gap and rail alignment. */

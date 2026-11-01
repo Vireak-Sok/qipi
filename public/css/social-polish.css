@@ -363,7 +363,7 @@ body.social-app {
   .app-layout:not(.settings-open):not(.profile-open):not(.messages-open):not(.explore-open):not(.entry-open):not(.signup-open) {
     width: 100%;
     max-width: none;
-    padding: 9px 12px 96px;
+    padding: var(--page-top-gap) 16px 96px;
   }
   .feed-column { gap: 12px; }
   .home-search { margin-bottom: 1px; }

@@ -1416,17 +1416,18 @@
   .left-rail,.right-rail,.settings-open .left-rail,.settings-open .right-rail,.profile-open .left-rail,.profile-open .right-rail {
     top: var(--page-sticky-top);
   }
+  .social-topbar::after {
+    content: "";
+    position: absolute;
+    top: calc(100% + var(--app-header-border));
+    left: 0;
+    right: 0;
+    height: var(--page-top-gap);
+    background: var(--surface-canvas);
+    pointer-events: none;
+  }
 }
-.social-topbar::after {
-  content: "";
-  position: absolute;
-  top: calc(100% + var(--app-header-border));
-  left: 0;
-  right: 0;
-  height: var(--page-top-gap);
-  background: var(--surface-canvas);
-  pointer-events: none;
-}
+
 .search-filter-panel {
   gap: 9px;
   padding: 0;

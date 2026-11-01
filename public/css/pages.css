@@ -1427,41 +1427,6 @@
   background: var(--surface-canvas);
   pointer-events: none;
 }
-.search-results-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex: none;
-  min-height: 32px;
-  padding: 0 2px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 650;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color .16s;
-}
-.search-results-back:hover {
-  color: var(--brand-strong);
-}
-.search-results-back .heroicon {
-  box-sizing: border-box;
-  width: 28px;
-  height: 28px;
-  padding: 6px;
-  border: 1px solid var(--border-soft);
-  border-radius: 50%;
-  background: var(--surface-card);
-  color: var(--brand-strong);
-  transition: background .16s,border-color .16s;
-}
-.search-results-back:hover .heroicon {
-  background: var(--surface-selected);
-  border-color: var(--border-control);
-}
 .search-filter-panel {
   gap: 9px;
   padding: 0;

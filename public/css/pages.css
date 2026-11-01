@@ -1416,12 +1416,6 @@
   .left-rail,.right-rail,.settings-open .left-rail,.settings-open .right-rail,.profile-open .left-rail,.profile-open .right-rail {
     top: var(--page-sticky-top);
   }
-  .search-results-open .left-rail {
-    padding-top: 0;
-  }
-  .search-results-open .feed-trips {
-    margin-top: 0;
-  }
 }
 .social-topbar::after {
   content: "";
@@ -1432,21 +1426,6 @@
   height: var(--page-top-gap);
   background: var(--surface-canvas);
   pointer-events: none;
-}
-.search-results-title-row {
-  display: flex;
-  flex-direction: column;
-  grid-column: 1/-1;
-  align-items: flex-start;
-  gap: 9px;
-  margin: 0 0 3px;
-}
-.search-results-title-row h1 {
-  margin: 0;
-  font-size: 21px;
-  line-height: 1.2;
-  letter-spacing: -.035em;
-  color: var(--text-primary);
 }
 .search-results-back {
   display: inline-flex;
@@ -1504,17 +1483,6 @@
 .search-filter-field {
   padding: 0;
   min-width: 0;
-}
-@media(max-width:700px) {
-  .search-results-open .search-results-title-row {
-    grid-column: 1/-1;
-  }
-  .search-results-open .search-filter-field {
-    padding: 0;
-  }
-  .search-results-title-row h1 {
-    font-size: 18px;
-  }
 }
 /* Keep sticky page controls under the top-bar search panel. */
 .settings-page>.settings-header {

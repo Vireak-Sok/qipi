@@ -31,17 +31,23 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
     allButton?.setAttribute("aria-pressed", String(allActive));
   }
   function renderTrips() {
-    const tripList = $("#trip-list");
-    const sourceTrips = state.trips;
+    const isSearchResults = state.view === "search-results";
+    const tripList = $(isSearchResults ? "#search-results-list" : "#trip-list");
+    if (!tripList) return;
+    if (isSearchResults && state.searchTripsLoading) return;
+    const sourceTrips = isSearchResults ? state.searchTrips : state.trips;
     const filtered = sourceTrips.filter((trip) =>
-      (state.view === "search-results" || !state.filter || (trip.kind || "trip") === state.filter) &&
-      (!state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${trip.destination || ""} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
-      (state.view !== "search-results" || (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || ((trip.kind || "trip") === "trip" && trip.date >= dateToday()))));
+      (isSearchResults || !state.filter || (trip.kind || "trip") === state.filter) &&
+      (!isSearchResults || !state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${trip.destination || ""} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
+      (!isSearchResults || (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || ((trip.kind || "trip") === "trip" && trip.date >= dateToday()))));
     tripList.setAttribute("aria-busy", "false");
-    if (state.view === "search-results") $("#trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${t("searchResultCount")}`;
+    if (isSearchResults) {
+      const countLabel = state.lang === "en" && filtered.length === 1 ? t("searchTripFound") : t("searchResultCount");
+      $("#search-results-trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${countLabel}`;
+    }
     else $("#trips-title").textContent = t(state.view === "trips" ? "navTrips" : "forYou");
     if (!filtered.length) {
-      tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon(state.view === "search-results" ? "search" : "map-pin")}</div><h3>${esc(state.view === "search-results" ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(state.view === "search-results" ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${state.view === "search-results" ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("createPostAction"))} ${icon("arrow-up-right")}</button>`}</div>`;
+      tripList.innerHTML = `<div class="empty-trips"><div class="empty-icon">${icon(isSearchResults ? "search" : "map-pin")}</div><h3>${esc(isSearchResults ? t("noSearchResults") : state.filter ? t("noTripsFilter") : t("tripBoardEmptyTitle"))}</h3><p>${esc(isSearchResults ? t("searchTryAnother") : t("tripBoardEmptyBody"))}</p>${isSearchResults ? `<button class="button button-ghost" type="button" data-action="reset-search-filters">${esc(t("allTrips"))}</button>` : `<button class="button button-primary" type="button" data-action="create-trip">${esc(t("createPostAction"))} ${icon("arrow-up-right")}</button>`}</div>`;
       return;
     }
     tripList.innerHTML = filtered.map(tripCardMarkup).join("");

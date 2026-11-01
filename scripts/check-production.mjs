@@ -97,7 +97,7 @@ try {
   assert.equal(config.publishableKey, publishableKey);
   assert.ok(!JSON.stringify(config).includes(secretKey));
 
-  for (const path of ["/", "/feed", "/settings", "/saved", "/explore", "/trips", "/signup", "/production-check", "/post/example"]) {
+  for (const path of ["/", "/feed", "/search?q=kampot", "/settings", "/saved", "/explore", "/trips", "/messages", "/messages/472a2024-ed01-4c4b-a6a2-2128a9a7c148", "/signup", "/production-check", "/post/example"]) {
     const response = await fetch(base + path);
     assert.equal(response.status, 200, path);
     const html = await response.text();

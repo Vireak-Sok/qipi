@@ -1041,37 +1041,6 @@ button:not(.profile-tab):not(.mobile-create):not(.post-save):not(.round-arrow):n
   min-height: 39px;
   font-size: 12px;
 }
-.search-results-open.app-layout {
-  grid-template-columns: 250px minmax(460px,740px);
-  gap: 52px;
-  justify-content: center;
-}
-.search-results-open .rail-profile,.search-results-open .rail-nav,.search-results-open .right-rail {
-  display: none;
-}
-.search-results-open .left-rail {
-  padding-top: 25px;
-}
-.search-results-open .feed-trips {
-  margin-top: 18px;
-}
-.search-results-open .feed-section-head {
-  align-items: flex-end;
-  margin-bottom: 18px;
-}
-.search-results-open .feed-section-head h2 {
-  font-size: 24px;
-  line-height: 1.2;
-}
-.search-results-open .feed-filter {
-  display: none;
-}
-.search-results-open .trip-list {
-  gap: 16px;
-}
-.search-results-open .empty-trips {
-  min-height: 300px;
-}
 :root[data-theme="dark"] .search-filter-toggle input {
   background: #59615c;
 }
@@ -1082,56 +1051,9 @@ button:not(.profile-tab):not(.mobile-create):not(.post-save):not(.round-arrow):n
 :root[data-theme="dark"] .search-filter-toggle input:checked {
   background: #387d5a;
 }
-@media(max-width:1000px) {
-  .search-results-open.app-layout {
-    grid-template-columns: 220px minmax(380px,1fr);
-    gap: 24px;
-  }
-}
 @media(max-width:700px) {
   .desktop-search-wrap {
     display: none;
-  }
-  .search-results-open.app-layout {
-    display: block;
-    padding-top: 14px;
-  }
-  .search-results-open .left-rail {
-    display: block;
-    padding: 0;
-    margin-bottom: 15px;
-  }
-  .search-results-open .search-filter-panel {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-    gap: 5px 8px;
-    padding: 12px;
-    border: 1px solid var(--border-soft);
-    border-radius: 16px;
-    background: var(--surface-card);
-  }
-  .search-results-open .search-filter-panel h1,.search-results-open .search-filter-panel h2 {
-    grid-column: 1/-1;
-  }
-  .search-results-open .search-filter-panel h1 {
-    font-size: 18px;
-  }
-  .search-results-open .search-filter-panel h2 {
-    margin-bottom: 0;
-  }
-  .search-results-open .search-filter-all {
-    grid-column: 1/-1;
-  }
-  .search-results-open .search-filter-toggle {
-    grid-column: 1/-1;
-  }
-  .search-results-open .search-filter-field {
-    padding: 6px 2px;
-  }
-  .search-results-open .feed-trips {
-    margin: 0;
-  }
-  .search-results-open .feed-section-head h2 {
-    font-size: 20px;
   }
 }
 .search-filter-panel[hidden] {

@@ -49,8 +49,8 @@ const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadT
   state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage, safety,
   tripCardMarkup: (trip) => tripCardMarkup(trip)
 });
-const { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, bindSearchEvents } = createSearchController({
-  state, t, api, renderRoutes, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
+const { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, bindSearchEvents } = createSearchController({
+  state, t, api, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
 });
 const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = createProfileController({
   state, auth, t, label, displayName, usernameFromPath, setLink, setPageView, api, renderFilter, renderRoutes, refreshMe, renderLoadingError, toast,
@@ -64,6 +64,12 @@ let entryReturnView = "feed";
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();
   else if (entryReturnView === "explore") await openExplorePage();
+  else if (entryReturnView === "search-results") {
+    setPageView("search-results");
+    renderSearchResultsLoading();
+    await loadFeedData();
+    await loadSearchResults({ loadPosts: false });
+  }
   else if (entryReturnView === "profile") {
     const profileId = profileIdFromLocation() || auth.user?.id;
     if (profileId) await openProfile(profileId);
@@ -438,12 +444,15 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("signup-open", isSignup);
   main.classList.toggle("explore-open", isExplore);
   document.documentElement.classList.toggle("qipi-map-fullscreen", isExplore && window.matchMedia("(max-width: 700px)").matches);
-  main.classList.toggle("search-results-open", isSearchResults);
+  main.classList.toggle("search-page-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);
   main.classList.toggle("safety-open", isSafety);
   main.classList.toggle("messages-thread-open", isMessages && Boolean(state.conversationId));
   $("#search-filter-panel").hidden = !isSearchResults;
+  const searchQuery = $("#search-results-query");
+  if (searchQuery) searchQuery.textContent = state.search ? `“${$("#home-search-input")?.value.trim() || state.search}”` : "";
+  if (isSearchResults) syncSearchFilterControls();
   document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
   document.querySelectorAll('.rail-nav [data-page-view="trips"], .mobile-nav [data-page-view="trips"]').forEach((item) => item.classList.toggle("active", view === "trips"));
@@ -454,7 +463,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
     else item.removeAttribute("aria-current");
   });
   document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view):not(#safety-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "home-search" && view !== "feed") || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (isSearchResults && section.id !== "trips");
+    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "home-search" && view !== "feed") || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (section.id === "search-results-view" && !isSearchResults) || (isSearchResults && section.id !== "search-results-view");
   });
   if (view === "feed") $("#home-search")?.classList.remove("is-hidden");
   $("#entry-view").hidden = !isEntry;
@@ -530,7 +539,16 @@ async function syncAccountSavedTrips() {
 async function navigateToView(view) {
   if (view === "safety") return safety.openExploreMap();
   if (view === "safety-live") return safety.openLive();
-  if (view === "feed") return openFeedPage();
+  if (view === "feed") {
+    setSearch("");
+    state.searchProfiles = [];
+    state.searchTrips = [];
+    state.searchTripsLoading = false;
+    state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+    renderFilter();
+    closeDesktopSearch();
+    return openFeedPage();
+  }
   if (view === "explore") return openExplorePage();
   if (view === "trips") return openTripsPage();
   if (view === "saved") return openSavedTrips();
@@ -538,7 +556,7 @@ async function navigateToView(view) {
   if (view === "messages") return openMessages();
   if (view === "search-results") {
     setPageView(view);
-    renderTripListLoading("#trip-list", 2);
+    renderSearchResultsLoading();
     return loadSearchResults();
   }
   setPageView(view);
@@ -575,6 +593,8 @@ async function restoreBrowserLocation() {
       state.filter = "";
       state.searchFilters = { upcoming: false, routeId: "", transport: "" };
       state.searchProfiles = [];
+      state.searchTrips = [];
+      state.searchTripsLoading = false;
       setSearch("");
       syncSearchFilterControls();
       closeDesktopSearch();
@@ -604,7 +624,7 @@ async function restoreBrowserLocation() {
       state.search = (query.get("q") || "").trim().toLocaleLowerCase();
       if ($("#home-search-input")) $("#home-search-input").value = query.get("q") || "";
       setPageView("search-results", { preserveUrl: true });
-      renderTripListLoading("#trip-list", 2);
+      renderSearchResultsLoading();
       await loadSearchResults();
     } else if (view === "saved") {
       if (auth.user) await openProfile(auth.user.id, false, "saved");
@@ -690,7 +710,7 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
   content.setAttribute("aria-busy", String(loading));
   const list = messageListMarkup({ inboxLoading, inboxError });
   const messageSearchLabel = t("messageSearchPlaceholder");
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><header class="message-thread-skeleton-head"><span class="message-thread-skeleton-back"></span><span class="message-thread-skeleton-avatar"></span><span class="message-thread-skeleton-profile"><i></i><i></i></span></header><div class="message-thread-skeleton-history"><i></i><i class="is-mine"></i><i></i><i class="is-mine"></i></div><div class="message-thread-skeleton-composer"><i></i><b></b></div></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><header class="message-thread-skeleton-head"><span class="message-thread-skeleton-back"></span><span class="message-thread-skeleton-profile"><i></i><i></i></span></header><div class="message-thread-skeleton-history"><i></i><i class="is-mine"></i><i></i><i class="is-mine"></i></div><div class="message-thread-skeleton-composer"><i></i><b></b></div></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
@@ -729,7 +749,7 @@ function renderMessageThreadMarkup() {
   const profile = state.conversationProfile;
   if (!profile) return `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`;
   const messages = state.messages;
-  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}">${messageAvatar(profile)}<span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
+  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a class="message-thread-profile" href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}"><span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
 async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
@@ -1274,7 +1294,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "retry-explore") { await openExplorePage(); return; }
   if (action === "retry-trips") { await openTripsPage(); return; }
-  if (action === "retry-search") { await loadSearchResults(); return; }
+  if (action === "retry-search") { renderSearchResultsLoading(); await loadSearchResults(); return; }
   if (action === "retry-saved") { await loadSavedTrips(); return; }
   if (action === "profile-tab") { await selectProfileTab(id); return; }
   if (action === "retry-profile") { await openProfile(id); return; }
@@ -1924,7 +1944,8 @@ async function initialize() {
     } else {
       setPageView(entryReturnView, { preserveUrl: true });
       if (entryReturnView === "feed") renderFeedLoading();
-      else if (["trips", "search-results"].includes(entryReturnView)) renderTripListLoading("#trip-list", 2);
+      else if (entryReturnView === "trips") renderTripListLoading("#trip-list", 2);
+      else if (entryReturnView === "search-results") renderSearchResultsLoading();
       else if (entryReturnView === "saved") renderTripListLoading("#trip-list", 2);
     }
   }

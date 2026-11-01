@@ -212,6 +212,7 @@ export default {
   "searchRecentEmpty": "你的搜索记录会显示在这里。",
   "searchRecentNoMatch": "没有匹配的最近搜索。",
   "searchResults": "搜索结果",
+  "searchTripFound": "条行程",
   "filters": "筛选",
   "allTrips": "全部行程",
   "upcomingOnly": "仅显示即将出发",

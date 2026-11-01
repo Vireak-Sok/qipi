@@ -75,10 +75,6 @@
   .post-byline small, .post-route small { font-size: 12px; line-height: 1.4; }
 }
 
-@media (max-width: 700px) {
-  .search-results-open .left-rail { margin-bottom: 16px; }
-}
-
 /* Messaging layout */
 .messages-open.app-layout { padding-top: var(--page-top-gap); }
 .messages-open .feed-column { gap: 0; }

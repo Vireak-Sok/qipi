@@ -295,6 +295,7 @@ export default {
   "searchRecentEmpty": "Searches you make will appear here.",
   "searchRecentNoMatch": "No recent searches match.",
   "searchResults": "Search results",
+  "searchTripFound": "trip found",
   "filters": "Filters",
   "allTrips": "All trips",
   "upcomingOnly": "Upcoming trips only",

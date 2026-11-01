@@ -295,6 +295,7 @@ export default {
   "searchRecentEmpty": "ការស្វែងរករបស់អ្នកនឹងបង្ហាញនៅទីនេះ។",
   "searchRecentNoMatch": "មិនមានការស្វែងរកថ្មីៗដែលត្រូវគ្នាទេ។",
   "searchResults": "លទ្ធផលស្វែងរក",
+  "searchTripFound": "ដំណើរដែលរកឃើញ",
   "filters": "តម្រង",
   "allTrips": "ដំណើរទាំងអស់",
   "upcomingOnly": "តែដំណើរខាងមុខ",

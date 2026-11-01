@@ -1,6 +1,6 @@
 import { $, esc, icon, saveLocal } from "./core.js";
 
-export function createSearchController({ state, t, api, renderRoutes, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast }) {
+export function createSearchController({ state, t, api, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast }) {
   let searchRequestId = 0;
   function setSearch(value) {
     const query = value.trim();
@@ -11,15 +11,20 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
     if (clear) clear.hidden = !query;
     const results = $("#user-search-results");
     if (results && (state.view !== "search-results" || !query)) results.hidden = true;
-    renderRoutes();
-    renderTrips();
   }
 
   function renderUserSearchResults(profiles = [], query = state.search) {
     const target = $("#user-search-results");
     if (!target) return;
+    if (!query) {
+      target.hidden = true;
+      target.setAttribute("aria-busy", "false");
+      target.replaceChildren();
+      return;
+    }
     const matches = (profiles || []).filter((profile) => profile.id !== state.me?.id);
     target.hidden = false;
+    target.setAttribute("aria-busy", "false");
     target.innerHTML = `<div class="user-search-results-head"><h2>${esc(t("searchPeopleHeading"))}</h2><span>${matches.length}</span></div>${matches.length
       ? `<div class="user-search-result-list">${matches.map((profile) => {
         const name = profile.displayName || profile.username || t("traveler");
@@ -28,6 +33,24 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
         return `<a class="user-search-result" href="/${encodeURIComponent(username)}" data-action="open-profile" data-id="${esc(profile.id)}"><span class="user-search-avatar">${esc(letter.toLocaleUpperCase())}</span><span><strong>${esc(name)}</strong><small>@${esc(username)}</small></span><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#arrow-right"></use></svg></a>`;
       }).join("")}</div>`
       : `<p class="user-search-empty">${esc(t("searchPeopleEmpty"))}</p>`}`;
+  }
+
+  function renderSearchResultsLoading() {
+    const query = state.search.trim();
+    state.searchTrips = [];
+    state.searchTripsLoading = true;
+    renderTripListLoading("#search-results-list", 2);
+    const people = $("#user-search-results");
+    if (!people) return;
+    if (!query) {
+      people.hidden = true;
+      people.setAttribute("aria-busy", "false");
+      people.replaceChildren();
+      return;
+    }
+    people.hidden = false;
+    people.setAttribute("aria-busy", "true");
+    people.innerHTML = `<div class="user-search-results-head"><h2>${esc(t("searchPeopleHeading"))}</h2></div><div class="search-people-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><i></i><span><b></b><b></b></span></div>`;
   }
 
   function submitSearch(value) {
@@ -40,9 +63,7 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
     syncSearchFilterControls();
     closeDesktopSearch();
     setPageView("search-results");
-    const userResults = $("#user-search-results");
-    if (userResults) userResults.hidden = true;
-    renderTripListLoading("#trip-list", 2);
+    renderSearchResultsLoading();
     void loadSearchResults();
   }
 
@@ -51,11 +72,13 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
     const requestId = ++searchRequestId;
     const tripRequest = (loadPosts ? api("/api/trips") : Promise.resolve({ trips: state.trips })).then((result) => {
       if (requestId !== searchRequestId || state.view !== "search-results") return;
-      state.trips = result.trips || [];
+      state.searchTrips = result.trips || [];
+      state.searchTripsLoading = false;
       renderTrips();
     }).catch((error) => {
       if (requestId !== searchRequestId || state.view !== "search-results") return;
-      renderLoadingError("#trip-list", "retry-search");
+      state.searchTripsLoading = false;
+      renderLoadingError("#search-results-list", "retry-search");
       toast(error.message || t("failed"));
     });
     const peopleRequest = (query ? api(`/api/profiles/search?q=${encodeURIComponent(query)}`) : Promise.resolve({ profiles: [] })).then((result) => {
@@ -129,5 +152,5 @@ export function createSearchController({ state, t, api, renderRoutes, renderTrip
     });
   }
 
-  return { setSearch, submitSearch, loadSearchResults, renderSearchRecents, closeDesktopSearch, bindSearchEvents };
+  return { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, bindSearchEvents };
 }

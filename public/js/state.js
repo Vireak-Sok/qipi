@@ -20,7 +20,8 @@ export function createAppState() {
     preferences: { defaultTransport: "motorbike", defaultCostStyle: "own", safetyReminders: true, ...readLocal("qipi:preferences") },
     hostKeys: readLocal("qipi:host-keys"), requestKeys: readLocal("qipi:request-keys"),
     recentSearches: readArray("qipi:recent-searches"),
-    searchProfiles: [], searchFilters: { upcoming: false, routeId: "", transport: "" }
+    searchProfiles: [], searchTrips: [], searchTripsLoading: false,
+    searchFilters: { upcoming: false, routeId: "", transport: "" }
   };
   return state;
 }

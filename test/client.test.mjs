@@ -10,7 +10,10 @@ import { QipiAuth } from "../public/auth.js";
 function routerFor(path) {
   const location = new URL(path, "https://qipi.example");
   const state = { view: "feed", profileUsername: "", search: "" };
-  const history = { replaceState(_state, _title, path) { location.href = new URL(path, location).href; } };
+  const history = {
+    replaceState(_state, _title, path) { location.href = new URL(path, location).href; },
+    pushState(_state, _title, path) { location.href = new URL(path, location).href; }
+  };
   return { location, state, router: createRouter(state, { location, history }) };
 }
 
@@ -26,6 +29,9 @@ test("page refresh routing preserves named pages without stale profile queries",
   const post = routerFor("/post/unique-id");
   assert.equal(post.router.profileIdFromLocation(), "");
   assert.equal(post.router.viewFromLocation(false), "feed");
+  const search = routerFor("/search?q=kampot");
+  assert.equal(search.router.profileIdFromLocation(), "");
+  assert.equal(search.router.viewFromLocation(false), "search-results");
   assert.equal(routerFor("/#settings").router.viewFromLocation(false), "settings");
 });
 
@@ -40,6 +46,9 @@ test("links discard stale parameters and retain profile and search paths", () =>
   assert.equal(location.pathname, "/post/unique-id");
   state.search = "kampot & kep";
   assert.equal(router.pageUrl("search-results"), "/search?q=kampot+%26+kep");
+  state.view = "search-results";
+  router.pushPage("search-results");
+  assert.equal(location.pathname + location.search, "/search?q=kampot+%26+kep");
 });
 
 test("image uploads use the signed-in folder, publishable key, and user token", async (context) => {
@@ -182,7 +191,7 @@ test("shared shell components preserve unique IDs and omit Saved from both navig
   assert.equal(new Set(ids).size, ids.length);
   assert.doesNotMatch(navigation(), /saved-trips/);
   assert.doesNotMatch(navigation({ mobile: true }), /saved-trips/);
-  assert.equal((navigation({ mobile: true }).match(/<(a|button)\b/g) || []).length, 6);
+  assert.equal((navigation({ mobile: true }).match(/<(a|button)\b/g) || []).length, 5);
   for (const id of ["settings-view", "profile-view", "signup-view", "trip-list", "auth-dialog"]) assert.ok(ids.includes(id));
 });
 
@@ -248,13 +257,13 @@ test("Saved belongs to the owner's profile and never appears on another profile"
   assert.equal(loaded, 1);
 });
 
-test("profile card identity shows only name and username for demo and member profiles", async () => {
+test("profile card identity shows the name without the username or private profile details", async () => {
   const { profileCardMarkup } = await import("../public/js/profile-card.js");
   const base = { id: "demo-1", displayName: "Dara", username: "dara", homeBase: "Kampot", languages: ["km", "en"], isDemo: true, interests: [] };
   for (const isOwnProfile of [false, true]) {
     const markup = profileCardMarkup({ profile: base, trips: [], isOwnProfile, isFollowing: false, isEditing: false, t: key => key, avatarContents: () => "DD" });
     assert.match(markup, /<h2>Dara<\/h2>/);
-    assert.match(markup, /@dara/);
+    assert.doesNotMatch(markup, /@dara/);
     assert.doesNotMatch(markup, /demoProfile|Kampot|km · en|profile-demo-label/);
   }
 });

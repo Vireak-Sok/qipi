@@ -5,4 +5,4 @@ export function regionMarkup({ tag, props, html }) {
   return `<${tag} ${attrs}>${html}</${tag}>`;
 }
 const { skipLink, topbar, leftRail, rightRail, mobileNav, dialogs, toast } = shellRegions;
-export const pageMarkup = [regionMarkup(skipLink), regionMarkup(topbar), `<div class="app-layout shell" id="main">${regionMarkup(leftRail)}<main class="feed-column" id="feed">${pageRegions.map(regionMarkup).join("\n")}</main>${regionMarkup(rightRail)}</div>`, regionMarkup(mobileNav), ...dialogs.map(regionMarkup), regionMarkup(toast)].join("\n");
+export const pageMarkup = [regionMarkup(skipLink), regionMarkup(topbar), `<div class="app-layout shell" id="main">${regionMarkup(leftRail)}<main class="feed-column" id="feed">${pageRegions.map(regionMarkup).join("\n")}</main>${regionMarkup(rightRail)}</div>`, regionMarkup(mobileNav), ...dialogs.map(regionMarkup), regionMarkup(toast), regionMarkup(shellRegions.incomingNotification)].join("\n");

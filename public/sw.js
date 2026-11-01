@@ -57,3 +57,24 @@ self.addEventListener("fetch", (event) => {
     }
   })());
 });
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const requested = event.notification.data?.url || "/feed";
+  let target;
+  try {
+    target = new URL(requested, self.location.origin);
+    if (target.origin !== self.location.origin) target = new URL("/feed", self.location.origin);
+  } catch {
+    target = new URL("/feed", self.location.origin);
+  }
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (new URL(client.url).origin !== self.location.origin) continue;
+      try { await client.navigate(target.href); } catch { /* Focus the app even when navigation is unavailable. */ }
+      return client.focus();
+    }
+    return self.clients.openWindow(target.href);
+  })());
+});

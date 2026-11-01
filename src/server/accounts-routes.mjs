@@ -4,6 +4,7 @@ import { HttpError, body, createResponder } from "./http.mjs";
 import { text } from "./validation.mjs";
 import { publicTrip } from "./trips.mjs";
 import { RESERVED_SEGMENTS } from "../../public/js/route-config.js";
+import { addActivityNotification, notificationActor } from "./activity-notifications.mjs";
 
 export async function handleAccountsRoutes({ req, res, path, method, store, userFor }) {
   const respond = createResponder(res);
@@ -289,6 +290,15 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
       const existingIndex = data.follows.findIndex((follow) => follow.targetId === targetId && follow.followerId === followerId);
       if (input.following && existingIndex === -1) {
         data.follows.push({ targetId, followerId, createdAt: new Date().toISOString() });
+        const targetHasAccount = (data.profiles || []).some((profile) => profile.id === targetId) || data.trips.some((trip) => trip.hostUserId === targetId && !trip.hidden);
+        if (user && targetHasAccount) {
+          addActivityNotification(data, {
+            recipientId: targetId,
+            actor: notificationActor(data, user),
+            type: "follow",
+            targetId
+          });
+        }
       } else if (!input.following && existingIndex !== -1) {
         data.follows.splice(existingIndex, 1);
       }

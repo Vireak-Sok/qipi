@@ -18,6 +18,12 @@ export async function handleMessagesRoutes({ req, res, path, method, store, user
   if (!user) throw new HttpError(401, "Sign in to use messages");
   if (!chat) throw new HttpError(503, "Messaging is not configured yet");
 
+  if (path === "/api/conversations/read-all" && method === "POST") {
+    const conversations = await chat.conversationsFor(user.id);
+    await Promise.all(conversations.map((conversation) => chat.markRead(conversation.id, user.id)));
+    return respond(200, { ok: true });
+  }
+
   if (path === "/api/conversations" && method === "GET") {
     const [conversations, data] = await Promise.all([chat.conversationsFor(user.id), store.read()]);
     const result = await Promise.all(conversations.map(async (conversation) => {

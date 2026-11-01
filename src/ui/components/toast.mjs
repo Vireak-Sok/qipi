@@ -4,3 +4,9 @@ export const toast = {
   props: {"id": "toast", "className": "toast", "role": "status", "aria-live": "polite"},
   html: ``
 };
+
+export const incomingNotification = {
+  tag: "aside",
+  props: {"id": "incoming-notification", "className": "incoming-notification", "aria-label": "New activity", "aria-live": "polite", "hidden": true},
+  html: ``
+};

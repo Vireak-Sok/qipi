@@ -28,6 +28,8 @@ let chatNotificationRequest = null;
 let chatNotificationRequestUserId = "";
 let chatNotificationViewerId = "";
 let chatNotificationBaselineReady = false;
+let activityNotificationBaselineReady = false;
+let incomingNotificationTimeout;
 let historyRestoring = false;
 let historyPreserving = false;
 let locationRestoreRequestId = 0;
@@ -152,28 +154,69 @@ function renderAccount() {
 
 function renderChatNotifications() {
   const unread = auth.user ? state.conversations.filter((item) => Number(item.unreadCount) > 0) : [];
-  const total = unread.reduce((count, item) => count + Number(item.unreadCount), 0);
-  const label = total > 99 ? "99+" : String(total);
+  const messageTotal = unread.reduce((count, item) => count + Number(item.unreadCount), 0);
+  const activityUnread = auth.user ? Number(state.notificationUnreadCount ?? state.notifications.filter((item) => !item.readAt).length) : 0;
+  const total = messageTotal + activityUnread;
+  const messageLabel = messageTotal > 99 ? "99+" : String(messageTotal);
+  const notificationLabel = total > 99 ? "99+" : String(total);
   document.querySelectorAll("[data-message-badge]").forEach((badge) => {
+    badge.hidden = messageTotal === 0;
+    badge.textContent = messageTotal ? messageLabel : "";
+  });
+  document.querySelectorAll("[data-notification-badge]").forEach((badge) => {
     badge.hidden = total === 0;
-    badge.textContent = total ? label : "";
+    badge.textContent = total ? notificationLabel : "";
   });
   document.querySelectorAll('[data-page-view="messages"]').forEach((link) => {
-    if (total) link.setAttribute("aria-label", `${t("messages")} (${label})`);
+    if (messageTotal) link.setAttribute("aria-label", `${t("messages")} (${messageLabel})`);
     else link.removeAttribute("aria-label");
   });
   const button = $("[data-action='toggle-notifications']");
-  if (button) button.setAttribute("aria-label", total ? `${t("notifications")} (${label})` : t("notifications"));
+  if (button) button.setAttribute("aria-label", total ? `${t("notifications")} (${notificationLabel})` : t("notifications"));
   const list = $("#notification-messages");
   const empty = $("#notifications-panel .notification-empty");
+  const markAll = $("[data-action='mark-notifications-read']");
   const enableAlerts = $("[data-action='enable-browser-notifications']");
   if (enableAlerts) enableAlerts.hidden = !auth.user || typeof Notification === "undefined" || Notification.permission !== "default";
   if (!list || !empty) return;
-  list.hidden = unread.length === 0;
-  empty.hidden = unread.length > 0;
-  list.innerHTML = unread
-    .sort((a, b) => new Date(b.lastMessage?.created_at || b.updatedAt || 0) - new Date(a.lastMessage?.created_at || a.updatedAt || 0))
-    .map((item) => `<button class="notification-message" type="button" data-action="open-notification-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="notification-message-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small></span><b class="notification-message-count">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b></button>`).join("");
+  const activityItems = auth.user ? state.notifications.map((item) => {
+    const actor = item.actor || { displayName: t("traveler"), username: "", avatarPath: "" };
+    const labelKey = notificationLabelKey(item.type);
+    const time = item.createdAt ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(item.createdAt)) : "";
+    return {
+      createdAt: item.createdAt,
+      markup: `<button class="notification-message activity-notification ${item.readAt ? "is-read" : ""}" type="button" data-action="open-activity-notification" data-id="${esc(item.id)}" data-type="${esc(item.type)}" data-target="${esc(item.type === "follow" ? actor.id : item.targetId)}">${messageAvatar(actor)}<span class="notification-message-copy"><strong>${esc(actor.displayName || actor.username || t("traveler"))}</strong><small>${esc(t(labelKey))}${item.targetLabel ? ` · <em>${esc(item.targetLabel)}</em>` : ""}</small><time>${esc(time)}</time></span>${item.readAt ? "" : `<b class="notification-unread-dot" aria-label="${esc(t("unread"))}"></b>`}</button>`
+    };
+  }) : [];
+  const messageItems = unread.map((item) => {
+    const createdAt = item.lastMessage?.created_at || item.updatedAt || "";
+    const time = createdAt ? new Intl.DateTimeFormat(state.lang, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(createdAt)) : "";
+    return {
+      createdAt,
+      markup: `<button class="notification-message" type="button" data-action="open-notification-conversation" data-id="${esc(item.id)}">${messageAvatar(item.profile)}<span class="notification-message-copy"><strong>${esc(item.profile.displayName || item.profile.username || t("traveler"))}</strong><small>${esc(item.lastMessage?.body || t("startConversation"))}</small><time>${esc(time)}</time></span><b class="notification-message-count">${item.unreadCount > 99 ? "99+" : item.unreadCount}</b></button>`
+    };
+  });
+  const items = [...activityItems, ...messageItems].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  list.hidden = items.length === 0;
+  empty.hidden = items.length > 0;
+  if (markAll) markAll.hidden = total === 0;
+  list.innerHTML = items.map((item) => item.markup).join("");
+}
+
+function syncActivityNotifications(notifications, unreadCount = notifications.filter((item) => !item.readAt).length) {
+  const incoming = activityNotificationBaselineReady
+    ? notifications.filter((item) => !item.readAt && !state.notifications.some((previous) => previous.id === item.id))
+    : [];
+  const changed = JSON.stringify(notifications) !== JSON.stringify(state.notifications);
+  state.notifications = notifications;
+  state.notificationUnreadCount = Number(unreadCount) || 0;
+  if (changed) renderChatNotifications();
+  if (incoming.length) {
+    const newest = incoming.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    if (document.hidden) showActivityBrowserNotification(newest);
+    else showActivityNotificationAlert(newest);
+  }
+  activityNotificationBaselineReady = true;
 }
 
 function syncConversations(conversations, { updateSidebar = false } = {}) {
@@ -194,18 +237,24 @@ function syncConversations(conversations, { updateSidebar = false } = {}) {
 
 async function refreshChatNotifications() {
   const userId = auth.user?.id;
-  if (!userId || document.hidden) return;
-  if (state.view === "messages" && !state.conversationId && state.messagePoll) return;
+  if (!userId) return;
   if (chatNotificationRequest && chatNotificationRequestUserId === userId) return chatNotificationRequest;
   const request = (async () => {
-    try {
-      const result = await api("/api/conversations");
-      if (auth.user?.id !== userId) return;
-      syncConversations(result.conversations, { updateSidebar: true });
+    const shouldLoadConversations = !(state.view === "messages" && !state.conversationId && state.messagePoll);
+    const [conversationsResult, notificationsResult] = await Promise.allSettled([
+      shouldLoadConversations ? api("/api/conversations") : Promise.resolve(null),
+      api("/api/notifications")
+    ]);
+    if (auth.user?.id !== userId) return;
+    if (conversationsResult.status === "fulfilled" && conversationsResult.value) {
+      syncConversations(conversationsResult.value.conversations, { updateSidebar: true });
       chatNotificationBaselineReady = true;
-    } catch {
-      // Keep the last known unread count visible; a later foreground poll retries.
     }
+    if (notificationsResult.status === "fulfilled") {
+      syncActivityNotifications(notificationsResult.value.notifications || [], notificationsResult.value.unreadCount);
+    }
+    // Keep the last known counts visible when the network is unavailable; the
+    // next poll retries each endpoint independently.
   })();
   chatNotificationRequest = request;
   chatNotificationRequestUserId = userId;
@@ -225,7 +274,10 @@ function startChatNotifications() {
   if (viewerId !== chatNotificationViewerId) {
     chatNotificationViewerId = viewerId;
     chatNotificationBaselineReady = false;
+    activityNotificationBaselineReady = false;
     state.conversations = [];
+    state.notifications = [];
+    state.notificationUnreadCount = 0;
     renderChatNotifications();
   }
   if (!auth.user) { state.conversations = []; renderChatNotifications(); return; }
@@ -233,23 +285,81 @@ function startChatNotifications() {
   state.chatNotificationPoll = setInterval(refreshChatNotifications, 12000);
 }
 
+function notificationLabelKey(type) {
+  return ({ follow: "notificationFollow", like: "notificationLike", join_requested: "notificationJoinRequest", join_approved: "notificationJoinApproved", join_declined: "notificationJoinDeclined" })[type] || "notificationNewActivity";
+}
+
+function notificationPath(type, targetId, actor = null) {
+  if (type === "follow") return `/${encodeURIComponent(actor?.username || actor?.id || targetId)}`;
+  if (type === "message") return `/messages/${encodeURIComponent(targetId)}`;
+  return `/post/${encodeURIComponent(targetId)}`;
+}
+
+async function showBrowserAlert(title, message, tag, url) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const options = { body: message, tag, icon: "/favicon.svg", data: { url } };
+  try {
+    if ("serviceWorker" in navigator) {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, options);
+      return;
+    }
+  } catch { /* Fall back to a page notification when supported. */ }
+  try {
+    const notification = new Notification(title, options);
+    notification.onclick = () => {
+      window.focus();
+      window.location.assign(url);
+      notification.close();
+    };
+  } catch { /* Browser alerts are optional. */ }
+}
+
 function showIncomingMessageNotification(conversation) {
   const sender = conversation.profile?.displayName || conversation.profile?.username || t("traveler");
   const message = String(conversation.lastMessage?.body || t("newMessage")).replace(/\s+/g, " ").trim().slice(0, 160);
   if (document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
-    try {
-      const notification = new Notification(sender, { body: message, tag: `qipi-message-${conversation.id}`, icon: "/favicon.svg" });
-      notification.onclick = () => {
-        window.focus();
-        window.location.assign(`/messages/${encodeURIComponent(conversation.id)}`);
-        notification.close();
-      };
-    } catch { /* Browser notifications are an optional enhancement. */ }
+    void showBrowserAlert(sender, message, `qipi-message-${conversation.id}`, notificationPath("message", conversation.id));
     return;
   }
   if (document.visibilityState === "visible" && (state.view !== "messages" || state.conversationId !== conversation.id)) {
-    toast(`${t("newMessageFrom")} ${sender}`);
+    showIncomingMessageAlert(conversation, sender, message);
   }
+}
+
+function showActivityNotificationAlert(notification) {
+  const actor = notification.actor || { displayName: t("traveler"), username: "", avatarPath: "" };
+  const summary = t(notificationLabelKey(notification.type));
+  const detail = [summary, notification.targetLabel].filter(Boolean).join(" · ");
+  const alert = $("#incoming-notification");
+  if (!alert) return;
+  clearTimeout(incomingNotificationTimeout);
+  alert.innerHTML = `<button class="incoming-notification-open" type="button" data-action="open-activity-notification" data-id="${esc(notification.id)}" data-type="${esc(notification.type)}" data-target="${esc(notification.type === "follow" ? actor.id : notification.targetId)}">${messageAvatar(actor)}<span class="incoming-notification-copy"><strong>${esc(t("newActivity"))} · ${esc(actor.displayName || actor.username || t("traveler"))}</strong><small>${esc(detail)}</small><span class="incoming-notification-link">${esc(t("viewActivity"))} ${icon("arrow-right")}</span></span></button><button class="incoming-notification-close" type="button" data-action="dismiss-incoming-notification" aria-label="${esc(t("closeNotification"))}">${icon("close")}</button>`;
+  alert.hidden = false;
+  incomingNotificationTimeout = setTimeout(() => { alert.hidden = true; }, 7000);
+}
+
+function showActivityBrowserNotification(notification) {
+  const actor = notification.actor || { displayName: t("traveler"), username: "" };
+  const title = actor.displayName || actor.username || t("newActivity");
+  const body = [t(notificationLabelKey(notification.type)), notification.targetLabel].filter(Boolean).join(" · ");
+  const target = notification.type === "follow" ? actor : null;
+  void showBrowserAlert(title, body, `qipi-activity-${notification.id}`, notificationPath(notification.type, notification.targetId, target));
+}
+
+function showIncomingMessageAlert(conversation, sender, message) {
+  const alert = $("#incoming-notification");
+  if (!alert) return;
+  clearTimeout(incomingNotificationTimeout);
+  alert.innerHTML = `<button class="incoming-notification-open" type="button" data-action="open-incoming-notification" data-id="${esc(conversation.id)}">${messageAvatar(conversation.profile)}<span class="incoming-notification-copy"><strong>${esc(t("newMessageFrom"))} ${esc(sender)}</strong><small>${esc(message || t("newMessage"))}</small><span class="incoming-notification-link">${esc(t("openChat"))} ${icon("arrow-right")}</span></span></button><button class="incoming-notification-close" type="button" data-action="dismiss-incoming-notification" aria-label="${esc(t("closeNotification"))}">${icon("close")}</button>`;
+  alert.hidden = false;
+  incomingNotificationTimeout = setTimeout(() => { alert.hidden = true; }, 7000);
+}
+
+function dismissIncomingMessageAlert() {
+  clearTimeout(incomingNotificationTimeout);
+  const alert = $("#incoming-notification");
+  if (alert) alert.hidden = true;
 }
 
 function renderSettings() {
@@ -461,6 +571,14 @@ async function restoreBrowserLocation() {
   const tripIdFromQuery = query.get("trip");
   try {
     closeDialogs();
+    if (previousView === "search-results" && view !== "search-results") {
+      state.filter = "";
+      state.searchFilters = { upcoming: false, routeId: "", transport: "" };
+      state.searchProfiles = [];
+      setSearch("");
+      syncSearchFilterControls();
+      closeDesktopSearch();
+    }
     state.routeRequestId += 1;
     state.tripRequestId += 1;
     state.profileRequestId += 1;
@@ -1056,6 +1174,43 @@ document.addEventListener("click", async (eventTarget) => {
       renderChatNotifications();
       refreshChatNotifications();
     }
+    return;
+  }
+  if (action === "mark-notifications-read") {
+    try {
+      await api("/api/notifications/read-all", { method: "POST" });
+      const readAt = new Date().toISOString();
+      state.notifications = state.notifications.map((item) => ({ ...item, readAt: item.readAt || readAt }));
+      state.notificationUnreadCount = 0;
+      try {
+        await api("/api/conversations/read-all", { method: "POST" });
+        state.conversations = state.conversations.map((item) => ({ ...item, unreadCount: 0 }));
+      } catch { /* Keep unread chat counts when chat storage is unavailable. */ }
+      dismissIncomingMessageAlert();
+      renderChatNotifications();
+    } catch (error) { toast(error.message || t("failed")); }
+    return;
+  }
+  if (action === "dismiss-incoming-notification") { dismissIncomingMessageAlert(); return; }
+  if (action === "open-incoming-notification") {
+    dismissIncomingMessageAlert();
+    await openMessages(id, { useCachedInbox: true });
+    return;
+  }
+  if (action === "open-activity-notification") {
+    try {
+      await api(`/api/notifications/${encodeURIComponent(id)}`, { method: "PATCH", data: { read: true } });
+      const readAt = new Date().toISOString();
+      const wasUnread = state.notifications.find((item) => item.id === id && !item.readAt);
+      state.notifications = state.notifications.map((item) => item.id === id ? { ...item, readAt } : item);
+      if (wasUnread) state.notificationUnreadCount = Math.max(0, state.notificationUnreadCount - 1);
+      renderChatNotifications();
+      dismissIncomingMessageAlert();
+      $("#notifications-panel").hidden = true;
+      $("[data-action='toggle-notifications']")?.setAttribute("aria-expanded", "false");
+      if (type === "follow") await openProfile(button.dataset.target);
+      else await openTrip(button.dataset.target);
+    } catch (error) { toast(error.message || t("failed")); }
     return;
   }
   if (action === "enable-browser-notifications") {

@@ -1771,6 +1771,51 @@
 .notification-wrap {
   position: relative;
 }
+.incoming-notification {
+  position: fixed;
+  top: calc(var(--app-header-height, 72px) + 12px);
+  right: max(18px,calc((100vw - 1480px) / 2));
+  z-index: 110;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 30px;
+  align-items: start;
+  gap: 4px;
+  width: min(370px,calc(100vw - 28px));
+  padding: 9px 10px 9px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 16px 42px color-mix(in srgb,var(--text-primary) 18%,transparent);
+  animation: incoming-notification-in .2s ease-out;
+}
+.incoming-notification[hidden] { display: none; }
+.incoming-notification-open {
+  display: grid;
+  grid-template-columns: 42px minmax(0,1fr);
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 5px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.incoming-notification-open:hover { background: var(--surface-selected); }
+.incoming-notification-open .message-avatar { width: 42px; height: 42px; border-radius: 50%; }
+.incoming-notification-copy { display: grid; min-width: 0; gap: 4px; }
+.incoming-notification-copy strong,.incoming-notification-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.incoming-notification-copy strong { font-size: 12px; }
+.incoming-notification-copy small { color: var(--text-secondary); font-size: 12px; }
+.incoming-notification-link { display: inline-flex; align-items: center; gap: 4px; color: var(--brand-strong); font-size: 11px; font-weight: 750; }
+.incoming-notification-link .heroicon { width: 13px; height: 13px; }
+.incoming-notification-close { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.incoming-notification-close:hover { background: var(--surface-selected); color: var(--text-primary); }
+.incoming-notification-close .heroicon { width: 16px; height: 16px; }
+@keyframes incoming-notification-in { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
 .icon-button {
   display: grid;
   place-items: center;

@@ -13,8 +13,9 @@ import { SupabaseChatRepository } from "../chat-repository.mjs";
 import { SafetyRepository } from "../safety-repository.mjs";
 import { handleSafetyRoutes } from "./safety-routes.mjs";
 import { handleMapRoutes } from "./map-routes.mjs";
+import { handleNotificationsRoutes } from "./notifications-routes.mjs";
 
-const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes, handleMessagesRoutes, handleSafetyRoutes, handleMapRoutes];
+const routeHandlers = [handleAccountsRoutes, handleTripsRoutes, handleCommunityRoutes, handleMessagesRoutes, handleSafetyRoutes, handleMapRoutes, handleNotificationsRoutes];
 
 const defaultDataFile = join(process.cwd(), "data", "store.json");
 const defaultPublicDir = join(process.cwd(), "public");

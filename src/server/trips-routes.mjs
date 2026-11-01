@@ -5,6 +5,7 @@ import { HttpError, body, createResponder } from "./http.mjs";
 import { token, digest, sameSecret, owner } from "./security.mjs";
 import { text, optionalText, choice, dateField, timeField } from "./validation.mjs";
 import { publicTrip, publicTrips, findTrip, addEvent } from "./trips.mjs";
+import { addActivityNotification, notificationActor } from "./activity-notifications.mjs";
 
 function tripCursor(trip) {
   return Buffer.from(JSON.stringify([trip.date, trip.departureTime, trip.id])).toString("base64url");
@@ -66,6 +67,7 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
 
   const likeMatch = /^\/api\/trips\/([0-9a-f-]+)\/like$/.exec(path);
   if (likeMatch && method === "POST") {
+    const user = await userFor(req);
     const input = await body(req);
     const actorId = req.headers["x-qipi-actor"];
     if (typeof actorId !== "string" || !/^[0-9a-f-]{36}$/.test(actorId)) {
@@ -78,6 +80,15 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
       const existingIndex = data.likes.findIndex((like) => like.tripId === trip.id && like.actorId === actorId);
       if (input.liked && existingIndex === -1) {
         data.likes.push({ tripId: trip.id, actorId, createdAt: new Date().toISOString() });
+        if (user && trip.hostUserId) {
+          addActivityNotification(data, {
+            recipientId: trip.hostUserId,
+            actor: notificationActor(data, user),
+            type: "like",
+            targetId: trip.id,
+            targetLabel: trip.title
+          });
+        }
       } else if (!input.liked && existingIndex !== -1) {
         data.likes.splice(existingIndex, 1);
       }
@@ -189,6 +200,15 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
       };
       data.joinRequests.push(record);
       addEvent(data, "join_requested", trip.id);
+      if (trip.hostUserId) {
+        addActivityNotification(data, {
+          recipientId: trip.hostUserId,
+          actor: notificationActor(data, user),
+          type: "join_requested",
+          targetId: trip.id,
+          targetLabel: trip.title
+        });
+      }
       return { id: record.id, status: record.status };
     });
     return respond(201, { request, ...(requestToken ? { requestToken } : {}) });
@@ -229,6 +249,15 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
       }
       request.status = decision;
       addEvent(data, `join_${decision}`, trip.id);
+      if (request.travelerUserId && user) {
+        addActivityNotification(data, {
+          recipientId: request.travelerUserId,
+          actor: notificationActor(data, user),
+          type: decision === "approved" ? "join_approved" : "join_declined",
+          targetId: trip.id,
+          targetLabel: trip.title
+        });
+      }
       return { id: request.id, status: request.status };
     });
     return respond(200, { request: result });

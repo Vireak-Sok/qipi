@@ -4,6 +4,7 @@
   --social-radius-md: 17px;
   --social-radius-lg: 22px;
   --social-content-width: 1420px;
+  --social-main-column-width: 760px;
 }
 
 body.social-app {
@@ -44,7 +45,7 @@ body.social-app {
 .app-layout:not(.settings-open):not(.profile-open):not(.messages-open):not(.explore-open):not(.entry-open):not(.signup-open) {
   width: min(var(--social-content-width), calc(100% - 48px));
   max-width: var(--social-content-width);
-  grid-template-columns: minmax(190px, 220px) minmax(0, 640px) minmax(235px, 280px);
+  grid-template-columns: minmax(190px, 220px) minmax(0, var(--social-main-column-width)) minmax(235px, 280px);
   justify-content: center;
   gap: clamp(26px, 3vw, 48px);
   padding-top: var(--page-top-gap);
@@ -325,9 +326,9 @@ body.social-app {
   .messages-open.app-layout,
   .profile-open.app-layout,
   .settings-open.app-layout { width: min(var(--social-content-width), calc(100% - 48px)); max-width: var(--social-content-width); gap: clamp(26px,3vw,48px); }
-  .settings-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,760px); }
-  .profile-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,760px) minmax(235px,280px); }
-  .messages-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,880px) minmax(235px,280px); }
+  .settings-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)); }
+  .profile-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px); }
+  .messages-open.app-layout { grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px); }
 }
 
 @media (min-width: 961px) and (max-width: 1120px) {
@@ -339,7 +340,7 @@ body.social-app {
   }
   .settings-open .right-rail { display: none; }
   .profile-open.app-layout {
-    grid-template-columns: 190px minmax(400px,630px) 230px;
+    grid-template-columns: 190px minmax(0,var(--social-main-column-width)) 230px;
     gap: 20px;
   }
 }
@@ -616,7 +617,7 @@ body.social-app {
 
 @media (min-width: 961px) {
   #main.search-page-open.app-layout {
-    grid-template-columns: minmax(190px,220px) minmax(0,900px) minmax(235px,280px);
+    grid-template-columns: minmax(190px,220px) minmax(0,var(--social-main-column-width)) minmax(235px,280px);
   }
 }
 @media (min-width: 961px) and (max-width: 1120px) {

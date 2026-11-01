@@ -1,6 +1,6 @@
-const CACHE_NAME = "qipi-static-v1";
+const CACHE_NAME = "qipi-static-v2";
 const APP_SHELL = [
-  "/offline.html", "/offline.css", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
+  "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
   "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png",
   "/styles.css", "/app.js", "/startup.js", "/i18n.js", "/auth.js",
   "/js/api.js", "/js/core.js", "/js/feed.js", "/js/loading.js", "/js/media.js",
@@ -16,8 +16,14 @@ self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await cache.addAll(APP_SHELL);
-    await self.skipWaiting();
+    // Take control on first install. Later versions wait until the user accepts
+    // the in-app update prompt so an active form or post is not interrupted.
+    if (!self.registration.active) await self.skipWaiting();
   })());
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "QIPI_ACTIVATE_UPDATE") event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {

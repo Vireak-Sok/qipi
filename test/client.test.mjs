@@ -6,6 +6,7 @@ import { createRouter } from "../public/js/routing.js";
 import { createMediaClient, prepareImageUpload, revealImage } from "../public/js/media.js";
 import { profileUsername } from "../public/js/shared.js";
 import { QipiAuth } from "../public/auth.js";
+import { createPwaController } from "../public/js/pwa.js";
 
 function routerFor(path) {
   const location = new URL(path, "https://qipi.example");
@@ -123,10 +124,11 @@ test("theme and entry boot flags are applied synchronously before first paint", 
   const source = await readFile(new URL("../public/startup.js", import.meta.url), "utf8");
   const root = { dataset: {} };
   const themeColor = { content: "" };
+  const saved = new Map([["qipi:theme", "dark"]]);
   const browser = {
     document: { documentElement: root, querySelector: () => themeColor, readyState: "loading", addEventListener() {} },
     window: { matchMedia: () => ({ matches: false, addEventListener() {} }) },
-    localStorage: { getItem: () => "dark" },
+    localStorage: { getItem: (key) => saved.get(key) || null, setItem: (key, value) => saved.set(key, value) },
     sessionStorage: { getItem: () => null },
     location: new URL("https://qipi.example/dara-demo001"),
     URLSearchParams
@@ -137,6 +139,134 @@ test("theme and entry boot flags are applied synchronously before first paint", 
   assert.equal(root.dataset.profilePending, "true");
   assert.equal(root.dataset.entryPending, "true");
   assert.equal(themeColor.content, "#10191B");
+});
+
+test("guest choice survives app restarts and upgrades the previous session choice", async () => {
+  const source = await readFile(new URL("../public/startup.js", import.meta.url), "utf8");
+  for (const { localChoice, sessionChoice, expectedChoice } of [
+    { localChoice: "guest", sessionChoice: null, expectedChoice: "guest" },
+    { localChoice: null, sessionChoice: "guest", expectedChoice: "guest" }
+  ]) {
+    const root = { dataset: {} };
+    const saved = new Map(localChoice ? [["qipi:entry-choice", localChoice]] : []);
+    const session = new Map(sessionChoice ? [["qipi:entry-choice", sessionChoice]] : []);
+    const browser = {
+      document: { documentElement: root, querySelector: () => null, readyState: "loading", addEventListener() {} },
+      window: { matchMedia: () => ({ matches: false, addEventListener() {} }) },
+      localStorage: { getItem: (key) => saved.get(key) || null, setItem: (key, value) => saved.set(key, value) },
+      sessionStorage: { getItem: (key) => session.get(key) || null },
+      location: new URL("https://qipi.example/feed"), URLSearchParams
+    };
+    runInNewContext(source, browser);
+    assert.equal(root.dataset.entryPending, undefined);
+    assert.equal(saved.get("qipi:entry-choice"), expectedChoice);
+  }
+});
+
+test("service worker waits for user approval before replacing an active version", async () => {
+  const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  const handlers = new Map();
+  let cachedName = "";
+  let cachedAssets = [];
+  let skipWaitingCalls = 0;
+  const worker = {
+    registration: { active: { state: "activated" } },
+    addEventListener: (name, handler) => handlers.set(name, handler),
+    skipWaiting: async () => { skipWaitingCalls++; }
+  };
+  const cachesApi = { open: async (name) => { cachedName = name; return { addAll: async (assets) => { cachedAssets = assets; } }; } };
+  runInNewContext(source, { self: worker, caches: cachesApi, URL, Request, Response, fetch, Promise });
+
+  let installPromise;
+  handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
+  await installPromise;
+  assert.equal(cachedName, "qipi-static-v2");
+  assert.ok(cachedAssets.includes("/offline.js"));
+  assert.equal(skipWaitingCalls, 0);
+
+  let activationMessage;
+  handlers.get("message")({
+    data: { type: "QIPI_ACTIVATE_UPDATE" },
+    waitUntil: (promise) => { activationMessage = promise; }
+  });
+  await activationMessage;
+  assert.equal(skipWaitingCalls, 1);
+});
+
+test("the PWA update prompt reloads only after the user chooses Update now", async (context) => {
+  const prior = Object.fromEntries(["window", "document", "navigator"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const windowListeners = new Map();
+  const documentListeners = new Map();
+  const serviceWorkerListeners = new Map();
+  let reloads = 0;
+  let postedMessage = null;
+  let renderedNotice = null;
+  let hasOpenDialog = false;
+  let confirmations = 0;
+  const waitingWorker = { postMessage: (message) => { postedMessage = message; } };
+  const registrationListeners = new Map();
+  const registration = {
+    waiting: waitingWorker,
+    installing: null,
+    addEventListener: (name, handler) => registrationListeners.set(name, handler),
+    update: async () => {}
+  };
+  const mockWindow = {
+    isSecureContext: true,
+    navigator: {},
+    location: { reload: () => { reloads++; } },
+    confirm: () => { confirmations++; return false; },
+    addEventListener: (name, handler) => windowListeners.set(name, handler)
+  };
+  const mockDocument = {
+    readyState: "complete",
+    body: { append: (node) => { renderedNotice = node; } },
+    getElementById: () => null,
+    querySelector: () => hasOpenDialog ? {} : null,
+    querySelectorAll: () => [],
+    createElement: () => ({ className: "", hidden: false, setAttribute() {}, querySelectorAll: () => [] }),
+    addEventListener: (name, handler) => documentListeners.set(name, handler)
+  };
+  const mockNavigator = {
+    serviceWorker: {
+      controller: { state: "activated" },
+      register: async () => registration,
+      addEventListener: (name, handler) => serviceWorkerListeners.set(name, handler)
+    }
+  };
+  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator })) {
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  }
+  context.after(() => {
+    for (const [key, descriptor] of Object.entries(prior)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  });
+
+  createPwaController({ t: (key) => key, toast: () => {} });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(renderedNotice);
+  assert.equal(renderedNotice.hidden, false);
+  assert.equal(reloads, 0);
+
+  const updateButton = { dataset: { pwaUpdate: "apply" }, closest: () => updateButton };
+  hasOpenDialog = true;
+  documentListeners.get("click")({ target: updateButton });
+  assert.equal(confirmations, 1);
+  assert.equal(postedMessage, null);
+  assert.equal(reloads, 0);
+
+  hasOpenDialog = false;
+  mockWindow.confirm = () => { confirmations++; return true; };
+  documentListeners.get("click")({ target: updateButton });
+  assert.deepEqual(postedMessage, { type: "QIPI_ACTIVATE_UPDATE" });
+  assert.equal(reloads, 0);
+
+  serviceWorkerListeners.get("controllerchange")();
+  assert.equal(reloads, 1);
+  assert.ok(windowListeners.has("online"));
+  assert.ok(windowListeners.has("offline"));
 });
 
 test("Supabase profile updates retain metadata and refresh tokens rotate once for concurrent requests", async () => {

@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#10191B" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#F1F7F6" />
     <title>Qipi · Offline</title>
     <link rel="stylesheet" href="/offline.css" />
   </head>
@@ -11,8 +11,9 @@
     <main>
       <div class="mark" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M14 46c10-9 15-14 25-17 5-1 9 0 13-7" fill="none" stroke="#e58c70" stroke-linecap="round" stroke-width="8"/><circle cx="14" cy="46" r="5" fill="#f1f7f6"/><circle cx="52" cy="22" r="5" fill="#f1f7f6"/></svg></div>
       <h1>You're offline</h1>
-      <p>Qipi needs an internet connection to load posts, messages, and map updates. Reconnect and try again.</p>
-      <a href="/feed">Try again</a>
+      <p id="offline-status" role="status" aria-live="polite">Qipi needs an internet connection to load posts, messages, and map updates. Reconnect and try again.</p>
+      <a id="offline-retry" href="/feed">Try again</a>
     </main>
+    <script src="/offline.js" defer></script>
   </body>
 </html>

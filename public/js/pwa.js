@@ -10,6 +10,59 @@ function isIosSafari() {
 
 export function createPwaController({ t, toast }) {
   let installPrompt = null;
+  let registration = null;
+  let updateNotice = null;
+  let updateRequested = false;
+  let updateDismissed = false;
+  let reloadAfterUpdate = false;
+
+  function renderUpdateNotice() {
+    if (!registration?.waiting || !navigator.serviceWorker?.controller || updateDismissed) return;
+    if (!updateNotice) {
+      updateNotice = document.createElement("aside");
+      updateNotice.className = "pwa-update-notice";
+      updateNotice.setAttribute("role", "status");
+      updateNotice.setAttribute("aria-live", "polite");
+      updateNotice.innerHTML = `<span>${esc(t("pwaUpdateReady"))}</span><div><button type="button" data-pwa-update="apply">${esc(t("pwaUpdateAction"))}</button><button type="button" class="pwa-update-later" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>`;
+      document.body.append(updateNotice);
+    }
+    updateNotice.hidden = false;
+  }
+
+  function applyUpdate() {
+    const waiting = registration?.waiting;
+    if (!waiting || updateRequested) return;
+    const hasOpenDialog = Boolean(document.querySelector("dialog[open]"));
+    const hasUnsentText = [...document.querySelectorAll("input, textarea")].some((field) => {
+      if (field.disabled || field.type === "hidden" || field.type === "button" || field.type === "submit" || field.type === "reset") return false;
+      if (field.form?.getAttribute("role") === "search" || field.type === "search") return false;
+      return field.value !== field.defaultValue;
+    });
+    const hasPendingUpload = [...document.querySelectorAll('input[type="file"]')].some((field) => field.files?.length);
+    if ((hasOpenDialog || hasUnsentText || hasPendingUpload) && !window.confirm(t("pwaUpdateUnsavedConfirm"))) return;
+    updateRequested = true;
+    reloadAfterUpdate = true;
+    updateNotice?.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+    waiting.postMessage({ type: "QIPI_ACTIVATE_UPDATE" });
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-pwa-update]");
+    if (!button) return;
+    if (button.dataset.pwaUpdate === "apply") applyUpdate();
+    if (button.dataset.pwaUpdate === "later") {
+      updateDismissed = true;
+      if (updateNotice) updateNotice.hidden = true;
+    }
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!reloadAfterUpdate) return;
+      reloadAfterUpdate = false;
+      window.location.reload();
+    });
+  }
 
   function renderInstallSettings() {
     const content = $("#settings-install-content");
@@ -46,7 +99,15 @@ export function createPwaController({ t, toast }) {
   async function registerServiceWorker() {
     if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+      registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
+      registration.addEventListener("updatefound", () => {
+        const installing = registration.installing;
+        if (!installing) return;
+        installing.addEventListener("statechange", () => {
+          if (installing.state === "installed") renderUpdateNotice();
+        });
+      });
+      renderUpdateNotice();
       registration.update().catch(() => {});
     } catch {
       // The app stays usable when service workers are blocked or unavailable.
@@ -63,6 +124,8 @@ export function createPwaController({ t, toast }) {
     renderInstallSettings();
     toast(t("pwaInstalled"));
   });
+  window.addEventListener("offline", () => toast(t("pwaOffline")));
+  window.addEventListener("online", () => toast(t("pwaOnline")));
   window.addEventListener("DOMContentLoaded", () => { void registerServiceWorker(); }, { once: true });
   if (document.readyState !== "loading") void registerServiceWorker();
 

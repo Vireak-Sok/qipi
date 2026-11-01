@@ -34,6 +34,17 @@
   });
 
   let recovering = false;
+  function entryChoice() {
+    try {
+      const saved = localStorage.getItem("qipi:entry-choice");
+      if (saved) return saved;
+      const previousSessionChoice = sessionStorage.getItem("qipi:entry-choice");
+      if (previousSessionChoice) localStorage.setItem("qipi:entry-choice", previousSessionChoice);
+      return previousSessionChoice;
+    } catch {
+      try { return sessionStorage.getItem("qipi:entry-choice"); } catch { return null; }
+    }
+  }
   try {
     recovering = new URLSearchParams(location.hash.replace(/^#/, "")).get("type") === "recovery";
     const path = location.pathname.replace(/\/+$/, "") || "/";
@@ -45,7 +56,7 @@
     const signupRoute = path === "/signup" || location.hash === "#signup";
     if (path === "/profile" || profilePath || legacyProfile || /^\/profile\/[^/]+\/?$/.test(path)) root.dataset.profilePending = "true";
     if (signupRoute) root.dataset.signupPending = "true";
-    if (!recovering && !signupRoute && !sessionStorage.getItem("qipi:entry-choice")) {
+    if (!recovering && !signupRoute && !entryChoice()) {
       root.dataset.entryPending = "true";
     }
   } catch {

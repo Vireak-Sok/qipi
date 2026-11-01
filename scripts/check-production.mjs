@@ -108,6 +108,15 @@ try {
     assert.ok(csp.includes("'nonce-"));
     assert.ok(!csp.includes("unsafe-eval"));
   }
+  for (const path of ["/sw.js", "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest"]) {
+    assert.equal((await fetch(base + path)).status, 200, "PWA asset " + path);
+  }
+  const manifest = await (await fetch(base + "/manifest.webmanifest")).json();
+  assert.equal(manifest.start_url, "/feed");
+  assert.equal(manifest.display, "standalone");
+  const serviceWorker = await (await fetch(base + "/sw.js")).text();
+  assert.match(serviceWorker, /QIPI_ACTIVATE_UPDATE/);
+  assert.match(serviceWorker, /offline\.js/);
   const assets = ["core", "shared", "state", "routing", "api", "selects", "loading", "media", "search", "profile", "feed", "trip-card", "profile-tabs", "route-config"];
   for (const name of assets) {
     const response = await fetch(base + "/js/" + name + ".js");

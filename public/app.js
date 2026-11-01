@@ -58,8 +58,21 @@ const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = c
 });
 
 const ENTRY_CHOICE_KEY = "qipi:entry-choice";
-function entryChoice() { try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; } }
-function saveEntryChoice(value) { try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {} }
+function entryChoice() {
+  try {
+    const saved = localStorage.getItem(ENTRY_CHOICE_KEY);
+    if (saved) return saved;
+    const previousSessionChoice = sessionStorage.getItem(ENTRY_CHOICE_KEY);
+    if (previousSessionChoice) localStorage.setItem(ENTRY_CHOICE_KEY, previousSessionChoice);
+    return previousSessionChoice;
+  } catch {
+    try { return sessionStorage.getItem(ENTRY_CHOICE_KEY); } catch { return "guest"; }
+  }
+}
+function saveEntryChoice(value) {
+  try { localStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {}
+  try { sessionStorage.setItem(ENTRY_CHOICE_KEY, value); } catch {}
+}
 let entryReturnView = "feed";
 async function restoreEntryReturnView() {
   if (entryReturnView === "saved") await openSavedTrips();

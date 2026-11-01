@@ -1348,7 +1348,7 @@ document.addEventListener("change", (eventTarget) => {
       await api("/api/me/avatar", { method: "POST", data: { avatarPath: path } });
       if (state.profile?.id === auth.user.id) state.profile = { ...state.profile, avatarPath: path };
       renderAccount();
-      const avatar = form.querySelector(".profile-photo-edit .profile-avatar");
+      const avatar = form.querySelector(".profile-edit-avatar");
       if (avatar) avatar.innerHTML = avatarContents(state.profile?.displayName, path);
       const overviewAvatar = $("#profile-content .profile-avatar-large");
       if (overviewAvatar) overviewAvatar.innerHTML = avatarContents(state.profile?.displayName, path);
@@ -1407,12 +1407,30 @@ document.addEventListener("submit", async (eventTarget) => {
       const values = Object.fromEntries(new FormData(form));
       const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
       if (travelStyles.length > 3) throw new Error(t("signupStyleLimit"));
-      await auth.updateProfile({ displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
+      const previousUsername = state.profile?.username || state.me?.profile?.username || "";
+      const username = String(values.username || "").trim().toLowerCase();
+      const usernameChanged = username !== previousUsername;
+      if (usernameChanged) await api("/api/me/username", { method: "PUT", data: { username } });
+      try {
+        await auth.updateProfile({ displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
+      } catch (error) {
+        if (usernameChanged && previousUsername) {
+          await api("/api/me/username", { method: "PUT", data: { username: previousUsername } }).catch(() => {});
+        }
+        throw error;
+      }
       renderAccount();
       state.profileEditing = false;
       await openProfile(auth.user.id, false);
       toast(t("profileSaved"));
-    } catch (error) { setError(form, error.message || t("profileSaveError")); }
+    } catch (error) {
+      const serverMessage = error.message || "";
+      const message = serverMessage === "That username is already in use" ? t("usernameTaken")
+        : serverMessage === "That username is reserved" ? t("usernameReserved")
+          : serverMessage.startsWith("Use 3–64 lowercase letters") ? t("usernameHint")
+            : serverMessage || t("profileSaveError");
+      setError(form, message);
+    }
     finally { if (submit.isConnected) submit.disabled = false; }
     return;
   }

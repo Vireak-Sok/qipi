@@ -71,9 +71,7 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
   }
 
   function renderFeedLoading() {
-    $("#route-grid")?.setAttribute("aria-busy", "true");
     $("#trip-list").setAttribute("aria-busy", "true");
-    renderRoutesLoading();
     renderTripListLoading("#trip-list", 2);
   }
 

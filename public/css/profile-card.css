@@ -437,3 +437,86 @@
   .skeleton-profile-overview { grid-template-columns: 68px minmax(0,1fr); gap: 10px; }
   .skeleton-profile-avatar { width: 66px; height: 66px; }
 }
+
+/* Edit mode replaces the public profile summary with one focused form. */
+.profile-card .profile-edit-form {
+  display: grid;
+  gap: 18px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.profile-edit-heading {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: 760;
+  letter-spacing: -.02em;
+}
+.profile-edit-top {
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.profile-edit-avatar { width: 54px; height: 54px; }
+.profile-edit-account { display: grid; gap: 3px; min-width: 0; }
+.profile-edit-account strong,.profile-edit-account span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-edit-account strong { color: var(--text-primary); font-size: 13px; }
+.profile-edit-account span { color: var(--text-secondary); font-size: 11px; }
+.profile-photo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: var(--surface-card);
+  color: var(--brand-strong);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.profile-photo-button:hover { background: var(--surface-selected); }
+.profile-edit-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.profile-card .profile-edit-form .field { display: grid; gap: 7px; margin: 0; }
+.profile-card .profile-edit-form .field label,.profile-edit-interests legend { color: var(--text-primary); font-size: 12px; font-weight: 720; }
+.profile-card .profile-edit-form .field input,.profile-card .profile-edit-form .field textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-control);
+  border-radius: 11px;
+  background: var(--surface-field);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+.profile-card .profile-edit-form .field textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
+.profile-card .profile-edit-form .field input:focus-visible,.profile-card .profile-edit-form .field textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.profile-edit-interests { min-width: 0; margin: 0; padding: 0; border: 0; }
+.profile-edit-interests legend { margin-bottom: 9px; }
+.profile-edit-interests .signup-interest-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.profile-edit-interests .signup-interest-grid label { min-height: 38px; border-radius: 10px; }
+.profile-edit-actions { justify-content: flex-end; margin: 0; padding-top: 14px; }
+.profile-edit-actions .button { min-width: 112px; min-height: 40px; }
+.profile-post-list { min-width: 0; }
+.profile-post-list .trip-list { grid-template-columns: minmax(0,1fr); }
+.profile-post-list .empty-trips { grid-column: 1; }
+
+@media (max-width: 700px) {
+  .profile-card .profile-edit-form { gap: 15px; }
+  .profile-edit-heading { font-size: 16px; }
+  .profile-edit-top { grid-template-columns: 48px minmax(0,1fr) auto; gap: 9px; padding-bottom: 13px; }
+  .profile-edit-avatar { width: 48px; height: 48px; }
+  .profile-photo-button { min-height: 34px; padding-inline: 9px; font-size: 10px; }
+  .profile-edit-fields { grid-template-columns: minmax(0,1fr); gap: 13px; }
+  .profile-edit-interests .signup-interest-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+  .profile-edit-actions .button { min-width: 0; flex: 1; }
+}

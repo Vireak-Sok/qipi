@@ -292,7 +292,7 @@ function startChatNotifications() {
 }
 
 function notificationLabelKey(type) {
-  return ({ follow: "notificationFollow", like: "notificationLike", join_requested: "notificationJoinRequest", join_approved: "notificationJoinApproved", join_declined: "notificationJoinDeclined" })[type] || "notificationNewActivity";
+  return ({ follow: "notificationFollow", like: "notificationLike", comment: "notificationComment", comment_reply: "notificationCommentReply", join_requested: "notificationJoinRequest", join_approved: "notificationJoinApproved", join_declined: "notificationJoinDeclined" })[type] || "notificationNewActivity";
 }
 
 function notificationPath(type, targetId, actor = null) {
@@ -911,6 +911,81 @@ async function openTrip(id, deepLink = true) {
   } catch (error) { if (requestId === state.tripRequestId) { renderDialogError("trip-dialog", "retry-trip", id); toast(error.message || t("failed")); } }
 }
 
+function renderCommentsDialog() {
+  const tripId = state.commentsTripId;
+  const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(state.profile?.trips || [])].find((item) => item.id === tripId);
+  const title = trip?.title || t("comments");
+  const renderComment = (comment, isReply = false) => `<article class="comment-item ${isReply ? "comment-reply" : ""}">
+    <span class="comment-avatar">${avatarContents(comment.displayName, comment.avatarPath || "")}</span>
+    <div class="comment-copy"><div class="comment-meta"><strong>${esc(comment.displayName || t("traveler"))}</strong><time datetime="${esc(comment.createdAt)}">${esc(comment.createdAt ? new Intl.DateTimeFormat(state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt)) : "")}</time></div>
+      <p>${esc(comment.body)}</p>${!isReply ? `<button class="comment-reply-button" type="button" data-action="reply-comment" data-id="${esc(tripId)}" data-parent-id="${esc(comment.id)}" data-author="${esc(comment.displayName)}">${esc(t("reply"))}</button>` : ""}
+      ${comment.replies?.length ? `<div class="comment-replies">${comment.replies.map((reply) => renderComment(reply, true)).join("")}</div>` : ""}
+    </div></article>`;
+  const commentsMarkup = state.comments.length
+    ? state.comments.map((comment) => renderComment(comment)).join("")
+    : `<div class="comments-empty"><span>${icon("chat")}</span><strong>${esc(t("noComments"))}</strong><p>${esc(t("beFirstToComment"))}</p></div>`;
+  const commentsCount = Number(state.commentsCount ?? trip?.commentsCount ?? 0);
+  const replyMarkup = state.commentsReplyTo
+    ? `<div class="comment-replying"><span>${esc(t("replyingTo").replace("{name}", state.commentsReplyTo.author))}</span><button type="button" data-action="cancel-comment-reply" aria-label="${esc(t("cancelReply"))}">${icon("close")}</button></div>`
+    : "";
+  showDialog("comments-dialog", `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}">
+    <header class="comments-heading"><div><p class="dialog-kicker">${esc(t("comments"))}</p><h2 id="comments-dialog-title">${esc(title)}</h2><p>${commentsCount} ${esc(t(commentsCount === 1 ? "comment" : "comments").toLowerCase())}</p></div></header>
+    <div class="comments-list" aria-live="polite">${commentsMarkup}</div>
+    <form class="comment-composer" id="comment-form" data-trip-id="${esc(tripId)}">${replyMarkup}<div class="comment-composer-row"><label class="visually-hidden" for="comment-body">${esc(t("writeComment"))}</label><textarea id="comment-body" name="body" rows="1" maxlength="500" placeholder="${esc(t("writeComment"))}" required>${esc(state.commentsDraft || "")}</textarea><button class="button button-primary" type="submit">${esc(t("postComment"))}</button></div><div class="error-message" role="alert"></div></form>
+  </section>`);
+}
+
+async function openComments(tripId) {
+  const requestId = ++state.commentsRequestId;
+  state.commentsTripId = tripId;
+  state.commentsReplyTo = null;
+  state.commentsDraft = "";
+  showDialog("comments-dialog", `<h2 id="comments-dialog-title" class="visually-hidden">${esc(t("loading"))}</h2><div class="comments-loading" aria-label="${esc(t("loading"))}"><span></span><span></span><span></span></div>`);
+  try {
+    const { comments, commentsCount } = await api(`/api/trips/${encodeURIComponent(tripId)}/comments`);
+    if (requestId !== state.commentsRequestId) return;
+    state.comments = comments || [];
+    state.commentsCount = Number(commentsCount) || 0;
+    renderCommentsDialog();
+    const list = $(".comments-list");
+    if (list) list.scrollTop = list.scrollHeight;
+  } catch (error) {
+    if (requestId !== state.commentsRequestId) return;
+    const content = $("#comments-dialog-content");
+    content.innerHTML = `<section class="comments-dialog-content"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><div class="feed-load-error" role="alert"><p>${esc(error.message || t("failed"))}</p><button class="button button-ghost" type="button" data-action="retry-comments" data-id="${esc(tripId)}">${esc(t("retry"))}</button></div></section>`;
+  }
+}
+
+function updateCommentCount(tripId, count) {
+  const update = (trip) => trip.id === tripId ? { ...trip, commentsCount: count } : trip;
+  state.trips = state.trips.map(update);
+  state.searchTrips = state.searchTrips.map(update);
+  state.savedTripRecords = state.savedTripRecords.map(update);
+  if (state.profile) state.profile = { ...state.profile, trips: (state.profile.trips || []).map(update) };
+  renderTrips();
+  if (state.view === "profile") renderProfile();
+}
+
+async function createComment(tripId, body, parentCommentId = "") {
+  const { comment, commentsCount } = await api(`/api/trips/${encodeURIComponent(tripId)}/comments`, {
+    method: "POST", data: { body, parentCommentId }
+  });
+  if (parentCommentId) {
+    state.comments = state.comments.map((root) => root.id === parentCommentId
+      ? { ...root, replies: [...(root.replies || []), comment] }
+      : root);
+  } else state.comments = [...state.comments, comment];
+  const count = Number(commentsCount) || state.comments.reduce((total, root) => total + 1 + (root.replies?.length || 0), 0);
+  state.commentsCount = count;
+  updateCommentCount(tripId, count);
+  state.commentsReplyTo = null;
+  state.commentsDraft = "";
+  renderCommentsDialog();
+  const list = $(".comments-list");
+  if (list) list.scrollTop = list.scrollHeight;
+  toast(t("commentAdded"));
+}
+
 function openCreate(selectedRoute = "") {
   showDialog("create-dialog", `
     <p class="dialog-kicker">QIPI / POST</p><h2 id="create-dialog-title">Share your travels</h2>
@@ -1248,6 +1323,7 @@ document.addEventListener("click", async (eventTarget) => {
       $("#notifications-panel").hidden = true;
       $("[data-action='toggle-notifications']")?.setAttribute("aria-expanded", "false");
       if (type === "follow") await openProfile(button.dataset.target);
+      else if (type === "comment" || type === "comment_reply") await openComments(button.dataset.target);
       else await openTrip(button.dataset.target);
     } catch (error) { toast(error.message || t("failed")); }
     return;
@@ -1322,6 +1398,22 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "edit-profile") { state.profileEditing = true; renderProfile(); return; }
   if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfile(); return; }
   if (action === "close-dialog") { closeAppDialog(button.closest("dialog")); return; }
+  if (action === "open-comments") { await openComments(id); return; }
+  if (action === "reply-comment") {
+    state.commentsDraft = $("#comment-body")?.value || "";
+    state.commentsReplyTo = { id: button.dataset.parentId, author: button.dataset.author || t("traveler") };
+    renderCommentsDialog();
+    $("#comment-body")?.focus();
+    return;
+  }
+  if (action === "cancel-comment-reply") {
+    state.commentsDraft = $("#comment-body")?.value || "";
+    state.commentsReplyTo = null;
+    renderCommentsDialog();
+    $("#comment-body")?.focus();
+    return;
+  }
+  if (action === "retry-comments") { await openComments(id); return; }
   if (action === "open-route") openRoute(id);
   if (action === "open-profile") { eventTarget.preventDefault(); await openProfile(id); return; }
   if (action === "profile-back") {
@@ -1585,6 +1677,34 @@ document.addEventListener("error", (eventTarget) => {
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "comment-form") {
+    eventTarget.preventDefault();
+    const submit = form.querySelector("button[type=submit]");
+    const body = form.elements.body.value.trim();
+    const tripId = form.dataset.tripId;
+    const parentCommentId = state.commentsReplyTo?.id || "";
+    if (!body) return;
+    state.commentsDraft = body;
+    submit.disabled = true;
+    try {
+      if (auth.enabled && !auth.user) {
+        pendingAction = async () => {
+          await openComments(tripId);
+          try { await createComment(tripId, body, parentCommentId); }
+          catch (error) { toast(error.message || t("failed")); }
+        };
+        openAuth("signin");
+        return;
+      }
+      await createComment(tripId, body, parentCommentId);
+    } catch (error) {
+      const box = form.querySelector(".error-message");
+      if (box) { box.textContent = error.message || t("failed"); box.classList.add("show"); }
+    } finally {
+      if (submit.isConnected) submit.disabled = false;
+    }
+    return;
+  }
   if (form.id === "safety-contact-form" || form.id === "safety-destination-form") {
     eventTarget.preventDefault();
     try {

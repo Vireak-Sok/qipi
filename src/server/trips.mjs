@@ -6,6 +6,7 @@ function publicTrip(trip, data, actorId = "", counts = null) {
     (request) => request.tripId === trip.id && request.status === "approved"
   ).length;
   const likes = counts?.likesByTrip.get(trip.id) ?? (data.likes || []).filter((like) => like.tripId === trip.id);
+  const commentsCount = counts?.commentsByTrip.get(trip.id) ?? (data.comments || []).filter((comment) => comment.tripId === trip.id).length;
   return {
     id: trip.id,
     routeId: trip.routeId,
@@ -26,6 +27,7 @@ function publicTrip(trip, data, actorId = "", counts = null) {
     profileId: trip.demoUserId || trip.hostUserId || null,
     hostVerified: Boolean(trip.hostUserId),
     likesCount: likes.length,
+    commentsCount,
     likedByViewer: Boolean(actorId && likes.some((like) => like.actorId === actorId)),
     status: trip.status,
     createdAt: trip.createdAt
@@ -45,7 +47,10 @@ function publicTrips(trips, data, actorId = "") {
     likesByTrip.set(like.tripId, likes);
   }
 
-  const counts = { approvedByTrip, likesByTrip };
+  const commentsByTrip = new Map();
+  for (const comment of data.comments || []) commentsByTrip.set(comment.tripId, (commentsByTrip.get(comment.tripId) || 0) + 1);
+
+  const counts = { approvedByTrip, likesByTrip, commentsByTrip };
   return trips.map((trip) => publicTrip(trip, data, actorId, counts));
 }
 

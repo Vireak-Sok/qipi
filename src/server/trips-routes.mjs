@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { routeById } from "../routes.mjs";
-import { todayInCambodia } from "../../public/js/shared.js";
+import { profileUsername, todayInCambodia } from "../../public/js/shared.js";
 import { HttpError, body, createResponder } from "./http.mjs";
 import { token, digest, sameSecret, owner } from "./security.mjs";
 import { text, optionalText, choice, dateField, timeField } from "./validation.mjs";
@@ -66,6 +66,62 @@ export async function handleTripsRoutes({ req, res, path, method, url, store, us
   }
 
   const likeMatch = /^\/api\/trips\/([0-9a-f-]+)\/like$/.exec(path);
+  const commentsMatch = /^\/api\/trips\/([0-9a-f-]+)\/comments$/.exec(path);
+  if (commentsMatch && method === "GET") {
+    const data = await store.read();
+    const trip = findTrip(data, commentsMatch[1]);
+    const comments = (data.comments || []).filter((comment) => comment.tripId === trip.id);
+    const repliesByComment = new Map();
+    for (const comment of comments) {
+      if (!comment.parentCommentId) continue;
+      const replies = repliesByComment.get(comment.parentCommentId) || [];
+      replies.push(comment);
+      repliesByComment.set(comment.parentCommentId, replies);
+    }
+    const publicComment = ({ id, parentCommentId, displayName, username, avatarPath, body: commentBody, createdAt }) => ({
+      id, parentCommentId: parentCommentId || "", displayName, username, avatarPath: avatarPath || "", body: commentBody, createdAt
+    });
+    const roots = comments.filter((comment) => !comment.parentCommentId).slice(-200).map((comment) => ({
+      ...publicComment(comment),
+      replies: (repliesByComment.get(comment.id) || []).map(publicComment)
+    }));
+    return respond(200, { comments: roots, commentsCount: comments.length });
+  }
+  if (commentsMatch && method === "POST") {
+    const user = await userFor(req, { required: true });
+    const input = await body(req);
+    const commentBody = text(input.body, "comment", 1, 500);
+    const parentCommentId = input.parentCommentId == null || input.parentCommentId === ""
+      ? ""
+      : text(input.parentCommentId, "parentCommentId", 36, 36);
+    if (parentCommentId && !/^[0-9a-f-]{36}$/i.test(parentCommentId)) throw new HttpError(400, "parentCommentId is invalid");
+    const comment = await store.mutate((data) => {
+      const trip = findTrip(data, commentsMatch[1]);
+      data.comments ||= [];
+      const parent = parentCommentId ? data.comments.find((item) => item.id === parentCommentId && item.tripId === trip.id && !item.parentCommentId) : null;
+      if (parentCommentId && !parent) throw new HttpError(404, "Comment not found");
+      const profile = user ? (data.profiles || []).find((item) => item.id === user.id) : null;
+      const authorName = profile?.displayName || user?.displayName || "Traveler";
+      const record = {
+        id: randomUUID(), tripId: trip.id, parentCommentId: parent?.id || "", userId: user?.id || null,
+        displayName: authorName, username: profile?.username || profileUsername(authorName, user?.id || ""),
+        avatarPath: profile?.avatarPath || user?.avatarPath || "", body: commentBody, createdAt: new Date().toISOString()
+      };
+      data.comments.push(record);
+      const actor = notificationActor(data, user);
+      if (user && actor) {
+        const recipients = new Set([parent?.userId, trip.hostUserId].filter(Boolean));
+        for (const recipientId of recipients) addActivityNotification(data, {
+          recipientId, actor, type: parent ? "comment_reply" : "comment", targetId: trip.id, targetLabel: trip.title
+        });
+      }
+      return {
+        comment: { ...record, replies: [] },
+        commentsCount: data.comments.filter((item) => item.tripId === trip.id).length
+      };
+    });
+    return respond(201, comment);
+  }
   if (likeMatch && method === "POST") {
     const user = await userFor(req);
     const input = await body(req);

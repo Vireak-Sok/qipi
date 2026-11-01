@@ -194,14 +194,16 @@ test("service worker waits for user approval before replacing an active version"
 });
 
 test("the PWA update prompt reloads only after the user chooses Update now", async (context) => {
-  const prior = Object.fromEntries(["window", "document", "navigator"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const prior = Object.fromEntries(["window", "document", "navigator", "MutationObserver"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const windowListeners = new Map();
   const documentListeners = new Map();
   const serviceWorkerListeners = new Map();
+  const observedMutations = [];
   let reloads = 0;
   let postedMessage = null;
   let renderedNotice = null;
   let hasOpenDialog = false;
+  let criticalView = false;
   let confirmations = 0;
   const waitingWorker = { postMessage: (message) => { postedMessage = message; } };
   const registrationListeners = new Map();
@@ -221,8 +223,8 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
   const mockDocument = {
     readyState: "complete",
     body: { append: (node) => { renderedNotice = node; } },
-    getElementById: () => null,
-    querySelector: () => hasOpenDialog ? {} : null,
+    getElementById: (id) => id === "main" ? {} : null,
+    querySelector: (selector) => selector.startsWith("#main.") ? (criticalView ? {} : null) : selector === "dialog[open]" ? (hasOpenDialog ? {} : null) : null,
     querySelectorAll: () => [],
     createElement: () => ({ className: "", hidden: false, setAttribute() {}, querySelectorAll: () => [] }),
     addEventListener: (name, handler) => documentListeners.set(name, handler)
@@ -234,7 +236,11 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
       addEventListener: (name, handler) => serviceWorkerListeners.set(name, handler)
     }
   };
-  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator })) {
+  class MockMutationObserver {
+    constructor(callback) { this.callback = callback; }
+    observe(target, options) { observedMutations.push({ callback: this.callback, target, options }); }
+  }
+  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator, MutationObserver: MockMutationObserver })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
   context.after(() => {
@@ -249,6 +255,13 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
   assert.ok(renderedNotice);
   assert.equal(renderedNotice.hidden, false);
   assert.equal(reloads, 0);
+
+  criticalView = true;
+  observedMutations[0].callback();
+  assert.equal(renderedNotice.hidden, true);
+  criticalView = false;
+  observedMutations[0].callback();
+  assert.equal(renderedNotice.hidden, false);
 
   const updateButton = { dataset: { pwaUpdate: "apply" }, closest: () => updateButton };
   hasOpenDialog = true;

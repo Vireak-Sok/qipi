@@ -16,8 +16,16 @@ export function createPwaController({ t, toast }) {
   let updateDismissed = false;
   let reloadAfterUpdate = false;
 
+  function updateMustWait() {
+    return Boolean(document.querySelector("#main.explore-open, #main.messages-thread-open, #main.signup-open, #main.entry-open, dialog[open]"));
+  }
+
   function renderUpdateNotice() {
     if (!registration?.waiting || !navigator.serviceWorker?.controller || updateDismissed) return;
+    if (updateMustWait()) {
+      if (updateNotice) updateNotice.hidden = true;
+      return;
+    }
     if (!updateNotice) {
       updateNotice = document.createElement("aside");
       updateNotice.className = "pwa-update-notice";
@@ -27,6 +35,14 @@ export function createPwaController({ t, toast }) {
       document.body.append(updateNotice);
     }
     updateNotice.hidden = false;
+  }
+
+  function watchCriticalViews() {
+    if (typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(renderUpdateNotice);
+    const app = document.getElementById("main");
+    if (app) observer.observe(app, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["open"], subtree: true });
   }
 
   function applyUpdate() {
@@ -107,6 +123,7 @@ export function createPwaController({ t, toast }) {
           if (installing.state === "installed") renderUpdateNotice();
         });
       });
+      watchCriticalViews();
       renderUpdateNotice();
       registration.update().catch(() => {});
     } catch {

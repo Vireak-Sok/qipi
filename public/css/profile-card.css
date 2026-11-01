@@ -500,6 +500,7 @@
 }
 .profile-card .profile-edit-form .field textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
 .profile-card .profile-edit-form .field input:focus-visible,.profile-card .profile-edit-form .field textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.profile-username-hint { color: var(--text-secondary); font-size: 10px; line-height: 1.4; }
 .profile-edit-interests { min-width: 0; margin: 0; padding: 0; border: 0; }
 .profile-edit-interests legend { margin-bottom: 9px; }
 .profile-edit-interests .signup-interest-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }

@@ -3,6 +3,7 @@ import { profileUsername } from "../../public/js/shared.js";
 import { HttpError, body, createResponder } from "./http.mjs";
 import { text } from "./validation.mjs";
 import { publicTrip } from "./trips.mjs";
+import { RESERVED_SEGMENTS } from "../../public/js/route-config.js";
 
 export async function handleAccountsRoutes({ req, res, path, method, store, userFor }) {
   const respond = createResponder(res);
@@ -69,6 +70,27 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
       .sort((a, b) => b.postCount - a.postCount || b.followerCount - a.followerCount || a.displayName.localeCompare(b.displayName))
       .slice(0, 5);
     return respond(200, { profiles: suggestions });
+  }
+  if (path === "/api/me/username" && method === "PUT") {
+    const user = await userFor(req, { required: true });
+    if (!user) throw new HttpError(503, "Authentication is not configured");
+    const input = await body(req);
+    const username = text(input.username, "Username", 3, 64).toLowerCase();
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(username)) {
+      throw new HttpError(400, "Use 3–64 lowercase letters or numbers, with single hyphens between words");
+    }
+    if (RESERVED_SEGMENTS.has(username)) throw new HttpError(400, "That username is reserved");
+    const result = await store.mutate((data) => {
+      data.profiles ||= [];
+      const occupied = data.profiles.some((profile) => profile.id !== user.id && (profile.username?.toLowerCase() === username || profile.id?.toLowerCase() === username)) ||
+        (data.demoUsers || []).some((profile) => profile.id?.toLowerCase() === username || profileUsername(profile.displayName, profile.id) === username) ||
+        (data.trips || []).some((trip) => !trip.hidden && trip.hostUserId && trip.hostUserId !== user.id && (trip.hostUserId.toLowerCase() === username || profileUsername(trip.hostName, trip.hostUserId) === username));
+      if (occupied) throw new HttpError(409, "That username is already in use");
+      const profile = syncPublicProfile(data, user);
+      profile.username = username;
+      return { username };
+    });
+    return respond(200, result);
   }
   if (path === "/api/me/profile" && method === "PUT") {
     const user = await userFor(req, { required: true });

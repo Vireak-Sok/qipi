@@ -307,7 +307,7 @@
   animation: qipi-spin .8s linear infinite;
   pointer-events: none;
 }
-.account-avatar .image-loading-indicator,.profile-avatar .image-loading-indicator,.composer-avatar .image-loading-indicator,.post-avatar .image-loading-indicator {
+.account-avatar .image-loading-indicator,.profile-avatar .image-loading-indicator,.composer-avatar .image-loading-indicator,.post-avatar .image-loading-indicator,.comment-avatar .image-loading-indicator,.comment-composer-avatar .image-loading-indicator {
   width: 16px;
   height: 16px;
   margin: -8px 0 0 -8px;

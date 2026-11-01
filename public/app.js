@@ -917,8 +917,8 @@ function renderCommentsDialog() {
   const title = trip?.title || t("comments");
   const renderComment = (comment, isReply = false) => `<article class="comment-item ${isReply ? "comment-reply" : ""}">
     <span class="comment-avatar">${avatarContents(comment.displayName, comment.avatarPath || "")}</span>
-    <div class="comment-copy"><div class="comment-meta"><strong>${esc(comment.displayName || t("traveler"))}</strong><time datetime="${esc(comment.createdAt)}">${esc(comment.createdAt ? new Intl.DateTimeFormat(state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt)) : "")}</time></div>
-      <p>${esc(comment.body)}</p>${!isReply ? `<button class="comment-reply-button" type="button" data-action="reply-comment" data-id="${esc(tripId)}" data-parent-id="${esc(comment.id)}" data-author="${esc(comment.displayName)}">${esc(t("reply"))}</button>` : ""}
+    <div class="comment-copy"><div class="comment-bubble"><strong>${esc(comment.displayName || t("traveler"))}</strong><p>${esc(comment.body)}</p></div>
+      <div class="comment-actions"><time datetime="${esc(comment.createdAt)}">${esc(comment.createdAt ? new Intl.DateTimeFormat(state.lang === "km" ? "km-KH" : state.lang === "zh" ? "zh-CN" : "en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(comment.createdAt)) : "")}</time>${!isReply ? `<button class="comment-reply-button" type="button" data-action="reply-comment" data-id="${esc(tripId)}" data-parent-id="${esc(comment.id)}" data-author="${esc(comment.displayName)}">${esc(t("reply"))}</button>` : ""}</div>
       ${comment.replies?.length ? `<div class="comment-replies">${comment.replies.map((reply) => renderComment(reply, true)).join("")}</div>` : ""}
     </div></article>`;
   const commentsMarkup = state.comments.length
@@ -928,11 +928,17 @@ function renderCommentsDialog() {
   const replyMarkup = state.commentsReplyTo
     ? `<div class="comment-replying"><span>${esc(t("replyingTo").replace("{name}", state.commentsReplyTo.author))}</span><button type="button" data-action="cancel-comment-reply" aria-label="${esc(t("cancelReply"))}">${icon("close")}</button></div>`
     : "";
-  showDialog("comments-dialog", `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}">
-    <header class="comments-heading"><div><p class="dialog-kicker">${esc(t("comments"))}</p><h2 id="comments-dialog-title">${esc(title)}</h2><p>${commentsCount} ${esc(t(commentsCount === 1 ? "comment" : "comments").toLowerCase())}</p></div></header>
+  const markup = `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}">
+    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(title)}</p><span class="comments-count">${commentsCount}</span></header>
     <div class="comments-list" aria-live="polite">${commentsMarkup}</div>
-    <form class="comment-composer" id="comment-form" data-trip-id="${esc(tripId)}">${replyMarkup}<div class="comment-composer-row"><label class="visually-hidden" for="comment-body">${esc(t("writeComment"))}</label><textarea id="comment-body" name="body" rows="1" maxlength="500" placeholder="${esc(t("writeComment"))}" required>${esc(state.commentsDraft || "")}</textarea><button class="button button-primary" type="submit">${esc(t("postComment"))}</button></div><div class="error-message" role="alert"></div></form>
-  </section>`);
+    <form class="comment-composer" id="comment-form" data-trip-id="${esc(tripId)}">${replyMarkup}<div class="comment-composer-row"><span class="comment-composer-avatar">${avatarContents(displayName() || "Q", auth.user?.user_metadata?.avatar_path || "")}</span><label class="visually-hidden" for="comment-body">${esc(t("writeComment"))}</label><textarea id="comment-body" name="body" rows="1" maxlength="500" placeholder="${esc(t("writeComment"))}" required>${esc(state.commentsDraft || "")}</textarea><button class="comment-send-button" type="submit" aria-label="${esc(t("postComment"))}" title="${esc(t("postComment"))}">${icon("send")}</button></div><div class="error-message" role="alert"></div></form>
+  </section>`;
+  const dialog = $("#comments-dialog");
+  const scrollTop = dialog?.querySelector(".comments-list")?.scrollTop || 0;
+  if (dialog?.open) dialog.querySelector("#comments-dialog-content").innerHTML = markup;
+  else showDialog("comments-dialog", markup);
+  const list = dialog?.querySelector(".comments-list");
+  if (list) list.scrollTop = scrollTop;
 }
 
 async function openComments(tripId) {
@@ -940,7 +946,7 @@ async function openComments(tripId) {
   state.commentsTripId = tripId;
   state.commentsReplyTo = null;
   state.commentsDraft = "";
-  showDialog("comments-dialog", `<h2 id="comments-dialog-title" class="visually-hidden">${esc(t("loading"))}</h2><div class="comments-loading" aria-label="${esc(t("loading"))}"><span></span><span></span><span></span></div>`);
+  showDialog("comments-dialog", `<h2 id="comments-dialog-title" class="visually-hidden">${esc(t("loading"))}</h2><div class="comments-loading" aria-label="${esc(t("loading"))}">${Array.from({ length: 3 }, () => `<div><i></i><span><b></b><em></em></span></div>`).join("")}</div>`);
   try {
     const { comments, commentsCount } = await api(`/api/trips/${encodeURIComponent(tripId)}/comments`);
     if (requestId !== state.commentsRequestId) return;

@@ -73,6 +73,7 @@
 .profile-card .profile-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
   gap: 5px;
   margin: 0;
   padding: 0;
@@ -82,12 +83,12 @@
 }
 .profile-card .profile-stats > div {
   display: grid;
-  justify-items: center;
+  justify-items: start;
   align-content: start;
   gap: 2px;
   min-width: 0;
   border: 0;
-  text-align: center;
+  text-align: left;
 }
 .profile-card .profile-stats strong {
   color: var(--text-primary);

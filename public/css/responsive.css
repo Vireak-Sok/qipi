@@ -188,6 +188,14 @@
   .messages-thread-open.app-layout { padding-bottom: 0; }
   .messages-thread-open ~ .mobile-nav { display: none; }
   .social-app:has(.messages-thread-open) { padding-bottom: 0; }
+  #main.messages-thread-open #messages-view { height: calc(100dvh - var(--app-header-height) - env(safe-area-inset-bottom)); }
+  #main.messages-thread-open #messages-content,
+  #main.messages-thread-open .messages-layout,
+  #main.messages-thread-open .message-thread-pane { height: 100%; min-height: 0; }
+  #main.messages-thread-open .message-thread-skeleton,
+  #main.messages-thread-open .message-thread { height: 100%; min-height: 0; grid-template-rows: auto minmax(0,1fr) auto; }
+  #main.messages-thread-open .message-history { min-height: 0; overscroll-behavior: contain; }
+  #main.messages-thread-open .message-composer { background: var(--surface-card); }
   .mobile-nav { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; min-height: 66px; padding: 7px 10px max(7px,env(safe-area-inset-bottom)); border-top: 1px solid var(--border-soft); background: color-mix(in srgb,var(--surface-card) 94%,transparent); box-shadow: 0 -8px 24px color-mix(in srgb,var(--text-primary) 8%,transparent); backdrop-filter: blur(18px); }
   .mobile-nav > a,.mobile-nav > button { min-height: 48px; gap: 3px; color: var(--text-secondary); }
   .mobile-nav > a .heroicon,.mobile-nav > button .heroicon { width: 20px; height: 20px; }

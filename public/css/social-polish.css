@@ -22,7 +22,11 @@ body.social-app {
 /* Give installed iOS PWAs room for the status bar and keep full-screen pages
    aligned with the actual safe-area-aware header height. */
 @media (max-width: 700px) {
-  :root { --app-header-height: calc(62px + env(safe-area-inset-top)); --page-top-gap: 4px; }
+  :root {
+    --app-header-height: calc(62px + env(safe-area-inset-top));
+    --mobile-nav-height: max(66px, calc(56px + max(7px, env(safe-area-inset-bottom))));
+    --page-top-gap: 12px;
+  }
   .social-topbar { padding-top: env(safe-area-inset-top); }
 }
 
@@ -726,9 +730,9 @@ body.social-app {
 
 @media (max-width: 700px) {
   #main.settings-open,
-  #main.profile-open { --page-top-gap: 4px; --page-sticky-top: calc(var(--app-header-height) + 4px); }
+  #main.profile-open { --page-top-gap: 12px; --page-sticky-top: calc(var(--app-header-height) + 12px); }
   .settings-page > .settings-header,
-  .profile-page > .settings-header { min-height: 48px; padding-top: 4px; padding-bottom: 8px; margin-bottom: 2px; }
+  .profile-page > .settings-header { min-height: 48px; padding-top: 0; padding-bottom: 10px; margin-bottom: 0; }
   .settings-page > .settings-header h1,
   .profile-page > .settings-header h1 { font-size: 17px; }
   .settings-open.app-layout {
@@ -760,6 +764,36 @@ body.social-app {
   .notification-empty#notification-page-empty { min-height: 220px; }
   #settings-view .settings-preference-grid { gap: 12px; }
   #settings-view .settings-card { min-width: 0; }
+}
+
+/* Treat page spacing as a single shell rule. Explore is the deliberate
+   exception: its map touches the header and fills the available viewport. */
+@media (min-width: 701px) {
+  #main.explore-open.app-layout {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  #main.explore-open .feed-column,
+  #main.explore-open .feed-column > #routes,
+  #main.explore-open #explore-map-content,
+  #main.explore-open .explore-map-shell {
+    height: calc(100dvh - var(--app-header-height));
+    min-height: 0;
+  }
+  #main.explore-open .feed-column { gap: 0; }
+}
+
+@media (max-width: 700px) {
+  #main.explore-open.app-layout {
+    top: var(--app-header-height);
+    bottom: var(--mobile-nav-height);
+  }
+  #main.messages-open.app-layout:not(.messages-thread-open) {
+    padding-top: var(--page-top-gap);
+  }
+  #main.messages-open:not(.messages-thread-open) .messages-page {
+    height: calc(100dvh - var(--app-header-height) - 88px - var(--page-top-gap) - env(safe-area-inset-bottom));
+  }
 }
 
 #profile-tab-panel > .trip-list { margin-top: 16px; }

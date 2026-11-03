@@ -17,6 +17,16 @@ Open [http://127.0.0.1:4173](http://127.0.0.1:4173). `npm install` and `npm run 
 
 Local development uses `data/store.json` unless both `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are set. Put local variables in an ignored `.env.local` file, using `.env.example` for the names. Without Auth settings, local development keeps the original browser-token demo flow. To test real sign-in locally, set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` without the secret key; the app then uses Supabase Auth and local JSON data. Add the local URL to Supabase Auth's redirect allowlist if you want email confirmation links to return to localhost.
 
+### Test phone OTP without sending SMS
+
+This repository includes a **local-only** Supabase Auth test number. It does not verify real phone ownership and must not be used for public signups.
+
+1. Start Docker, then run `pnpm supabase:start:otp-test`. The first run downloads the local Supabase containers. This reduced stack starts Auth and the database needed for signup testing.
+2. The local-only settings are in the ignored `.env.development.local` file on this machine. For a fresh checkout, copy `API_URL` and `PUBLISHABLE_KEY` from `pnpm supabase status --output env` into that file as `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. Leave `SUPABASE_SECRET_KEY` empty so app data stays in local JSON.
+3. Restart `pnpm dev`, open `/signup`, and use **+1 202-555-0100** with OTP **123456**. No SMS is sent. The values are configured in [supabase/config.toml](supabase/config.toml).
+
+Use `pnpm supabase:stop` to stop the local stack. The local config includes a dummy SMS-provider placeholder so Supabase Auth accepts test OTP requests; do not run `supabase config push` with this test configuration. Live phone verification still needs a real SMS provider configured for the hosted Supabase project.
+
 To enable the moderation page, start the server with a private admin token:
 
 ```bash
@@ -43,9 +53,9 @@ The production check starts the actual built Next.js server against disposable, 
 4. In Supabase, copy the **Project URL**, **publishable API key** (`sb_publishable_...`), and create a **secret API key** (`sb_secret_...`). The publishable key is returned to the browser for Supabase Auth and Storage uploads; the secret key must stay on the server. Both use the `apikey` header, while signed-in user JWTs use `Authorization` ([Supabase API keys](https://supabase.com/docs/guides/getting-started/api-keys)).
 5. Import this GitHub repository into Vercel with the **Next.js** framework preset and the repository root as the Root Directory. Use Node.js **24.x**, `pnpm build` as the build command, and the framework's default output directory. Vercel builds the Next.js App Router pages and API route handlers.
 6. In Vercel project settings, set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_PUBLISHABLE_KEY` for Production and Preview, pointing each environment at its intended project. Set `QIPI_ADMIN_TOKEN` if you want the moderation page. Redeploy after adding variables. The CSP derives its allowed Supabase origin from `SUPABASE_URL`; no project URL is hardcoded.
-7. In Supabase Authentication → URL Configuration, set the Site URL and an allowed redirect URL to `https://qipi.vercel.app/`. Keep email confirmation enabled. New users must follow their confirmation email before signing in.
+7. In Supabase Authentication → URL Configuration, set the Site URL and an allowed redirect URL to `https://qipi.vercel.app/`. Enable the Phone provider and phone confirmations, then configure a real SMS provider for hosted signups ([Supabase phone sign-in setup](https://supabase.com/docs/guides/auth/phone-login)). Keep the Email provider enabled for existing email accounts. New accounts verify by phone OTP, not email confirmation.
 8. Optionally set `MAPTILER_PUBLIC_KEY` and `OPENROUTESERVICE_API_KEY` in Vercel for destination search and in-app driving directions. Restrict the MapTiler key to Qipi domains; it is public in `/api/config`. Keep the openrouteservice key server-side. MapTiler's free tier is for development or noncommercial use; a commercial production deployment needs an appropriate plan. Without these keys, Safety shows the current position on an OpenStreetMap pilot embed and links to external destination search.
-9. Open the Vercel URL and check `/api/health` for `"storage":"supabase"`, then create an account, confirm its email, post a test story, and submit a join request from a second account. Check `/admin.html` with your admin token if configured.
+9. Open the Vercel URL and check `/api/health` for `"storage":"supabase"`, then create an account with a phone number and SMS code, post a test story, and submit a join request from a second account. Check `/admin.html` with your admin token if configured.
 
 Use [.env.example](.env.example) as a list of environment variable names. Never commit real keys or prefix the secret/admin variables with `NEXT_PUBLIC_`. Only the publishable key and project URL are returned to the browser. Vercel API and media handlers fail with a service error when configuration is incomplete; they never fall back to writing a local JSON file. Existing projects with both migrations already applied do not need a database migration for this refactor.
 
@@ -54,7 +64,7 @@ Use [.env.example](.env.example) as a list of environment variable names. Never 
 - An Instagram-inspired community feed for travel stories and optional group trip posts. Explore destinations are derived from member posts; fixed pilot routes are no longer part of the main browsing and posting flow.
 - A Settings page for account profile details and English, Khmer, or Chinese language selection.
 - Profile photo uploads and optional trip photos use the `qipi-images` Supabase Storage bucket (JPG/PNG/WebP, up to 5 MiB per image).
-- Supabase email/password accounts with email confirmation and password reset. Guests can browse; members can post trips, request to join, and submit route notes. The server checks each access token with Supabase Auth before these actions.
+- Phone/password signup with SMS OTP confirmation, plus email/password sign-in for existing accounts. Guests can browse; members can post trips, request to join, and submit route notes. The server checks each access token with Supabase Auth before these actions. Live phone verification requires a configured SMS provider.
 - Trip filtering, shareable links, join requests, host approval or decline, capacity tracking, and trip closure. Account ownership works across devices. Existing pilot trips retain their browser-token controls.
 - A shared profile view with posts, follows, owner editing, and the owner's join request status.
 - Authenticated one-to-one text chat with an inbox, unread counts, message history, and periodic refresh. Apply [0003_qipi_chat.sql](supabase/migrations/0003_qipi_chat.sql) to Supabase before enabling chat on a hosted project.

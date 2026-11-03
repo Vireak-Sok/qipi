@@ -7,6 +7,14 @@ function storedSession() {
   catch { return null; }
 }
 
+export function normalizePhoneNumber(value) {
+  let phone = String(value || "").trim().replace(/[\s().-]/g, "");
+  if (phone.startsWith("00")) phone = `+${phone.slice(2)}`;
+  else if (phone.startsWith("0")) phone = `+855${phone.slice(1)}`;
+  else if (/^855\d+$/.test(phone)) phone = `+${phone}`;
+  return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : "";
+}
+
 export class QipiAuth {
   constructor() {
     this.enabled = false;
@@ -85,8 +93,55 @@ export class QipiAuth {
     return this.acceptSession(result);
   }
 
-  async signIn({ email, password }) {
-    const result = await this.request("/token?grant_type=password", { method: "POST", body: { email, password } });
+  async signUpWithPhone({ phone, password, displayName }) {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    if (!normalizedPhone) throw new Error("Enter a valid phone number in international format.");
+    const result = await this.request("/signup", {
+      method: "POST",
+      body: { phone: normalizedPhone, password, data: profileMetadata({ displayName }) }
+    });
+    const signedIn = this.acceptSession(result);
+    if (signedIn) await this.getUser();
+    return { signedIn, phone: normalizedPhone };
+  }
+
+  async verifyPhoneSignup(phone, token) {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const result = await this.request("/verify", {
+      method: "POST", body: { phone: normalizedPhone, token: String(token).trim(), type: "sms" }
+    });
+    if (!this.acceptSession(result)) throw new Error("Phone verification did not return a session");
+    await this.getUser();
+  }
+
+  async requestPhoneOtp(phone, { createUser = false } = {}) {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    if (!normalizedPhone) throw new Error("Enter a valid phone number with country code.");
+    await this.request("/otp", { method: "POST", body: { phone: normalizedPhone, create_user: createUser } });
+    return normalizedPhone;
+  }
+
+  async verifyPhoneOtp(phone, token) {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const result = await this.request("/verify", {
+      method: "POST", body: { phone: normalizedPhone, token: String(token).trim(), type: "sms" }
+    });
+    if (!this.acceptSession(result)) throw new Error("Phone verification did not return a session");
+    await this.getUser();
+  }
+
+  async resendPhoneSignup(phone) {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    await this.request("/resend", { method: "POST", body: { phone: normalizedPhone, type: "sms" } });
+  }
+
+  async signIn({ email, identifier, password }) {
+    const login = String(identifier || email || "").trim();
+    const credentials = login.includes("@")
+      ? { email: login.toLowerCase(), password }
+      : { phone: normalizePhoneNumber(login), password };
+    if (credentials.phone === "") throw new Error("Enter a valid phone number with country code, or sign in with your email.");
+    const result = await this.request("/token?grant_type=password", { method: "POST", body: credentials });
     if (!this.acceptSession(result)) throw new Error("Sign-in did not return a session");
     await this.getUser();
   }

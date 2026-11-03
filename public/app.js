@@ -1,5 +1,5 @@
 import { TRAVEL_OPTIONS } from "./js/shared.js";
-import { QipiAuth } from "./auth.js";
+import { QipiAuth, normalizePhoneNumber } from "./auth.js";
 import { copy } from "./i18n.js";
 
 import { $, icon, esc, profileUsernameForId, saveLocal, dateToday } from "./js/core.js";
@@ -846,10 +846,23 @@ async function refreshConversation(requestId) {
     const currentLast = state.messages.at(-1)?.id;
     const newLast = result.messages?.at(-1)?.id;
     if (currentLast !== newLast) {
+      const input = $("#message-input");
+      const draft = input?.value || "";
+      const hadFocus = input === document.activeElement;
+      const selectionStart = input?.selectionStart ?? draft.length;
+      const selectionEnd = input?.selectionEnd ?? draft.length;
       state.messages = result.messages || [];
       state.conversationProfile = result.profile;
       updateConversationPreview(state.messages.at(-1));
       renderConversation();
+      const nextInput = $("#message-input");
+      if (nextInput) {
+        nextInput.value = draft;
+        if (hadFocus) {
+          nextInput.focus({ preventScroll: true });
+          nextInput.setSelectionRange(selectionStart, selectionEnd);
+        }
+      }
     }
   } catch { /* Polling is best effort; the next refresh or user action retries. */ }
 }
@@ -941,7 +954,7 @@ function renderCommentsDialog() {
   const replyMarkup = state.commentsReplyTo
     ? `<div class="comment-replying"><span>${esc(t("replyingTo").replace("{name}", state.commentsReplyTo.author))}</span><button type="button" data-action="cancel-comment-reply" aria-label="${esc(t("cancelReply"))}">${icon("close")}</button></div>`
     : "";
-  const markup = `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}">
+  const markup = `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}" aria-busy="false">
     <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(title)}</p><span class="comments-count">${commentsCount}</span></header>
     <div class="comments-list" aria-live="polite">${commentsMarkup}</div>
     <form class="comment-composer" id="comment-form" data-trip-id="${esc(tripId)}">${replyMarkup}<div class="comment-composer-row"><span class="comment-composer-avatar">${avatarContents(displayName() || "Q", auth.user?.user_metadata?.avatar_path || "")}</span><label class="visually-hidden" for="comment-body">${esc(t("writeComment"))}</label><textarea id="comment-body" name="body" rows="1" maxlength="500" placeholder="${esc(t("writeComment"))}" required>${esc(state.commentsDraft || "")}</textarea><button class="comment-send-button" type="submit" aria-label="${esc(t("postComment"))}" title="${esc(t("postComment"))}">${icon("send")}</button></div><div class="error-message" role="alert"></div></form>
@@ -959,19 +972,33 @@ async function openComments(tripId) {
   state.commentsTripId = tripId;
   state.commentsReplyTo = null;
   state.commentsDraft = "";
-  showDialog("comments-dialog", `<h2 id="comments-dialog-title" class="visually-hidden">${esc(t("loading"))}</h2><div class="comments-loading" aria-label="${esc(t("loading"))}">${Array.from({ length: 3 }, () => `<div><i></i><span><b></b><em></em></span></div>`).join("")}</div>`);
+  state.comments = [];
+  state.commentsCount = 0;
+  const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(state.profile?.trips || [])].find((item) => item.id === tripId);
+  const loadingRows = Array.from({ length: 4 }, () => `<div class="comments-skeleton-row"><i></i><span><b></b><em></em><small></small></span></div>`).join("");
+  showDialog("comments-dialog", `<section class="comments-dialog-content comments-dialog-loading" aria-label="${esc(t("comments"))}" aria-busy="true">
+    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(trip?.title || t("comments"))}</p><span class="comments-count comments-count-skeleton" aria-hidden="true"></span></header>
+    <div class="comments-list" aria-label="${esc(t("loading"))}"><div class="comments-loading">${loadingRows}</div></div>
+    <div class="comment-composer comment-composer-loading" aria-hidden="true"><span></span><i></i><b></b></div>
+  </section>`);
+  const dialog = $("#comments-dialog");
+  if (dialog) dialog.setAttribute("aria-busy", "true");
   try {
     const { comments, commentsCount } = await api(`/api/trips/${encodeURIComponent(tripId)}/comments`);
     if (requestId !== state.commentsRequestId) return;
     state.comments = comments || [];
     state.commentsCount = Number(commentsCount) || 0;
     renderCommentsDialog();
+    if (dialog) dialog.setAttribute("aria-busy", "false");
     const list = $(".comments-list");
     if (list) list.scrollTop = list.scrollHeight;
   } catch (error) {
     if (requestId !== state.commentsRequestId) return;
     const content = $("#comments-dialog-content");
-    content.innerHTML = `<section class="comments-dialog-content"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><div class="feed-load-error" role="alert"><p>${esc(error.message || t("failed"))}</p><button class="button button-ghost" type="button" data-action="retry-comments" data-id="${esc(tripId)}">${esc(t("retry"))}</button></div></section>`;
+    renderCommentsDialog();
+    const list = content?.querySelector(".comments-list");
+    if (list) list.innerHTML = `<div class="feed-load-error" role="alert"><p>${esc(error.message || t("failed"))}</p><button class="button button-ghost" type="button" data-action="retry-comments" data-id="${esc(tripId)}">${esc(t("retry"))}</button></div>`;
+    if (dialog) dialog.setAttribute("aria-busy", "false");
   }
 }
 
@@ -1109,32 +1136,27 @@ async function shareLink(url, { title, text = "", fallbackLabel }) {
 
 // Sign-up and authentication flows.
 let pendingAction = null;
+let signupOtpPhone = "";
+let signupOtpStep = false;
+let signupOtpResendTimer = null;
 let signupReturnTarget = { view: "feed", dialog: null };
 function signupError(message = "") {
-  const box = document.querySelector('.signup-step:not([hidden]) .error-message');
+  const box = $("#signup-form .error-message");
   if (box) { box.textContent = message; box.classList.toggle("show", Boolean(message)); }
 }
-function setSignupStep(step) {
-  document.querySelectorAll("[data-signup-step]").forEach((section) => { section.hidden = Number(section.dataset.signupStep) !== step; });
-  document.querySelectorAll("[data-signup-progress]").forEach((item) => {
-    const number = Number(item.dataset.signupProgress);
-    item.classList.toggle("is-current", number === step);
-    item.classList.toggle("is-complete", number < step);
-  });
-  signupError();
-}
-function validateSignupAccount() {
-  for (const input of document.querySelectorAll('[data-signup-step="1"] input')) {
-    if (!input.checkValidity()) { setSignupStep(1); input.reportValidity(); input.focus(); return false; }
-  }
-  if ($("#signup-password").value !== $("#signup-confirm-password").value) {
-    setSignupStep(1);
-    signupError(t("signupPasswordMismatch"));
-    $("#signup-confirm-password").focus();
-    return false;
-  }
-  signupError();
-  return true;
+function startSignupOtpCooldown() {
+  clearInterval(signupOtpResendTimer);
+  const button = $("[data-action='signup-resend-otp']");
+  if (!button) return;
+  const resendAt = Date.now() + 60_000;
+  const update = () => {
+    const seconds = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+    button.disabled = seconds > 0;
+    button.textContent = seconds ? t("resendIn").replace("{seconds}", String(seconds)) : t("resendOtp");
+    if (!seconds) { clearInterval(signupOtpResendTimer); signupOtpResendTimer = null; }
+  };
+  update();
+  signupOtpResendTimer = setInterval(update, 1000);
 }
 function openSignupPage(source = null) {
   if (auth.user) { openSettings(); return; }
@@ -1148,10 +1170,19 @@ function openSignupPage(source = null) {
   document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-signup-pending");
   saveEntryChoice("account");
+  clearInterval(signupOtpResendTimer);
+  signupOtpResendTimer = null;
   $("#signup-form").reset();
-  $("#signup-confirmation").hidden = true;
-  $("#signup-form .signup-progress").hidden = false;
-  setSignupStep(1);
+  signupOtpPhone = "";
+  signupOtpStep = false;
+  $("#signup-account-fields").disabled = false;
+  $("#signup-account-fields").hidden = false;
+  $("#signup-otp-step").hidden = true;
+  $("#signup-otp").disabled = true;
+  $("#signup-submit").textContent = t("sendOtp");
+  const resend = $("[data-action='signup-resend-otp']");
+  if (resend) { resend.disabled = false; resend.textContent = t("resendOtp"); }
+  signupError();
   setPageView("signup");
 }
 function requireSignIn(action) {
@@ -1168,19 +1199,26 @@ function openAuth(mode = "signin") {
   }
   if (mode === "profile" && auth.user) { openProfile(auth.user.id); return; }
   const recover = mode === "recover";
+  const phoneRecover = mode === "phone-recover";
   const reset = mode === "reset";
-  const title = t(recover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
-  const description = recover ? t("authDescriptionRecover") : "";
+  const title = t(recover || phoneRecover ? "authHeadingRecover" : reset ? "authHeadingReset" : "authHeadingSignIn");
+  const description = recover ? t("authDescriptionRecover") : phoneRecover ? t("phoneRecoveryDescription") : "";
   const passwordField = (showRecoveryLink = false, autocomplete = "current-password") => `
     <div class="field">
-      <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" type="button" data-action="auth-mode" data-mode="recover">${esc(t("forgotPassword"))}</button>` : ""}</div>
+      <div class="field-label-row"><label for="auth-password">${esc(t("password"))}</label>${showRecoveryLink ? `<button class="auth-forgot" id="auth-forgot-button" type="button" data-action="auth-mode" data-mode="recover" hidden>${esc(t("forgotPassword"))}</button>` : ""}</div>
       <div class="password-control"><input id="auth-password" name="password" type="password" minlength="8" autocomplete="${autocomplete}" required /><button type="button" class="password-toggle" data-action="toggle-password" data-target="auth-password" aria-controls="auth-password" aria-pressed="false" aria-label="${esc(t("showPassword"))}"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#eye"></use></svg></button></div>
     </div>`;
-  const submitLabel = recover ? t("sendReset") : reset ? t("resetPassword") : t("signIn");
+  const submitLabel = recover ? t("sendReset") : phoneRecover ? t("verifyPhone") : reset ? t("resetPassword") : t("signIn");
+  const recoveryEmail = recover ? state.authRecoveryEmail || "" : "";
+  state.authRecoveryEmail = "";
   const form = reset
     ? `<form class="auth-form" id="auth-form" data-mode="reset">${passwordField(false, "new-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
-    : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}"><div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" required /></div>${recover ? "" : passwordField(true, "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`;
-  const switcher = reset ? "" : `<div class="auth-switch"><span>${esc(t(recover ? "haveAccount" : "needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${recover ? "signin" : "signup"}">${esc(t(recover ? "signIn" : "signUp"))}</button></div>`;
+    : recover
+      ? `<form class="auth-form" id="auth-form" data-mode="recover"><div class="field"><label for="auth-email">${esc(t("email"))}</label><input id="auth-email" name="email" type="email" autocomplete="email" value="${esc(recoveryEmail)}" required /></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
+      : phoneRecover
+        ? `<form class="auth-form" id="auth-form" data-mode="phone-recover"><p class="dialog-intro">${esc(t("otpSentTo").replace("{phone}", state.phoneRecoveryNumber || ""))}</p><div class="field"><label for="auth-otp">${esc(t("signupOtpLabel"))}</label><input id="auth-otp" name="token" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required /></div><div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`
+      : `<form class="auth-form" id="auth-form" data-mode="${esc(mode)}"><div class="field"><label for="auth-identifier">${esc(t("emailOrPhone"))}</label><input id="auth-identifier" name="identifier" type="text" autocomplete="username" placeholder="${esc(t("emailOrPhonePlaceholder"))}" required /></div>${passwordField(true, "current-password")}<div class="error-message" role="alert"></div><button class="button button-primary form-submit" type="submit">${esc(submitLabel)}</button></form>`;
+  const switcher = reset ? "" : `<div class="auth-switch"><span>${esc(t(recover || phoneRecover ? "haveAccount" : "needAccount"))}</span><button type="button" data-action="auth-mode" data-mode="${recover || phoneRecover ? "signin" : "signup"}">${esc(t(recover || phoneRecover ? "signIn" : "signUp"))}</button></div>`;
   showDialog("auth-dialog", `<div class="auth-brand-lockup"><span class="brand-mark" aria-hidden="true"><span></span><span></span></span><span class="auth-brand-name">Qipi</span></div><h2 id="auth-dialog-title">${esc(title)}</h2>${description ? `<p class="dialog-intro auth-intro">${esc(description)}</p>` : ""}${form}${switcher}`);
 }
 
@@ -1396,15 +1434,37 @@ document.addEventListener("click", async (eventTarget) => {
   }
   if (action === "entry-account") { openSignupPage("entry"); return; }
   if (action === "entry-sign-in") { saveEntryChoice("account"); openAuth("signin"); return; }
-  if (action === "signup-next") { if (validateSignupAccount()) setSignupStep(2); return; }
-  if (action === "signup-previous") { setSignupStep(1); return; }
+  if (action === "signup-change-phone") {
+    clearInterval(signupOtpResendTimer);
+    signupOtpResendTimer = null;
+    signupOtpStep = false;
+    signupOtpPhone = "";
+    $("#signup-account-fields").disabled = false;
+    $("#signup-account-fields").hidden = false;
+    $("#signup-otp-step").hidden = true;
+    $("#signup-otp").disabled = true;
+    $("#signup-submit").textContent = t("sendOtp");
+    signupError();
+    $("#signup-phone").focus();
+    return;
+  }
+  if (action === "signup-resend-otp") {
+    const resend = button;
+    resend.disabled = true;
+    try { await auth.resendPhoneSignup(signupOtpPhone); startSignupOtpCooldown(); toast(t("otpResent")); }
+    catch (error) { toast(error.message || t("failed")); }
+    finally { if (resend.isConnected && !signupOtpResendTimer) resend.disabled = false; }
+    return;
+  }
   if (action === "signup-exit") {
+    clearInterval(signupOtpResendTimer);
+    signupOtpResendTimer = null;
     await goBackOrNavigate(signupReturnTarget.view, () => {
       if (signupReturnTarget.dialog === "signin") openAuth("signin");
     });
     return;
   }
-  if (action === "signup-sign-in") { openAuth("signin"); return; }
+  if (action === "signup-sign-in") { clearInterval(signupOtpResendTimer); signupOtpResendTimer = null; openAuth("signin"); return; }
   if (action === "retry-feed") { await loadFeedData(); return; }
   if (action === "retry-explore") { await openExplorePage(); return; }
   if (action === "retry-trips") { await openTripsPage(); return; }
@@ -1456,7 +1516,24 @@ document.addEventListener("click", async (eventTarget) => {
     if (auth.user) await openProfile(auth.user.id);
     else openAuth("signin");
   }
-  if (action === "auth-mode") openAuth(mode);
+  if (action === "auth-mode") {
+    if (mode === "recover") {
+      const identifier = $("#auth-identifier")?.value.trim() || "";
+      if (identifier.includes("@")) {
+        state.authRecoveryEmail = identifier;
+        openAuth("recover");
+      } else {
+        const phone = normalizePhoneNumber(identifier);
+        if (!phone) { setError($("#auth-form"), t("phoneNumberFormat")); return; }
+        try {
+          state.phoneRecoveryNumber = await auth.requestPhoneOtp(phone, { createUser: false });
+          openAuth("phone-recover");
+        } catch (error) { setError($("#auth-form"), error.message || t("failed")); }
+      }
+      return;
+    }
+    openAuth(mode);
+  }
   if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.savedTrips = [...state.guestSavedTrips]; saveLocal("qipi:saved-trips", state.guestSavedTrips); state.profileTab = "posts"; await auth.signOut(); void loadProfileSuggestions(); startChatNotifications(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
   if (action === "toggle-save") {
     if (auth.user && state.guestSavedTrips.length && !await syncAccountSavedTrips()) return;
@@ -1594,6 +1671,11 @@ document.addEventListener("click", (eventTarget) => {
   }
 });
 document.addEventListener("keydown", (eventTarget) => {
+  if (eventTarget.target.id === "message-input" && eventTarget.key === "Enter" && !eventTarget.shiftKey && !eventTarget.isComposing && window.matchMedia("(min-width: 701px) and (pointer: fine)").matches) {
+    eventTarget.preventDefault();
+    eventTarget.target.closest("form")?.requestSubmit();
+    return;
+  }
   if (eventTarget.key !== "Escape") return;
   const panel = $("#notifications-panel");
   if (!panel.hidden) {
@@ -1771,35 +1853,68 @@ document.addEventListener("submit", async (eventTarget) => {
     eventTarget.preventDefault();
     if (!auth.user || !state.conversationId) return;
     const input = form.elements.body;
+    const submittedDraft = input.value;
     const messageBody = input.value.trim();
     if (!messageBody) return;
     const submit = form.querySelector("button[type=submit]");
     submit.disabled = true;
     try {
       const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`, { method: "POST", data: { body: messageBody } });
+      const draft = input.value === submittedDraft ? "" : input.value;
       state.messages.push(result.message);
       updateConversationPreview(result.message);
       renderConversation();
+      const nextInput = $("#message-input");
+      if (nextInput && draft) { nextInput.value = draft; nextInput.focus({ preventScroll: true }); }
     } catch (error) { toast(error.message || t("failed")); }
     finally { if (submit.isConnected) submit.disabled = false; }
     return;
   }
   if (form.id === "signup-form") {
     eventTarget.preventDefault();
-    if (!validateSignupAccount()) return;
-    const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
-    if (!travelStyles.length) { signupError(t("signupChooseStyle")); return; }
-    if (travelStyles.length > 3) { signupError(t("signupStyleLimit")); return; }
-    const submit = form.querySelector('[data-signup-step="2"] button[type="submit"]');
+    const submit = $("#signup-submit");
+    if (signupOtpStep) {
+      const otp = $("#signup-otp");
+      if (!otp.checkValidity()) { otp.reportValidity(); otp.focus(); return; }
+      submit.disabled = true;
+      try {
+        await auth.verifyPhoneSignup(signupOtpPhone, otp.value);
+        clearInterval(signupOtpResendTimer);
+        signupOtpResendTimer = null;
+        await authSuccess();
+        setPageView("feed");
+        toast(t("accountCreated"));
+      } catch (error) { signupError(error.message || t("failed")); }
+      finally { submit.disabled = false; }
+      return;
+    }
+    const accountFields = $("#signup-account-fields");
+    const requiredInputs = [...accountFields.querySelectorAll("input[required]")];
+    const invalidInput = requiredInputs.find((input) => !input.checkValidity());
+    if (invalidInput) { invalidInput.reportValidity(); invalidInput.focus(); return; }
+    const phone = normalizePhoneNumber($("#signup-phone").value);
+    if (!phone) { signupError(t("phoneNumberFormat")); $("#signup-phone").focus(); return; }
     submit.disabled = true;
     const values = Object.fromEntries(new FormData(form));
     try {
-      const signedIn = await auth.signUp({ email: values.email.trim(), password: values.password, displayName: values.displayName.trim(), homeBase: values.homeBase.trim(), travelStyles, bio: values.bio.trim() });
-      if (signedIn) { await authSuccess(); setPageView("feed"); toast(t("profileSaved")); }
-      else {
-        form.querySelectorAll(".signup-step").forEach((step) => { step.hidden = true; });
-        form.querySelector(".signup-progress").hidden = true;
-        $("#signup-confirmation").hidden = false;
+      const result = await auth.signUpWithPhone({ phone, password: values.password, displayName: values.displayName.trim() });
+      if (result.signedIn) {
+        await authSuccess();
+        setPageView("feed");
+        toast(t("accountCreated"));
+      } else {
+        signupOtpPhone = result.phone;
+        signupOtpStep = true;
+        accountFields.disabled = true;
+        accountFields.hidden = true;
+        $("#signup-otp-step").hidden = false;
+        $("#signup-otp").disabled = false;
+        $("#signup-otp").value = "";
+        $("#signup-otp-destination").textContent = t("otpSentTo").replace("{phone}", result.phone);
+        submit.textContent = t("verifyPhone");
+        signupError();
+        startSignupOtpCooldown();
+        $("#signup-otp").focus();
       }
     } catch (error) { signupError(error.message || t("failed")); }
     finally { submit.disabled = false; }
@@ -1815,11 +1930,16 @@ document.addEventListener("submit", async (eventTarget) => {
     const values = Object.fromEntries(new FormData(form));
     try {
       if (form.dataset.mode === "signin") {
+        if (!values.identifier.includes("@") && !normalizePhoneNumber(values.identifier)) throw new Error(t("phoneNumberFormat"));
         await auth.signIn(values);
         await authSuccess();
       } else if (form.dataset.mode === "recover") {
         await auth.recover(values.email);
         form.insertAdjacentHTML("beforeend", `<p class="auth-status">${esc(t("resetSent"))}</p>`);
+      } else if (form.dataset.mode === "phone-recover") {
+        if (!form.elements.token.checkValidity()) { form.elements.token.reportValidity(); return; }
+        await auth.verifyPhoneOtp(state.phoneRecoveryNumber, values.token);
+        openAuth("reset");
       } else if (form.dataset.mode === "reset") {
         await auth.updatePassword(values.password);
         toast(t("passwordUpdated"));
@@ -1875,6 +1995,14 @@ let messageSearchTimer = null;
 let messageSearchRequestId = 0;
 document.addEventListener("input", (eventTarget) => {
   const input = eventTarget.target;
+  if (input.id === "auth-identifier") {
+    const recovery = $("#auth-forgot-button");
+    if (recovery) {
+      const value = input.value.trim();
+      recovery.hidden = !value.includes("@") && !normalizePhoneNumber(value);
+    }
+    return;
+  }
   if (input.id !== "message-search") return;
   const query = input.value.trim();
   state.messageSearch = query;

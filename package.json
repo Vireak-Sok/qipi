@@ -13,6 +13,8 @@
     "test": "node --test",
     "check:production": "node scripts/check-production.mjs",
     "generate:shell": "node scripts/generate-shell.mjs",
+    "supabase:start:otp-test": "supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor",
+    "supabase:stop": "supabase stop",
     "prebuild": "node scripts/generate-shell.mjs",
     "predev": "node scripts/generate-shell.mjs"
   },
@@ -24,6 +26,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "postcss": "^8.5.31",
+    "supabase": "^2.122.0",
     "tailwindcss": "^4.3.3"
   }
 }

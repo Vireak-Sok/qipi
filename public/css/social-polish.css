@@ -894,6 +894,27 @@ body.social-app {
   .search-page-results .trip-list { gap: 12px; }
 }
 
+/* Back-and-title rows belong to the app header, while their page content keeps its gutter. */
+@media (max-width: 700px) {
+  #main.profile-open.app-layout,
+  #main.notifications-open.app-layout,
+  #main.search-page-open.app-layout { padding-top: 0; }
+
+  .profile-page > .settings-header,
+  .notifications-page > .settings-header,
+  .search-page-heading {
+    min-height: 56px;
+    margin-inline: -16px;
+    padding: 8px 16px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--border-soft);
+    box-sizing: border-box;
+  }
+
+  .profile-page > .settings-header,
+  .notifications-page > .settings-header { top: var(--app-header-height); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .search-people-skeleton i,.search-people-skeleton b,.comments-loading i,.comments-loading b,.comments-loading em { animation: none; }
 }

@@ -72,7 +72,7 @@ export function createRouter(state, { location = window.location, history = wind
     if (/^\/profile\/[^/]+$/.test(path) || usernameFromPath()) return hasProfile ? "profile" : "feed";
     const paths = {
       "/": "feed", "/index.html": "feed", "/feed": "feed", "/explore": "explore", "/routes": "explore",
-      "/trips": "trips", "/saved": "saved", "/settings": "settings", "/safety": "explore", "/search": "search-results",
+      "/trips": "trips", "/saved": "saved", "/settings": "settings", "/notifications": "notifications", "/safety": "explore", "/search": "search-results",
       "/entry": "entry", "/signup": "signup"
     };
     if ((path === "/" || path === "/index.html") && location.hash) {

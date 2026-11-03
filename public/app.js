@@ -190,12 +190,12 @@ function renderChatNotifications() {
     if (messageTotal) link.setAttribute("aria-label", `${t("messages")} (${messageLabel})`);
     else link.removeAttribute("aria-label");
   });
-  const button = $("[data-action='toggle-notifications']");
+  const button = $("[data-action='open-notifications']");
   if (button) button.setAttribute("aria-label", total ? `${t("notifications")} (${notificationLabel})` : t("notifications"));
-  const list = $("#notification-messages");
-  const empty = $("#notifications-panel .notification-empty");
-  const markAll = $("[data-action='mark-notifications-read']");
-  const enableAlerts = $("[data-action='enable-browser-notifications']");
+  const list = $("#notification-page-list");
+  const empty = $("#notification-page-empty");
+  const markAll = $("#notifications-mark-all");
+  const enableAlerts = $("#notifications-view [data-action='enable-browser-notifications']");
   if (enableAlerts) enableAlerts.hidden = !auth.user || typeof Notification === "undefined" || Notification.permission !== "default";
   if (!list || !empty) return;
   const activityItems = auth.user ? state.notifications.map((item) => {
@@ -449,6 +449,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   const isSignup = view === "signup";
   const isProfile = view === "profile";
   const isMessages = view === "messages";
+  const isNotifications = view === "notifications";
   const isSafety = view === "safety-live";
   if (!isSafety && view !== "explore") safety.leave();
   if (!isMessages && state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
@@ -460,6 +461,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   main.classList.toggle("search-page-open", isSearchResults);
   main.classList.toggle("profile-open", isProfile);
   main.classList.toggle("messages-open", isMessages);
+  main.classList.toggle("notifications-open", isNotifications);
   main.classList.toggle("safety-open", isSafety);
   main.classList.toggle("messages-thread-open", isMessages && Boolean(state.conversationId));
   $("#search-filter-panel").hidden = !isSearchResults;
@@ -475,8 +477,8 @@ function setPageView(view, { preserveUrl = false } = {}) {
     if (item.classList.contains("active")) item.setAttribute("aria-current", "page");
     else item.removeAttribute("aria-current");
   });
-  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view):not(#safety-view)").forEach((section) => {
-    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isSafety || (section.id === "home-search" && view !== "feed") || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (section.id === "search-results-view" && !isSearchResults) || (isSearchResults && section.id !== "search-results-view");
+  document.querySelectorAll(".feed-column > :not(#entry-view):not(#settings-view):not(#profile-view):not(#signup-view):not(#notifications-view):not(#safety-view)").forEach((section) => {
+    section.hidden = isEntry || isSettings || isProfile || isSignup || isMessages || isNotifications || isSafety || (section.id === "home-search" && view !== "feed") || (section.id === "routes" && !isExplore) || (isExplore && section.id !== "routes") || (section.id === "search-results-view" && !isSearchResults) || (isSearchResults && section.id !== "search-results-view");
   });
   if (view === "feed") $("#home-search")?.classList.remove("is-hidden");
   $("#entry-view").hidden = !isEntry;
@@ -484,6 +486,7 @@ function setPageView(view, { preserveUrl = false } = {}) {
   $("#profile-view").hidden = !isProfile;
   $("#signup-view").hidden = !isSignup;
   $("#messages-view").hidden = !isMessages;
+  $("#notifications-view").hidden = !isNotifications;
   $("#safety-view").hidden = !isSafety;
   if (isSettings) renderSettings();
   if (isProfile) renderProfile();
@@ -567,6 +570,13 @@ async function navigateToView(view) {
   if (view === "saved") return openSavedTrips();
   if (view === "settings") return openSettings();
   if (view === "messages") return openMessages();
+  if (view === "notifications") {
+    state.notificationReturnView = state.view === "notifications" ? state.notificationReturnView : state.view;
+    setPageView("notifications");
+    renderChatNotifications();
+    if (auth.user) await refreshChatNotifications();
+    return;
+  }
   if (view === "search-results") {
     setPageView(view);
     renderSearchResultsLoading();
@@ -647,6 +657,11 @@ async function restoreBrowserLocation() {
         openAuth("signin");
       }
     } else if (view === "settings") await openSettings();
+    else if (view === "notifications") {
+      setPageView("notifications", { preserveUrl: true });
+      renderChatNotifications();
+      if (auth.user) await refreshChatNotifications();
+    }
     else if (view === "explore") await openExplorePage();
     else if (view === "trips") await openTripsPage();
     else if (view === "signup") setPageView("signup", { preserveUrl: true });
@@ -762,7 +777,10 @@ function renderMessageThreadMarkup() {
   const profile = state.conversationProfile;
   if (!profile) return `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`;
   const messages = state.messages;
-  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a class="message-thread-profile" href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}"><span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => `<div class="message-bubble ${item.sender_id === auth.user?.id ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}</time></div>`).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
+  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a class="message-thread-profile" href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}"><span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => {
+    const isMine = item.sender_id === auth.user?.id;
+    return `<div class="message-bubble ${isMine ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}${isMine ? `<span class="message-read-state" aria-label="${esc(t(item.read_at ? "messageRead" : "messageSent"))}">${esc(t(item.read_at ? "messageRead" : "messageSent"))}</span>` : ""}</time></div>`;
+  }).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
 async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
@@ -843,15 +861,16 @@ async function refreshConversation(requestId) {
     const result = await api(`/api/messages/${encodeURIComponent(state.conversationId)}`);
     if (requestId !== state.messageRequestId || state.view !== "messages") return;
     syncConversations(state.conversations, { updateSidebar: true });
-    const currentLast = state.messages.at(-1)?.id;
-    const newLast = result.messages?.at(-1)?.id;
-    if (currentLast !== newLast) {
+    const currentState = state.messages.map(({ id, read_at }) => `${id}:${read_at || ""}`).join("|");
+    const nextMessages = result.messages || [];
+    const nextState = nextMessages.map(({ id, read_at }) => `${id}:${read_at || ""}`).join("|");
+    if (currentState !== nextState) {
       const input = $("#message-input");
       const draft = input?.value || "";
       const hadFocus = input === document.activeElement;
       const selectionStart = input?.selectionStart ?? draft.length;
       const selectionEnd = input?.selectionEnd ?? draft.length;
-      state.messages = result.messages || [];
+      state.messages = nextMessages;
       state.conversationProfile = result.profile;
       updateConversationPreview(state.messages.at(-1));
       renderConversation();
@@ -950,12 +969,11 @@ function renderCommentsDialog() {
   const commentsMarkup = state.comments.length
     ? state.comments.map((comment) => renderComment(comment)).join("")
     : `<div class="comments-empty"><span>${icon("chat")}</span><strong>${esc(t("noComments"))}</strong><p>${esc(t("beFirstToComment"))}</p></div>`;
-  const commentsCount = Number(state.commentsCount ?? trip?.commentsCount ?? 0);
   const replyMarkup = state.commentsReplyTo
     ? `<div class="comment-replying"><span>${esc(t("replyingTo").replace("{name}", state.commentsReplyTo.author))}</span><button type="button" data-action="cancel-comment-reply" aria-label="${esc(t("cancelReply"))}">${icon("close")}</button></div>`
     : "";
   const markup = `<section class="comments-dialog-content" aria-label="${esc(t("comments"))}" aria-busy="false">
-    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(title)}</p><span class="comments-count">${commentsCount}</span></header>
+    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(title)}</p></header>
     <div class="comments-list" aria-live="polite">${commentsMarkup}</div>
     <form class="comment-composer" id="comment-form" data-trip-id="${esc(tripId)}">${replyMarkup}<div class="comment-composer-row"><span class="comment-composer-avatar">${avatarContents(displayName() || "Q", auth.user?.user_metadata?.avatar_path || "")}</span><label class="visually-hidden" for="comment-body">${esc(t("writeComment"))}</label><textarea id="comment-body" name="body" rows="1" maxlength="500" placeholder="${esc(t("writeComment"))}" required>${esc(state.commentsDraft || "")}</textarea><button class="comment-send-button" type="submit" aria-label="${esc(t("postComment"))}" title="${esc(t("postComment"))}">${icon("send")}</button></div><div class="error-message" role="alert"></div></form>
   </section>`;
@@ -977,7 +995,7 @@ async function openComments(tripId) {
   const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(state.profile?.trips || [])].find((item) => item.id === tripId);
   const loadingRows = Array.from({ length: 4 }, () => `<div class="comments-skeleton-row"><i></i><span><b></b><em></em><small></small></span></div>`).join("");
   showDialog("comments-dialog", `<section class="comments-dialog-content comments-dialog-loading" aria-label="${esc(t("comments"))}" aria-busy="true">
-    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(trip?.title || t("comments"))}</p><span class="comments-count comments-count-skeleton" aria-hidden="true"></span></header>
+    <header class="comments-heading"><h2 id="comments-dialog-title">${esc(t("comments"))}</h2><p>${esc(trip?.title || t("comments"))}</p></header>
     <div class="comments-list" aria-label="${esc(t("loading"))}"><div class="comments-loading">${loadingRows}</div></div>
     <div class="comment-composer comment-composer-loading" aria-hidden="true"><span></span><i></i><b></b></div>
   </section>`);
@@ -1337,14 +1355,13 @@ document.addEventListener("click", async (eventTarget) => {
     await goBackOrNavigate("feed");
     return;
   }
-  if (action === "toggle-notifications") {
-    const panel = $("#notifications-panel");
-    panel.hidden = !panel.hidden;
-    button.setAttribute("aria-expanded", String(!panel.hidden));
-    if (!panel.hidden) {
-      renderChatNotifications();
-      refreshChatNotifications();
-    }
+  if (action === "open-notifications") {
+    if (state.view !== "notifications") state.notificationReturnView = state.view;
+    await navigateToView("notifications");
+    return;
+  }
+  if (action === "notifications-back") {
+    await goBackOrNavigate(state.notificationReturnView || "feed");
     return;
   }
   if (action === "mark-notifications-read") {
@@ -1377,8 +1394,6 @@ document.addEventListener("click", async (eventTarget) => {
       if (wasUnread) state.notificationUnreadCount = Math.max(0, state.notificationUnreadCount - 1);
       renderChatNotifications();
       dismissIncomingMessageAlert();
-      $("#notifications-panel").hidden = true;
-      $("[data-action='toggle-notifications']")?.setAttribute("aria-expanded", "false");
       if (type === "follow") await openProfile(button.dataset.target);
       else if (type === "comment" || type === "comment_reply") await openComments(button.dataset.target);
       else await openTrip(button.dataset.target);
@@ -1394,14 +1409,7 @@ document.addEventListener("click", async (eventTarget) => {
     } catch { toast(t("browserAlertsUnavailable")); }
     return;
   }
-  if (action === "close-notifications") {
-    $("#notifications-panel").hidden = true;
-    $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
-    return;
-  }
   if (action === "open-notification-conversation") {
-    $("#notifications-panel").hidden = true;
-    $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
     await openMessages(id, { useCachedInbox: true });
     return;
   }
@@ -1662,14 +1670,6 @@ document.addEventListener("click", async (eventTarget) => {
   }
 });
 
-document.addEventListener("click", (eventTarget) => {
-  if (eventTarget.target.closest(".notification-wrap")) return;
-  const panel = $("#notifications-panel");
-  if (!panel.hidden) {
-    panel.hidden = true;
-    $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
-  }
-});
 document.addEventListener("keydown", (eventTarget) => {
   if (eventTarget.target.id === "message-input" && eventTarget.key === "Enter" && !eventTarget.shiftKey && !eventTarget.isComposing && window.matchMedia("(min-width: 701px) and (pointer: fine)").matches) {
     eventTarget.preventDefault();
@@ -1677,11 +1677,7 @@ document.addEventListener("keydown", (eventTarget) => {
     return;
   }
   if (eventTarget.key !== "Escape") return;
-  const panel = $("#notifications-panel");
-  if (!panel.hidden) {
-    panel.hidden = true;
-    $("[data-action='toggle-notifications']").setAttribute("aria-expanded", "false");
-  }
+  if (state.view === "notifications") goBackOrNavigate(state.notificationReturnView || "feed");
 });
 
 document.addEventListener("change", (eventTarget) => {

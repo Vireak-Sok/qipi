@@ -308,6 +308,8 @@ export default {
   "newMessage": "New message",
   "newMessageFrom": "New message from",
   "openChat": "Open chat",
+  "messageSent": "Sent",
+  "messageRead": "Read",
   "newActivity": "New activity",
   "viewActivity": "View activity",
   "markAllRead": "Mark all read",

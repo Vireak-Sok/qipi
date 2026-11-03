@@ -225,6 +225,8 @@ export default {
   "newMessage": "新消息",
   "newMessageFrom": "新消息来自",
   "openChat": "打开聊天",
+  "messageSent": "已发送",
+  "messageRead": "已读",
   "newActivity": "新动态",
   "viewActivity": "查看动态",
   "markAllRead": "全部标为已读",

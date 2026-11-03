@@ -1,7 +1,7 @@
 // Shared URL contract for Next routing, navigation, and client links.
 export const PAGE_PATHS = Object.freeze({
   feed: "/feed", explore: "/explore", trips: "/trips", saved: "/saved",
-  settings: "/settings", messages: "/messages", safety: "/explore", "safety-live": "/safety/live", "search-results": "/search", entry: "/", signup: "/signup"
+  settings: "/settings", messages: "/messages", notifications: "/notifications", safety: "/explore", "safety-live": "/safety/live", "search-results": "/search", entry: "/", signup: "/signup"
 });
 export const RESERVED_SEGMENTS = new Set([
   ...Object.values(PAGE_PATHS).map(path => path.slice(1)),

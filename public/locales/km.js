@@ -308,6 +308,8 @@ export default {
   "newMessage": "សារថ្មី",
   "newMessageFrom": "សារថ្មីពី",
   "openChat": "បើកការជជែក",
+  "messageSent": "បានផ្ញើ",
+  "messageRead": "បានអាន",
   "newActivity": "សកម្មភាពថ្មី",
   "viewActivity": "មើលសកម្មភាព",
   "markAllRead": "សម្គាល់ថាបានអានទាំងអស់",

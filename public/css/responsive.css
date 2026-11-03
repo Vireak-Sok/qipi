@@ -257,10 +257,9 @@
   font-weight: 800;
   line-height: 1;
 }
-[data-message-badge][hidden],[data-notification-badge][hidden],#notification-messages[hidden],.notification-empty[hidden],.notification-mark-all[hidden] { display: none !important; }
+[data-message-badge][hidden],[data-notification-badge][hidden],.notification-page-list[hidden],.notification-empty[hidden],.notification-mark-all[hidden] { display: none !important; }
 .rail-nav .nav-message-badge { margin-left: auto; }
 .notification-badge { position: absolute; top: -6px; right: -7px; min-width: 20px; height: 20px; border: 2px solid var(--surface-card); }
-#notification-messages { max-height: min(55dvh, 360px); overflow-y: auto; padding-top: 8px; }
 .notification-message {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) auto;

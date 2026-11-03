@@ -22,7 +22,7 @@ body.social-app {
 /* Give installed iOS PWAs room for the status bar and keep full-screen pages
    aligned with the actual safe-area-aware header height. */
 @media (max-width: 700px) {
-  :root { --app-header-height: calc(62px + env(safe-area-inset-top)); }
+  :root { --app-header-height: calc(62px + env(safe-area-inset-top)); --page-top-gap: 4px; }
   .social-topbar { padding-top: env(safe-area-inset-top); }
 }
 
@@ -116,7 +116,6 @@ body.social-app {
   box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 3%, transparent);
   backdrop-filter: blur(20px) saturate(150%);
 }
-.social-topbar:has(#notifications-panel:not([hidden])) { z-index: 120; }
 
 .topbar-inner.shell {
   width: min(var(--social-content-width), calc(100% - 48px));
@@ -408,7 +407,6 @@ body.social-app {
 .comments-heading { position: relative; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 3px 12px; padding: 17px 58px 14px 20px; border-bottom: 1px solid var(--border-soft); }
 .comments-heading h2 { grid-column: 1; margin: 0; font-size: 18px; line-height: 1.25; font-weight: 760; letter-spacing: -.025em; }
 .comments-heading > p { grid-column: 1; overflow: hidden; margin: 0; color: var(--text-secondary); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.comments-count { grid-column: 2; grid-row: 1 / span 2; display: grid; min-width: 30px; height: 30px; padding-inline: 7px; place-items: center; border-radius: 999px; background: var(--surface-selected); color: var(--brand-strong); font-size: 12px; font-weight: 750; }
 .comments-list { display: grid; align-content: start; gap: 4px; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 14px 18px 20px; }
 .comment-item { display: grid; grid-template-columns: 34px minmax(0,1fr); align-items: start; gap: 9px; padding: 4px 0; }
 .comment-avatar,.comment-composer-avatar { position: relative; display: inline-grid; width: 34px; height: 34px; overflow: hidden; place-items: center; flex: 0 0 auto; border-radius: 50%; background: var(--surface-selected); color: var(--brand-strong); font-size: 11px; font-weight: 700; }
@@ -445,13 +443,12 @@ body.social-app {
 .comments-empty p { margin: 4px 0 0; color: var(--text-secondary); font-size: 11px; }
 .comments-loading { display: grid; align-content: start; gap: 17px; width: 100%; }
 .comments-skeleton-row { display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: start; gap: 10px; }
-.comments-loading i,.comments-loading b,.comments-loading em,.comments-loading small,.comments-count-skeleton,.comment-composer-loading span,.comment-composer-loading i,.comment-composer-loading b { display: block; border-radius: 999px; background: linear-gradient(100deg,var(--skeleton-base,#e9eeea) 20%,var(--skeleton-highlight,#f7faf7) 38%,var(--skeleton-base,#e9eeea) 56%); background-size: 220% 100%; animation: qipi-shimmer 1.35s ease-in-out infinite; }
+.comments-loading i,.comments-loading b,.comments-loading em,.comments-loading small,.comment-composer-loading span,.comment-composer-loading i,.comment-composer-loading b { display: block; border-radius: 999px; background: linear-gradient(100deg,var(--skeleton-base,#e9eeea) 20%,var(--skeleton-highlight,#f7faf7) 38%,var(--skeleton-base,#e9eeea) 56%); background-size: 220% 100%; animation: qipi-shimmer 1.35s ease-in-out infinite; }
 .comments-loading i { width: 36px; height: 36px; }
 .comments-loading span { display: grid; gap: 8px; padding-top: 2px; }
 .comments-loading b { width: min(42%,148px); height: 12px; }
 .comments-loading em { width: min(78%,270px); height: 34px; border-radius: 15px; }
 .comments-loading small { width: 62px; height: 9px; }
-.comments-count-skeleton { width: 31px; height: 31px; }
 .comment-composer-loading { display: grid; grid-template-columns: 32px minmax(0,1fr) 38px; align-items: center; gap: 9px; }
 .comment-composer-loading span { width: 32px; height: 32px; }
 .comment-composer-loading i { height: 38px; border-radius: 20px; }
@@ -604,6 +601,7 @@ body.social-app {
   .traveler-strip-list { gap: 11px; }
   .traveler-bubble { flex-basis: 64px; }
   .traveler-bubble-ring { width: 58px; height: 58px; }
+  #traveler-strip:not([hidden]) + .feed-section-head { margin-top: 15px; }
 }
 
 /* Keep page surfaces and title hierarchy aligned across settings and profiles. */
@@ -618,6 +616,34 @@ body.social-app {
   line-height: 1.2;
   letter-spacing: -.025em;
 }
+
+/* Notifications use the same centered page column as the feed and profiles. */
+.notifications-page { min-width: 0; }
+.notifications-header { display: grid; grid-template-columns: 38px minmax(0,1fr) auto; align-items: center; gap: 10px; }
+.notifications-header h1 { min-width: 0; }
+.notifications-header .notification-mark-all { max-width: 128px; min-height: 36px; padding-inline: 10px; font-size: 12px; white-space: normal; line-height: 1.25; }
+.notification-page-list { display: grid; gap: 7px; min-width: 0; }
+.notification-page-list[hidden] { display: none; }
+.notification-page-list .notification-message {
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: var(--surface-card);
+}
+.notification-page-list .notification-message:hover { background: var(--surface-selected); }
+.notification-page-list .notification-message .message-avatar { width: 42px; height: 42px; }
+.notification-page-list .notification-message-copy { gap: 5px; }
+.notification-page-list .notification-message-copy strong { font-size: 13px; }
+.notification-page-list .notification-message-copy small { font-size: 12px; white-space: normal; }
+.notification-page-list .notification-message-copy time { margin-top: 1px; }
+.notification-empty#notification-page-empty { min-height: 250px; border: 1px solid var(--border-soft); border-radius: 18px; background: var(--surface-card); }
+
+.account-avatar { display: grid; place-items: center; align-self: center; }
+.account-avatar .avatar-image { object-position: center; }
+.profile-card .profile-avatar-large { align-self: center; justify-self: center; }
+.message-read-state { margin-left: 6px; font-weight: 650; }
+.message-bubble time { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
 
 /* The field itself is the search control; avoid a second visible frame around it. */
 .home-search-form {
@@ -699,6 +725,12 @@ body.social-app {
 .message-thread-skeleton-composer b { width: 46px; height: 46px; border-radius: 50%; }
 
 @media (max-width: 700px) {
+  #main.settings-open,
+  #main.profile-open { --page-top-gap: 4px; --page-sticky-top: calc(var(--app-header-height) + 4px); }
+  .settings-page > .settings-header,
+  .profile-page > .settings-header { min-height: 48px; padding-top: 4px; padding-bottom: 8px; margin-bottom: 2px; }
+  .settings-page > .settings-header h1,
+  .profile-page > .settings-header h1 { font-size: 17px; }
   .settings-open.app-layout {
     width: calc(100% - 32px);
     max-width: none;
@@ -709,9 +741,7 @@ body.social-app {
   .settings-page,
   .profile-page { gap: 12px; }
   .settings-page > .settings-header,
-  .profile-page > .settings-header { min-height: 52px; gap: 10px; }
-  .settings-page > .settings-header h1,
-  .profile-page > .settings-header h1 { font-size: 18px; }
+  .profile-page > .settings-header { gap: 10px; }
   .home-search-field { min-height: 46px; }
   .home-search-field input { min-height: 44px; }
   .message-thread-skeleton-head { min-height: 64px; gap: 10px; padding: 8px 12px; }
@@ -720,7 +750,21 @@ body.social-app {
   .message-thread-skeleton-composer { grid-template-columns: minmax(0,1fr) 44px; gap: 8px; padding: 10px 10px max(10px,env(safe-area-inset-bottom)); }
   .message-thread-skeleton-composer i,.message-thread-skeleton-composer b { height: 44px; }
   .message-thread-skeleton-composer b { width: 44px; }
+  .messages-thread-open.app-layout { padding-top: 0; }
+  #main.messages-thread-open #messages-view { height: calc(100dvh - var(--app-header-height)); }
+  #main.messages-thread-open .message-composer { box-sizing: border-box; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) 44px; padding-inline: 12px; padding-bottom: max(10px,env(safe-area-inset-bottom)); }
+  #main.messages-thread-open .message-composer textarea { min-width: 0; width: 100%; }
+  #main.messages-thread-open .message-composer button { width: 44px; min-width: 44px; }
+  .notification-page-list { gap: 8px; }
+  .notification-page-list .notification-message { min-height: 68px; padding: 10px 12px; }
+  .notification-empty#notification-page-empty { min-height: 220px; }
+  #settings-view .settings-preference-grid { gap: 12px; }
+  #settings-view .settings-card { min-width: 0; }
 }
+
+#profile-tab-panel > .trip-list { margin-top: 16px; }
+#settings-view .settings-preference-grid { min-width: 0; }
+#settings-view .settings-preference-grid .field { min-width: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .message-thread-skeleton-back,

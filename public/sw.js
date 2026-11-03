@@ -1,4 +1,5 @@
-const CACHE_NAME = "qipi-static-v2";
+const CACHE_NAME = "qipi-static-v3";
+const MEDIA_CACHE_NAME = "qipi-public-media-v1";
 const APP_SHELL = [
   "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
   "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png",
@@ -29,7 +30,7 @@ self.addEventListener("message", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((key) => key.startsWith("qipi-") && key !== CACHE_NAME).map((key) => caches.delete(key)));
+    await Promise.all(keys.filter((key) => key.startsWith("qipi-") && ![CACHE_NAME, MEDIA_CACHE_NAME].includes(key)).map((key) => caches.delete(key)));
     await self.clients.claim();
   })());
 });
@@ -39,7 +40,24 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname.startsWith("/media/")) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+
+  if (url.pathname.startsWith("/media/")) {
+    event.respondWith((async () => {
+      const cache = await caches.open(MEDIA_CACHE_NAME);
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      const cacheControl = response.headers.get("cache-control") || "";
+      if (response.ok && response.headers.get("content-type")?.startsWith("image/") && /\bpublic\b/i.test(cacheControl)) {
+        await cache.put(request, response.clone());
+        const keys = await cache.keys();
+        await Promise.all(keys.slice(0, Math.max(0, keys.length - 120)).map((key) => cache.delete(key)));
+      }
+      return response;
+    })());
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(fetch(request).catch(async () => (await caches.match("/offline.html")) || Response.error()));

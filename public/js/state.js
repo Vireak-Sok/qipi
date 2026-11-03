@@ -11,7 +11,7 @@ export function createAppState() {
     routes: [], trips: [], savedTripRecords: [], filter: "", search: "", me: null, view: "feed",
     likeActorId: getLikeActorId(), profile: null, profileId: "", profileUsername: "", profileReturnView: "feed", profileEditing: false, profileTab: "posts", savedLoading: false, savedError: false, savedRequestId: 0,
     profileRequestId: 0, routeRequestId: 0, tripRequestId: 0, startupDeepLink: null,
-    conversationId: "", conversations: [], messages: [], notifications: [], notificationUnreadCount: 0, messageRequestId: 0, messagePoll: null, chatNotificationPoll: null,
+    conversationId: "", conversations: [], messages: [], notifications: [], notificationUnreadCount: 0, notificationReturnView: "feed", messageRequestId: 0, messagePoll: null, chatNotificationPoll: null,
     comments: [], commentsCount: 0, commentsTripId: "", commentsReplyTo: null, commentsDraft: "", commentsRequestId: 0,
     messageSearch: "", messagePeople: [], messageHistoryMatches: [], messageSearchLoading: false,
     feedRequestActive: false, pendingLikes: new Set(), pendingFollows: new Set(),

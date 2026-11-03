@@ -24,7 +24,6 @@ body.social-app {
 @media (max-width: 700px) {
   :root {
     --app-header-height: calc(62px + env(safe-area-inset-top));
-    --mobile-nav-height: max(66px, calc(56px + max(7px, env(safe-area-inset-bottom))));
     --page-top-gap: 12px;
   }
   .social-topbar { padding-top: env(safe-area-inset-top); }
@@ -784,10 +783,6 @@ body.social-app {
 }
 
 @media (max-width: 700px) {
-  #main.explore-open.app-layout {
-    top: var(--app-header-height);
-    bottom: var(--mobile-nav-height);
-  }
   #main.messages-open.app-layout:not(.messages-thread-open) {
     padding-top: var(--page-top-gap);
   }

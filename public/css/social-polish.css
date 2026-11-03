@@ -8,6 +8,7 @@
   --social-layout-gap: clamp(26px, 3vw, 48px);
   --social-side-column-width: clamp(170px, calc((100vw - var(--social-main-column-width) - var(--social-layout-gap) - var(--social-layout-gap) - 48px) / 2), 230px);
   --social-page-columns: minmax(0, var(--social-side-column-width)) minmax(0, min(var(--social-main-column-width), calc(100% - var(--social-side-column-width) - var(--social-side-column-width) - var(--social-layout-gap) - var(--social-layout-gap)))) minmax(0, var(--social-side-column-width));
+  --page-section-gap: 16px;
 }
 
 body.social-app {
@@ -25,6 +26,7 @@ body.social-app {
   :root {
     --app-header-height: calc(62px + env(safe-area-inset-top));
     --page-top-gap: 12px;
+    --page-section-gap: 12px;
   }
   .social-topbar { padding-top: env(safe-area-inset-top); }
 }
@@ -101,12 +103,12 @@ body.social-app {
   }
   #main.app-layout.explore-open .right-rail { display: none !important; }
   #main.app-layout.explore-open .left-rail { display: block !important; }
-  #main.app-layout.explore-open .feed-column { display: grid; width: auto; height: auto; min-height: 0; gap: 14px; }
-  #main.app-layout.explore-open .feed-column > #routes { height: auto; min-height: 0; overflow: visible; }
+  #main.app-layout.explore-open .feed-column { display: grid; width: auto; height: calc(100dvh - var(--app-header-height)); min-height: 0; gap: 0; }
+  #main.app-layout.explore-open .feed-column > #routes { height: 100%; min-height: 0; overflow: visible; }
   #main.app-layout.explore-open .explore-map-shell {
     width: 100%;
-    height: min(680px, calc(100dvh - var(--page-sticky-top) - 36px));
-    min-height: 500px;
+    height: 100%;
+    min-height: 0;
     border: 1px solid var(--border-soft);
     border-radius: 18px;
     box-shadow: var(--surface-shadow);
@@ -118,6 +120,10 @@ body.social-app {
   border-bottom: 1px solid var(--border-soft);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--text-primary) 3%, transparent);
   backdrop-filter: blur(20px) saturate(150%);
+}
+
+@media (min-width: 701px) {
+  body.social-app:has(#main.explore-open) .social-topbar::after { content: none; }
 }
 
 .topbar-inner.shell {
@@ -178,12 +184,12 @@ body.social-app {
 .rail-nav a>.heroicon,
 .rail-nav button>.heroicon { width: 21px; height: 21px; }
 
-.feed-column { min-width: 0; gap: 16px; }
+.feed-column { min-width: 0; gap: var(--page-section-gap); }
 .home-search {
   position: sticky;
-  top: calc(var(--app-header-height) + 8px);
+  top: var(--page-sticky-top);
   z-index: 45;
-  margin: 0 0 2px;
+  margin: 0;
 }
 .home-search-form { margin: 0; }
 .home-search-field {
@@ -357,7 +363,7 @@ body.social-app {
 .safety-card p { font-size: 12px; line-height: 1.55; }
 .right-fab { min-height: 52px; border-radius: 15px; box-shadow: 0 8px 22px color-mix(in srgb, var(--action-bg) 24%, transparent); }
 
-.settings-page { gap: 13px; }
+.settings-page { gap: var(--page-section-gap); }
 .settings-card {
   padding: 21px 22px;
   border-radius: var(--social-radius-md);
@@ -372,12 +378,14 @@ body.social-app {
 .settings-install-button { display: inline-flex; align-items: center; gap: 9px; }
 .settings-install-button .heroicon { width: 17px; height: 17px; }
 
-.messages-page { border-radius: var(--social-radius-lg); }
-.messages-layout { border-radius: var(--social-radius-lg); box-shadow: 0 3px 14px color-mix(in srgb, var(--text-primary) 5%, transparent); }
-.message-sidebar-head { padding: 18px 16px 14px; }
-.message-sidebar-head h1 { font-size: 20px; }
-.message-conversation { border-radius: 14px; }
-.message-thread-head { gap: 12px; }
+@media (min-width: 701px) {
+  .messages-page { border-radius: var(--social-radius-lg); }
+  .messages-layout { border-radius: var(--social-radius-lg); box-shadow: 0 3px 14px color-mix(in srgb, var(--text-primary) 5%, transparent); }
+  .message-sidebar-head { padding: 18px 16px 14px; }
+  .message-sidebar-head h1 { font-size: 20px; }
+  .message-conversation { border-radius: 14px; }
+  .message-thread-head { gap: 12px; }
+}
 
 .search-filter-panel { padding: 15px; border: 1px solid var(--border-soft); border-radius: var(--social-radius-md); background: var(--surface-card); }
 .search-filter-panel h2 { color: var(--text-secondary); }
@@ -516,8 +524,7 @@ body.social-app {
     max-width: none;
     padding: var(--page-top-gap) 16px 96px;
   }
-  .feed-column { gap: 12px; }
-  .home-search { margin-bottom: 1px; }
+  .feed-column { gap: var(--page-section-gap); }
   .home-search-field { min-height: 46px; border-radius: 14px; }
   .home-search-field input { min-height: 44px; }
   .stories-section:not(#routes) { padding: 12px 12px 9px; border-radius: 15px; }
@@ -609,7 +616,7 @@ body.social-app {
 
 /* Keep page surfaces and title hierarchy aligned across settings and profiles. */
 .settings-page,
-.profile-page { gap: 14px; }
+.profile-page { gap: var(--page-section-gap); }
 .settings-page > .settings-header,
 .profile-page > .settings-header { min-height: 56px; gap: 12px; }
 .settings-page > .settings-header h1,
@@ -728,12 +735,10 @@ body.social-app {
 .message-thread-skeleton-composer b { width: 46px; height: 46px; border-radius: 50%; }
 
 @media (max-width: 700px) {
-  #main.settings-open,
-  #main.profile-open { --page-top-gap: 12px; --page-sticky-top: calc(var(--app-header-height) + 12px); }
   .settings-page > .settings-header,
   .profile-page > .settings-header { min-height: 48px; padding-top: 0; padding-bottom: 10px; margin-bottom: 0; }
   .settings-page > .settings-header h1,
-  .profile-page > .settings-header h1 { font-size: 17px; }
+  .profile-page > .settings-header h1 { font-size: 18px; }
   .settings-open.app-layout {
     width: calc(100% - 32px);
     max-width: none;
@@ -742,20 +747,20 @@ body.social-app {
     box-sizing: border-box;
   }
   .settings-page,
-  .profile-page { gap: 12px; }
+  .profile-page { gap: var(--page-section-gap); }
   .settings-page > .settings-header,
   .profile-page > .settings-header { gap: 10px; }
   .home-search-field { min-height: 46px; }
   .home-search-field input { min-height: 44px; }
-  .message-thread-skeleton-head { min-height: 64px; gap: 10px; padding: 8px 12px; }
+  .message-thread-skeleton-head { min-height: 64px; gap: 10px; padding: 8px 16px; }
   .message-thread-skeleton-back { display: block; width: 40px; height: 40px; flex-basis: 40px; }
-  .message-thread-skeleton-history { padding: 16px 12px; }
-  .message-thread-skeleton-composer { grid-template-columns: minmax(0,1fr) 44px; gap: 8px; padding: 10px 10px max(10px,env(safe-area-inset-bottom)); }
+  .message-thread-skeleton-history { padding: 16px; }
+  .message-thread-skeleton-composer { grid-template-columns: minmax(0,1fr) 44px; gap: 8px; padding: 10px 16px max(10px,env(safe-area-inset-bottom)); }
   .message-thread-skeleton-composer i,.message-thread-skeleton-composer b { height: 44px; }
   .message-thread-skeleton-composer b { width: 44px; }
   .messages-thread-open.app-layout { padding-top: 0; }
-  #main.messages-thread-open #messages-view { height: calc(100dvh - var(--app-header-height)); }
-  #main.messages-thread-open .message-composer { box-sizing: border-box; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) 44px; padding-inline: 12px; padding-bottom: max(10px,env(safe-area-inset-bottom)); }
+  #main.messages-thread-open #messages-view { height: 100%; }
+  #main.messages-thread-open .message-composer { box-sizing: border-box; width: 100%; min-width: 0; grid-template-columns: minmax(0,1fr) 44px; padding-inline: 16px; padding-bottom: max(10px,env(safe-area-inset-bottom)); }
   #main.messages-thread-open .message-composer textarea { min-width: 0; width: 100%; }
   #main.messages-thread-open .message-composer button { width: 44px; min-width: 44px; }
   .notification-page-list { gap: 8px; }
@@ -783,12 +788,38 @@ body.social-app {
 }
 
 @media (max-width: 700px) {
+  body.social-app:has(> #main.messages-open) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100dvh;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  body.social-app:has(> #main.messages-open) > .social-topbar { grid-row: 1; }
+  body.social-app:has(> #main.messages-open) > #main.messages-open.app-layout {
+    grid-row: 2;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  body.social-app:has(> #main.messages-open) > .mobile-nav {
+    position: relative;
+    inset: auto;
+    grid-row: 3;
+    width: 100%;
+  }
+  #main.messages-open .feed-column { height: 100%; min-height: 0; }
   #main.messages-open.app-layout:not(.messages-thread-open) {
     padding-top: var(--page-top-gap);
   }
-  #main.messages-open:not(.messages-thread-open) .messages-page {
-    height: calc(100dvh - var(--app-header-height) - 88px - var(--page-top-gap) - env(safe-area-inset-bottom));
-  }
+  #main.messages-thread-open.app-layout { padding-top: 0; }
+  #main.messages-open .messages-page { height: 100%; min-height: 0; }
 }
 
 #profile-tab-panel > .trip-list { margin-top: 16px; }
@@ -807,7 +838,7 @@ body.social-app {
 .search-page {
   display: grid;
   min-width: 0;
-  gap: 16px;
+  gap: var(--page-section-gap);
 }
 .search-page-heading {
   display: flex;
@@ -850,7 +881,7 @@ body.social-app {
 .message-thread-profile strong,.message-thread-profile small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .message-thread-skeleton-head { gap: 10px; }
 @media (max-width: 700px) {
-  .search-page { gap: 12px; }
+  .search-page { gap: var(--page-section-gap); }
   .search-page-heading { gap: 10px; padding-bottom: 10px; }
   .search-page-heading h1 { font-size: 18px; }
   .search-page-layout { grid-template-columns: minmax(0,1fr); gap: 12px; }

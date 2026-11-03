@@ -1088,7 +1088,7 @@
   top: var(--page-sticky-top);
   z-index: 60;
   padding: 9px 0 13px;
-  margin: 0 0 8px;
+  margin: 0;
   background-color: var(--surface-canvas);
   border-bottom: 1px solid var(--border-soft);
   isolation: isolate;
@@ -1111,7 +1111,7 @@
   .settings-page>.settings-header {
     top: var(--page-sticky-top);
     padding: 8px 0 12px;
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
   .settings-open.app-layout,.profile-open.app-layout {
     padding-top: var(--page-top-gap);

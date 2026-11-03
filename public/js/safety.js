@@ -19,6 +19,7 @@ function position() {
 export function createSafetyController({ api, auth, setPageView, toast, openAuth }) {
   let contacts = [], checkins = [], session = null, shareToken = "", watchId = null, viewerTimer = null, lastPositionAt = 0;
   let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", emergencyRecipients = [], suggestionTimer = null, suggestionController = null, suggestionRevision = 0, mapSelectionRevision = 0, suppressSearchFocus = false;
+  let aiOpen = false, aiBusy = false, aiImage = null, aiMessages = [], aiPlaces = [];
   const fallbackPoint = { latitude: 11.5564, longitude: 104.9282, label: "Phnom Penh, Cambodia" };
   let mapPoint = fallbackPoint;
   const content = () => $("#safety-content");
@@ -31,6 +32,31 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   const phoneLink = phone => `tel:${encodeURIComponent(phone.replace(/[^+0-9]/g, ""))}`;
   const mapIcon = name => `<svg class="heroicon" aria-hidden="true"><use href="/icons.svg#${name}"></use></svg>`;
   const visibleSettings = () => { const view = $("#settings-view"); return Boolean(view && !view.hidden); };
+
+  function aiMessagesMarkup() {
+    if (!aiMessages.length) return `<div class="map-ai-welcome"><span>${mapIcon("sparkles")}</span><strong>Where would you like to go?</strong><p>Describe a place or attach a photo. I’ll suggest locations you can check on the map.</p><button type="button" data-action="safety-ai-prompt" data-prompt="Find a quiet place to visit near Kampot">Find a quiet place near Kampot</button></div>`;
+    return aiMessages.map(item => `<div class="map-ai-message ${item.role === "user" ? "is-user" : "is-assistant"}">${item.image ? `<img src="${item.image}" alt="Photo you shared" />` : ""}<p>${esc(item.text)}</p>${item.places?.length ? `<div class="map-ai-places">${item.places.map(place => `<div class="map-ai-place"><span>${mapIcon("map-pin")}<strong>${esc(place.name)}</strong><small>${place.latitude.toFixed(5)}, ${place.longitude.toFixed(5)}</small></span><button type="button" data-action="safety-ai-view-place" data-index="${place.index}">View on map ${mapIcon("arrow-right")}</button></div>`).join("")}</div>` : ""}</div>`).join("");
+  }
+
+  function aiDialogMarkup() {
+    return `<dialog id="map-ai-dialog" class="map-ai-dialog" aria-labelledby="map-ai-title"><button class="map-ai-backdrop" type="button" data-action="safety-ai-close" aria-label="Close AI guide"></button><section class="map-ai-panel"><header class="map-ai-header"><span class="map-ai-mark">${mapIcon("sparkles")}</span><div><h2 id="map-ai-title">Ask Qipi</h2><small>Find a place from words or a photo</small></div><button type="button" class="map-ai-close" data-action="safety-ai-close" aria-label="Close AI guide">${mapIcon("close")}</button></header><div id="map-ai-messages" class="map-ai-messages" role="log" aria-live="polite">${aiMessagesMarkup()}</div><div class="map-ai-bottom"><p class="map-ai-config-note">${mapConfig?.exploreAiEnabled ? "Photos are sent to Google AI for place recognition." : "Photo recognition needs a Google AI key. Text place lookup is available."}</p><p id="map-ai-error" class="map-ai-error" role="alert" hidden></p><div id="map-ai-photo-preview" class="map-ai-photo-preview" hidden></div><form id="map-ai-form" class="map-ai-form"><label class="map-ai-attach" for="map-ai-photo" title="Attach a photo" aria-label="Attach a photo">${mapIcon("plus")}</label><input id="map-ai-photo" type="file" accept="image/jpeg,image/png,image/webp" hidden /><input id="map-ai-input" name="message" maxlength="500" autocomplete="off" placeholder="Describe a place…" aria-label="Ask about a destination" /><button class="map-ai-send" type="submit" aria-label="Send message">${mapIcon("send")}</button></form></div></section></dialog>`;
+  }
+
+  function updateAiMessages() {
+    const node = $("#map-ai-messages");
+    if (!node) return;
+    node.innerHTML = aiMessagesMarkup() + (aiBusy ? `<div class="map-ai-thinking" role="status"><i></i><i></i><i></i><span>Finding places…</span></div>` : "");
+    node.scrollTop = node.scrollHeight;
+    const form = $("#map-ai-form");
+    if (form) form.querySelector(".map-ai-send").disabled = aiBusy;
+  }
+
+  function aiError(message = "") {
+    const node = $("#map-ai-error");
+    if (!node) return;
+    node.textContent = message;
+    node.hidden = !message;
+  }
 
   function contactsMarkup({ compact = false } = {}) {
     if (!auth.user) return `<div class="safety-contacts-empty"><p>Sign in to keep trusted contacts private to your account.</p><button class="button button-secondary" type="button" data-action="safety-sign-in">Sign in</button></div>`;
@@ -76,6 +102,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function renderMapView() {
     const target = mapContent();
     if (!target) return;
+    const aiDraft = $("#map-ai-input")?.value || "";
     const isLive = Boolean(session?.active);
     let panel = "";
     if (mapPanel === "contacts") {
@@ -117,13 +144,26 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
             <button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button>
           </div>
         </div>
-        <div class="map-floating-actions"><button class="map-locate-button" type="button" data-action="safety-locate" aria-label="Go to my current location" title="Go to my current location">${mapIcon("map-pin")}</button><button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency" aria-label="Emergency help" title="Emergency help">${mapIcon("shield-check")}</button></div>
-        ${panel}<p id="explore-map-notice" class="map-status-notice" role="status"></p>
+        <div class="map-floating-actions"><button class="map-ai-button" type="button" data-action="safety-ai-open" aria-label="Ask Qipi to find a place" title="Ask Qipi">${mapIcon("sparkles")}<span>Ask Qipi</span></button><button class="map-locate-button" type="button" data-action="safety-locate" aria-label="Go to my current location" title="Go to my current location">${mapIcon("map-pin")}</button><button class="map-emergency-button" type="button" data-action="safety-open-panel" data-panel="emergency" aria-label="Emergency help" title="Emergency help">${mapIcon("shield-check")}</button></div>
+        ${panel}${aiOpen ? aiDialogMarkup() : ""}<p id="explore-map-notice" class="map-status-notice" role="status"></p>
       </div>
     </div>`;
     document.documentElement.classList.toggle("qipi-emergency-open", mapPanel === "emergency");
     const emergencyDialog = $("#safety-emergency-dialog");
     if (emergencyDialog && !emergencyDialog.open) emergencyDialog.showModal();
+    const aiDialog = $("#map-ai-dialog");
+    if (aiDialog && !aiDialog.open) {
+      aiDialog.showModal();
+      aiDialog.addEventListener("cancel", event => { event.preventDefault(); closeAi(); });
+      updateAiMessages();
+      const input = $("#map-ai-input");
+      if (input) input.value = aiDraft;
+      if (aiImage) {
+        const preview = $("#map-ai-photo-preview");
+        preview.innerHTML = `<img src="${aiImage.preview}" alt="Selected place photo" /><span>Photo ready</span><button type="button" data-action="safety-ai-remove-photo" aria-label="Remove photo">${mapIcon("close")}</button>`;
+        preview.hidden = false;
+      }
+    }
     bindMapFrame();
   }
 
@@ -242,6 +282,9 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     suggestionController?.abort();
     const emergencyDialog = $("#safety-emergency-dialog");
     if (emergencyDialog?.open) emergencyDialog.close();
+    const aiDialog = $("#map-ai-dialog");
+    if (aiDialog?.open) aiDialog.close();
+    aiOpen = false;
     mapPanel = "";
     document.documentElement.classList.remove("qipi-emergency-open");
   }
@@ -511,6 +554,93 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (wasEmergency) document.querySelector('[data-action="safety-open-panel"][data-panel="emergency"]')?.focus({ preventScroll: true });
   }
 
+  function openAi() {
+    if (mapPanel === "search") hideSearchPanel();
+    aiOpen = true;
+    renderMapView();
+    $("#map-ai-input")?.focus({ preventScroll: true });
+  }
+
+  function closeAi() {
+    aiOpen = false;
+    aiImage = null;
+    const dialog = $("#map-ai-dialog");
+    if (dialog?.open) dialog.close();
+    dialog?.remove();
+    document.querySelector('[data-action="safety-ai-open"]')?.focus({ preventScroll: true });
+  }
+
+  function removeAiPhoto() {
+    aiImage = null;
+    const preview = $("#map-ai-photo-preview");
+    if (preview) { preview.innerHTML = ""; preview.hidden = true; }
+    const input = $("#map-ai-photo");
+    if (input) input.value = "";
+  }
+
+  async function attachAiPhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    aiError();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10_000_000) {
+      aiError("Choose a JPG, PNG, or WebP photo under 10 MB.");
+      event.target.value = "";
+      return;
+    }
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const previewUrl = canvas.toDataURL("image/jpeg", 0.7);
+      const data = previewUrl.split(",")[1];
+      if (data.length > 1_000_000) throw new Error("Photo is still too large. Try a smaller image.");
+      aiImage = { mimeType: "image/jpeg", data, preview: previewUrl };
+      const preview = $("#map-ai-photo-preview");
+      if (preview) { preview.innerHTML = `<img src="${previewUrl}" alt="Selected place photo" /><span>Photo ready</span><button type="button" data-action="safety-ai-remove-photo" aria-label="Remove photo">${mapIcon("close")}</button>`; preview.hidden = false; }
+    } catch (error) { aiError(error.message || "Could not read this photo."); event.target.value = ""; }
+  }
+
+  async function submitAi(form) {
+    if (aiBusy) return;
+    const message = String(new FormData(form).get("message") || "").trim();
+    if (!message && !aiImage) { aiError("Describe a place or attach a photo."); return; }
+    aiError();
+    const history = aiMessages.slice(-6).map(item => ({ role: item.role, text: item.text }));
+    const image = aiImage ? { mimeType: aiImage.mimeType, data: aiImage.data } : null;
+    aiMessages.push({ role: "user", text: message || "Find the place in this photo", image: aiImage?.preview });
+    form.reset();
+    removeAiPhoto();
+    aiBusy = true;
+    updateAiMessages();
+    try {
+      const result = await api("/api/explore/ai", { method: "POST", data: { message, image, history }, timeoutMs: 35_000 });
+      const places = (result.places || []).map(place => { const index = aiPlaces.push(place) - 1; return { ...place, index }; });
+      aiMessages.push({ role: "assistant", text: result.reply || "I couldn't identify that place yet.", places });
+    } catch (error) {
+      aiMessages.push({ role: "assistant", text: error.message || "I couldn't find a place right now. Please try again." });
+    } finally { aiBusy = false; updateAiMessages(); $("#map-ai-input")?.focus({ preventScroll: true }); }
+  }
+
+  function viewAiPlace(index) {
+    const place = aiPlaces[index];
+    if (!place) return;
+    selectedPlace = place;
+    mapPoint = { ...place, label: place.name };
+    searchQuery = place.name;
+    destinations = [place];
+    mapPanel = "";
+    closeAi();
+    renderMapView();
+    toast(`Showing ${place.name} on the map`);
+  }
+
   function handleEmergencyKeys(event) {
     if (mapPanel === "search" && event.key === "Escape") {
       event.preventDefault();
@@ -574,5 +704,6 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function onVisibility() { if (document.hidden) stopWatch(); else if (session?.active && shareToken) beginWatch(); if (!document.hidden && location.pathname === "/safety/live") updateViewer(); }
   document.addEventListener("visibilitychange", onVisibility);
   document.addEventListener("keydown", handleEmergencyKeys);
-  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth };
+  document.addEventListener("change", event => { if (event.target?.id === "map-ai-photo") void attachAiPhoto(event); });
+  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth, openAi, closeAi, removeAiPhoto, submitAi, viewAiPlace, promptAi: value => { const input = $("#map-ai-input"); if (input) { input.value = value; input.focus(); } } };
 }

@@ -180,7 +180,7 @@ test("service worker waits for user approval before replacing an active version"
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v2");
+  assert.equal(cachedName, "qipi-static-v4");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(skipWaitingCalls, 0);
 

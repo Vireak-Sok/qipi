@@ -14,6 +14,8 @@ export function readRuntimeConfig(env = process.env) {
     publishableKey: (env.SUPABASE_PUBLISHABLE_KEY || "").trim(),
     maptilerPublicKey: (env.MAPTILER_PUBLIC_KEY || "").trim(),
     openrouteserviceKey: (env.OPENROUTESERVICE_API_KEY || "").trim(),
+    geminiApiKey: (env.GEMINI_API_KEY || "").trim(),
+    geminiModel: (env.GEMINI_MODEL || "gemini-3.5-flash-lite").trim(),
     adminToken: env.QIPI_ADMIN_TOKEN || "",
     hosted: Boolean(env.VERCEL)
   };

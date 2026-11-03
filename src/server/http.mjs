@@ -5,7 +5,7 @@ class HttpError extends Error {
   }
 }
 
-async function body(req) {
+async function body(req, { maxBytes = 16_384 } = {}) {
   if (typeof req.headers["content-type"] !== "string" ||
       !req.headers["content-type"].startsWith("application/json")) {
     throw new HttpError(415, "Send JSON content");
@@ -18,12 +18,12 @@ async function body(req) {
     const chunks = [];
     for await (const chunk of req) {
       size += chunk.length;
-      if (size > 16_384) throw new HttpError(413, "Request is too large");
+      if (size > maxBytes) throw new HttpError(413, "Request is too large");
       chunks.push(chunk);
     }
     raw = Buffer.concat(chunks).toString("utf8");
   }
-  if (Buffer.byteLength(raw, "utf8") > 16_384) throw new HttpError(413, "Request is too large");
+  if (Buffer.byteLength(raw, "utf8") > maxBytes) throw new HttpError(413, "Request is too large");
   try {
     const value = JSON.parse(raw);
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("object required");

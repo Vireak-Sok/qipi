@@ -5,7 +5,7 @@ export class ApiError extends Error {
 export function createApiClient({ auth, state, t, fetchImpl = fetch }) {
   // Coalesce simultaneous reads only; no stale cache or cross-account reuse.
   const pendingReads = new Map();
-  async function api(path, { method = "GET", data, headers = {}, signal } = {}) {
+  async function api(path, { method = "GET", data, headers = {}, signal, timeoutMs = 15000 } = {}) {
     const accessToken = await auth.accessToken();
     const requestHeaders = { "x-qipi-actor": state.likeActorId, ...(data ? { "content-type": "application/json" } : {}), ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}), ...headers };
     const key = JSON.stringify([path, requestHeaders]);
@@ -14,7 +14,7 @@ export function createApiClient({ auth, state, t, fetchImpl = fetch }) {
     const request = (async () => {
       const response = await fetchImpl(path, {
         method, headers: requestHeaders, cache: "no-store",
-        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
         body: data ? JSON.stringify(data) : undefined
       });
       let result;

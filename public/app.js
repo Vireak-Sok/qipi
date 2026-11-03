@@ -1310,6 +1310,11 @@ document.addEventListener("click", async (eventTarget) => {
       else if (action === "safety-send-in-app") await safety.listShareRecipients();
       else if (action === "safety-send-recipient") await safety.sendShareToConversation(id);
       else if (action === "safety-locate") await safety.currentLocation();
+      else if (action === "safety-ai-open") safety.openAi();
+      else if (action === "safety-ai-close") safety.closeAi();
+      else if (action === "safety-ai-remove-photo") safety.removeAiPhoto();
+      else if (action === "safety-ai-prompt") safety.promptAi(button.dataset.prompt || "");
+      else if (action === "safety-ai-view-place") safety.viewAiPlace(Number(button.dataset.index));
       else if (action === "safety-choose-destination") await safety.chooseDestination(Number(button.dataset.index));
       else if (action === "safety-select-destination") safety.selectDestination(Number(button.dataset.index));
       else if (action === "safety-clear-destination") safety.clearDestinationSearch();
@@ -1802,11 +1807,12 @@ document.addEventListener("submit", async (eventTarget) => {
     }
     return;
   }
-  if (form.id === "safety-contact-form" || form.id === "safety-destination-form") {
+  if (form.id === "safety-contact-form" || form.id === "safety-destination-form" || form.id === "map-ai-form") {
     eventTarget.preventDefault();
     try {
       if (form.id === "safety-contact-form") await safety.submitContact(form);
-      else safety.destination(form);
+      else if (form.id === "safety-destination-form") safety.destination(form);
+      else await safety.submitAi(form);
     } catch (error) { toast(error.message || "Could not save contact"); }
     return;
   }

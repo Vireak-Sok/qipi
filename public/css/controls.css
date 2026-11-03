@@ -1,7 +1,7 @@
 /* Shared interaction sizing and focus treatment */
 :root {
   --control-height: 44px;
-  --search-control-height: 54px;
+  --search-control-height: 48px;
 }
 .button {
   min-height: var(--control-height);

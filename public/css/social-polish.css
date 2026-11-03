@@ -900,6 +900,12 @@ body.social-app {
   #main.notifications-open.app-layout,
   #main.search-page-open.app-layout { padding-top: 0; }
 
+  body.social-app:has(> #main:is(.profile-open, .notifications-open, .search-page-open)) > .social-topbar {
+    background: var(--surface-card);
+    border-bottom-color: var(--surface-card);
+    box-shadow: none;
+  }
+
   .profile-page > .settings-header,
   .notifications-page > .settings-header,
   .search-page-heading {
@@ -913,6 +919,34 @@ body.social-app {
 
   .profile-page > .settings-header,
   .notifications-page > .settings-header { top: var(--app-header-height); }
+}
+
+/* Search controls share one touch target, radius, and text size on every page. */
+.home-search-field,
+.message-search-field,
+.map-search-bar {
+  box-sizing: border-box;
+  min-height: var(--search-control-height);
+  border-radius: 14px;
+}
+.home-search-field input,
+.message-search-field input,
+.map-search-bar input {
+  min-height: calc(var(--search-control-height) - 2px);
+  font-size: 14px;
+}
+.home-search-field > .heroicon { width: 18px; height: 18px; }
+.map-search-bar { padding: 0 6px 0 13px; }
+@media (min-width: 701px) {
+  .explore-open .map-control-row { padding: 15px; }
+}
+@media (max-width: 700px) {
+  #main.app-layout:not(.entry-open):not(.signup-open):not(.messages-open):not(.explore-open) {
+    padding-bottom: 0;
+  }
+  .settings-page { padding-bottom: 0; }
+  .explore-open .map-control-row { padding: 12px 16px; }
+  .map-search-bar { padding: 0 6px 0 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

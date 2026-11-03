@@ -791,3 +791,33 @@ body.social-app {
 @media (prefers-reduced-motion: reduce) {
   .search-people-skeleton i,.search-people-skeleton b,.comments-loading i,.comments-loading b,.comments-loading em { animation: none; }
 }
+
+/* Give signup the same mobile gutters as the feed, with room for the form itself. */
+@media (max-width: 700px) {
+  #main.signup-open.app-layout {
+    width: min(calc(100% - 32px), 520px);
+    max-width: 520px;
+    margin-inline: auto;
+    padding: var(--page-top-gap) 0 max(20px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  body.social-app:has(#main.signup-open) { padding-bottom: 0; }
+  #main.signup-open .feed-column,
+  #main.signup-open .signup-page,
+  #main.signup-open .signup-heading,
+  #main.signup-open .signup-layout { width: 100%; min-width: 0; max-width: none; }
+  #main.signup-open .signup-form {
+    width: 100%;
+    padding: clamp(16px, 5vw, 20px);
+    border-radius: 18px;
+  }
+  #main.signup-open .signup-action-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 13px;
+    margin-top: 18px;
+  }
+  #main.signup-open .signup-action-row .signup-primary { width: 100%; min-width: 0; justify-content: center; }
+  #main.signup-open .signup-action-row .signup-switch { margin: 0; text-align: center; white-space: normal; }
+  #main.signup-open .signup-otp-actions { flex-wrap: wrap; }
+}

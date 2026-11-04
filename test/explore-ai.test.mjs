@@ -25,6 +25,7 @@ test("Explore AI resolves a photo suggestion through map geocoding", async () =>
     assert.equal(calls.length, 2);
     assert.match(calls[0].options.body, /inlineData/);
     assert.match(calls[1].url, /Royal%20Palace%20Phnom%20Penh/);
+    assert.equal(new URL(calls[1].url).searchParams.get("types"), "poi");
     assert.equal(calls[1].options.headers.Origin, "https://qipi.vercel.app");
   } finally { globalThis.fetch = originalFetch; }
 });

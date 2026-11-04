@@ -66,13 +66,16 @@ async function askGemini({ message, image, history }, config) {
 async function findPlaces(queries, maptilerPublicKey, origin) {
   if (!maptilerPublicKey) return [];
   const results = await Promise.allSettled(queries.map(async query => {
-    const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json`);
-    url.searchParams.set("key", maptilerPublicKey);
-    url.searchParams.set("country", "kh");
-    url.searchParams.set("limit", "1");
-    const response = await fetch(url, { headers: origin ? { Origin: origin } : {}, signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return null;
-    const feature = (await response.json()).features?.[0];
+    const search = async (poiOnly) => {
+      const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json`);
+      url.searchParams.set("key", maptilerPublicKey);
+      url.searchParams.set("country", "kh");
+      url.searchParams.set("limit", "1");
+      if (poiOnly) url.searchParams.set("types", "poi");
+      const response = await fetch(url, { headers: origin ? { Origin: origin } : {}, signal: AbortSignal.timeout(8000) });
+      return response.ok ? (await response.json()).features?.[0] : null;
+    };
+    const feature = await search(true) || await search(false);
     const longitude = Number(feature?.center?.[0]), latitude = Number(feature?.center?.[1]);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
     return { name: String(feature.place_name || feature.text || query).slice(0, 160), latitude, longitude };

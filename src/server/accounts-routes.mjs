@@ -100,6 +100,9 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
       if (usernameOccupied(data, username, user.id)) throw new HttpError(409, "That username is already in use");
       const profile = syncPublicProfile(data, user);
       profile.username = username;
+      for (const comment of data.comments || []) {
+        if (comment.userId === user.id) comment.username = username;
+      }
       return { username };
     });
     return respond(200, result);
@@ -108,9 +111,14 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     const user = await userFor(req, { required: true });
     if (!user) throw new HttpError(503, "Authentication is not configured");
     const current = await store.read();
-    const next = syncPublicProfile(structuredClone(current), user);
+    const updated = structuredClone(current);
+    const next = syncPublicProfile(updated, user);
     const previous = (current.profiles || []).find(profile => profile.id === user.id);
-    const profile = JSON.stringify(previous) === JSON.stringify(next) ? previous
+    const staleAuthor = (current.trips || []).some(trip => trip.hostUserId === user.id &&
+      (trip.hostName !== next.displayName || (trip.hostAvatarPath || "") !== next.avatarPath)) ||
+      (current.comments || []).some(comment => comment.userId === user.id &&
+        (comment.displayName !== next.displayName || comment.username !== next.username || (comment.avatarPath || "") !== next.avatarPath));
+    const profile = JSON.stringify(previous) === JSON.stringify(next) && !staleAuthor ? previous
       : await store.mutate(data => syncPublicProfile(data, user));
     return respond(200, { profile });
   }

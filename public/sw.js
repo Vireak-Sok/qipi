@@ -1,4 +1,4 @@
-const CACHE_NAME = "qipi-static-v10";
+const CACHE_NAME = "qipi-static-v11";
 const MEDIA_CACHE_NAME = "qipi-public-media-v2";
 const MEDIA_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAST_ASSETS = ["/favicon.svg", "/icons.svg", "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png"];
@@ -15,8 +15,7 @@ const APP_SHELL = [
   "/css/profile-card.css", "/css/responsive.css", "/css/safety.css", "/css/social-polish.css"
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil((async () => {
+async function cacheAppShell() {
     const cache = await caches.open(CACHE_NAME);
     let completed = 0;
     const total = APP_SHELL.length;
@@ -30,13 +29,16 @@ self.addEventListener("install", (event) => {
       completed += 1;
       await reportProgress().catch(() => {});
     }));
-    // Activate automatically once every app-shell file is cached.
-    await self.skipWaiting();
-  })());
+}
+
+self.addEventListener("install", (event) => {
+  // A first install works immediately. Updates wait for the user's choice.
+  if (!self.registration.active) event.waitUntil(cacheAppShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type === "QIPI_ACTIVATE_UPDATE") event.waitUntil(self.skipWaiting());
+  if (event.data?.type === "QIPI_DOWNLOAD_UPDATE") event.waitUntil(cacheAppShell().then(() => self.skipWaiting()));
+  else if (event.data?.type === "QIPI_ACTIVATE_UPDATE") event.waitUntil(cacheAppShell().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

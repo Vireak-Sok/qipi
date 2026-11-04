@@ -32,6 +32,7 @@ let chatNotificationBaselineReady = false;
 let activityNotificationBaselineReady = false;
 let incomingNotificationTimeout;
 let historyRestoring = false;
+let explicitNavigation = false;
 let historyPreserving = false;
 let locationRestoreRequestId = 0;
 let pendingBackAction = null;
@@ -388,7 +389,7 @@ function renderSettings() {
   content.setAttribute("aria-busy", "false");
   const name = displayName();
   content.innerHTML = auth.user
-    ? `<div class="settings-profile"><span class="profile-avatar">${avatarContents(name, auth.user.user_metadata?.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || "")}</small></div></div><div class="settings-account-actions"><button class="button button-primary" type="button" data-action="account">${icon("user")} ${esc(t("profilePageTitle"))}</button><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div>`
+    ? `<div class="settings-profile"><span class="profile-avatar">${avatarContents(name, auth.user.user_metadata?.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || auth.user.phone || "")}</small></div></div><details class="settings-account-details"><summary>${icon("settings")}<span>${esc(t("accountSettings"))}</span>${icon("chevron-down")}</summary><div class="settings-account-details-content"><p>${esc(t("accountSettingsHint"))}</p><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div></details>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
   $("#settings-theme").value = state.theme;
@@ -504,13 +505,26 @@ function setPageView(view, { preserveUrl = false } = {}) {
   renderProfileSuggestions();
   if (isEntry) document.documentElement.removeAttribute("data-entry-pending");
   document.documentElement.removeAttribute("data-profile-pending");
-  if (preserveUrl || historyRestoring || historyPreserving) markCurrent(view);
+  if (!explicitNavigation && (preserveUrl || historyRestoring || historyPreserving)) markCurrent(view);
   else pushPage(view);
   previousHomeSearchScroll = 0;
   if (!historyRestoring) window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function setSettingsView(open) { setPageView(open ? "settings" : "feed"); }
+
+function fromUserNavigation(callback) {
+  locationRestoreRequestId += 1;
+  const resolveBack = pendingBackResolve;
+  pendingBackAction = null;
+  pendingBackResolve = null;
+  resolveBack?.();
+  historyRestoring = false;
+  historyPreserving = false;
+  explicitNavigation = true;
+  try { return callback(); }
+  finally { explicitNavigation = false; }
+}
 
 async function openSettings() {
   closeDialogs();
@@ -1408,7 +1422,7 @@ document.addEventListener("click", async (eventTarget) => {
       else if (action === "safety-close-panel") safety.closeMapPanel();
       else if (action === "safety-emergency-share") await safety.shareEmergency();
       else if (action === "safety-check-in-panel") safety.openMapPanel("checkin");
-      else if (action === "safety-open-settings") await openSettings();
+      else if (action === "safety-open-settings") await fromUserNavigation(() => openSettings());
     } catch (error) { toast(error.message || "Safety action failed"); }
     return;
   }
@@ -1450,7 +1464,7 @@ document.addEventListener("click", async (eventTarget) => {
   }
   if (action === "open-notifications") {
     if (state.view !== "notifications") state.notificationReturnView = state.view;
-    await navigateToView("notifications");
+    await fromUserNavigation(() => navigateToView("notifications"));
     return;
   }
   if (action === "notifications-back") {
@@ -1609,7 +1623,7 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "create-trip") requireSignIn(() => openCreate(id || state.filter));
   if (action === "join-trip") requireSignIn(() => openJoin(id));
   if (action === "saved-trips") openSavedTrips();
-  if (action === "open-settings") openSettings();
+  if (action === "open-settings") fromUserNavigation(() => openSettings());
   if (action === "back-to-feed") { await openFeedPage(); }
   if (action === "settings-sign-in") openAuth("signin");
   if (action === "account") {
@@ -1933,6 +1947,13 @@ document.addEventListener("submit", async (eventTarget) => {
       state.trips = state.trips.map(updateAuthor);
       state.searchTrips = state.searchTrips.map(updateAuthor);
       state.savedTripRecords = state.savedTripRecords.map(updateAuthor);
+      const updateCommentAuthor = (comment) => ({
+        ...comment,
+        ...(comment.userId === profile.id || comment.username === previousUsername ? { displayName: profile.displayName, username: profile.username } : {}),
+        replies: comment.replies?.map(updateCommentAuthor)
+      });
+      state.comments = state.comments.map(updateCommentAuthor);
+      if (state.commentsTripId) renderCommentsDialog();
       document.querySelectorAll(".trip-card[data-trip-id]").forEach((card) => {
         const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(trips || [])].find((item) => item.id === card.dataset.tripId);
         if (trip?.profileId === profile.id) {
@@ -2331,7 +2352,7 @@ $("#settings-safety-reminders").addEventListener("change", (eventTarget) => {
 document.querySelectorAll("a[data-page-view]").forEach((anchor) => anchor.addEventListener("click", (eventTarget) => {
   if (eventTarget.button !== 0 || eventTarget.metaKey || eventTarget.ctrlKey || eventTarget.shiftKey || eventTarget.altKey) return;
   eventTarget.preventDefault();
-  navigateToView(anchor.dataset.pageView);
+  fromUserNavigation(() => navigateToView(anchor.dataset.pageView));
 }));
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("click", (eventTarget) => {

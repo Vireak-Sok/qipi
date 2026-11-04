@@ -17,6 +17,8 @@ export function createPwaController({ t, toast }) {
   let oldController = navigator.serviceWorker?.controller || null;
   let trackedWorker = null;
   let updateTimer = null;
+  let updateDismissed = false;
+  try { updateDismissed = sessionStorage.getItem("qipi:update-dismissed") === "true"; } catch {}
 
   function clearUpdateTimer() {
     if (updateTimer) clearTimeout(updateTimer);
@@ -24,31 +26,44 @@ export function createPwaController({ t, toast }) {
   }
 
   function renderUpdateStatus() {
-    if (!navigator.serviceWorker?.controller || updatePhase === "idle") {
-      if (updateButton) updateButton.hidden = true;
-      return;
-    }
-    if (!updateButton) {
-      updateButton = document.createElement("button");
-      updateButton.type = "button";
-      updateButton.className = "pwa-update-button";
+    const available = Boolean(navigator.serviceWorker?.controller && updatePhase !== "idle");
+    const showFloating = available && !(updateDismissed && updatePhase === "available");
+    if (showFloating && !updateButton) {
+      updateButton = document.createElement("div");
+      updateButton.className = "pwa-update-floating";
+      updateButton.setAttribute("role", "status");
       updateButton.setAttribute("aria-live", "polite");
       document.body.append(updateButton);
     }
-    updateButton.hidden = false;
-    updateButton.dataset.phase = updatePhase;
-    updateButton.dataset.pwaUpdate = updatePhase === "error" ? "retry" : "status";
-    updateButton.disabled = updatePhase !== "error";
-    updateButton.textContent = updatePhase === "downloading"
-      ? `${t("pwaUpdateDownloading")} ${updatePercent}%`
-      : updatePhase === "installing" ? t("pwaUpdateInstalling")
-        : `${t("pwaUpdateFailed")} ${t("retry")}`;
+    if (updateButton) {
+      updateButton.hidden = !showFloating;
+      updateButton.dataset.phase = updatePhase;
+      if (showFloating) updateButton.innerHTML = updatePhase === "available"
+        ? `<strong>${esc(t("pwaUpdateAvailable"))}</strong><div><button type="button" class="pwa-update-action" data-pwa-update="start">${esc(t("pwaUpdateNow"))}</button><button type="button" class="pwa-update-dismiss" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>`
+        : `<button type="button" class="pwa-update-action" data-pwa-update="${updatePhase === "error" ? "retry" : "status"}" ${updatePhase === "error" ? "" : "disabled"}>${esc(updatePhase === "downloading" ? `${t("pwaUpdateDownloading")} ${updatePercent}%` : updatePhase === "installing" ? t("pwaUpdateInstalling") : `${t("pwaUpdateFailed")} ${t("retry")}`)}</button>`;
+    }
+    renderSettingsReminder();
+  }
+
+  function renderSettingsReminder() {
+    const settings = $("#settings-view");
+    if (!settings) return;
+    let reminder = $("#settings-update-reminder");
+    if (!reminder && updateDismissed && updatePhase === "available") {
+      reminder = document.createElement("section");
+      reminder.id = "settings-update-reminder";
+      reminder.className = "settings-update-reminder";
+      settings.prepend(reminder);
+    }
+    if (!reminder) return;
+    reminder.hidden = !(updateDismissed && updatePhase === "available");
+    if (!reminder.hidden) reminder.innerHTML = `<span><strong>${esc(t("pwaUpdateAvailable"))}</strong><small>${esc(t("pwaUpdateSettingsHint"))}</small></span><button type="button" data-pwa-update="start">${esc(t("pwaUpdateNow"))}</button>`;
   }
 
   function scheduleUpdateTimeout(duration) {
     clearUpdateTimer();
     updateTimer = setTimeout(() => {
-      if (updatePhase === "idle" || updatePhase === "error") return;
+      if (!["downloading", "installing"].includes(updatePhase)) return;
       if (navigator.serviceWorker.controller && navigator.serviceWorker.controller !== oldController) {
         window.location.reload();
         return;
@@ -59,37 +74,42 @@ export function createPwaController({ t, toast }) {
     updateTimer.unref?.();
   }
 
-  function activateWaitingUpdate() {
+  function downloadWaitingUpdate() {
     if (!registration?.waiting || !navigator.serviceWorker?.controller) return;
     oldController = navigator.serviceWorker.controller;
-    updatePhase = "installing";
-    updatePercent = 100;
-    renderUpdateStatus();
-    try { registration.waiting.postMessage({ type: "QIPI_ACTIVATE_UPDATE" }); }
-    catch { /* The worker may already be activating automatically. */ }
-    scheduleUpdateTimeout(15000);
-  }
-
-  document.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-pwa-update='retry']");
-    if (!button) return;
-    if (registration?.waiting) { activateWaitingUpdate(); return; }
+    updateDismissed = false;
+    try { sessionStorage.removeItem("qipi:update-dismissed"); } catch {}
     updatePhase = "downloading";
     updatePercent = 0;
     renderUpdateStatus();
+    try { registration.waiting.postMessage({ type: "QIPI_DOWNLOAD_UPDATE" }); }
+    catch { updatePhase = "error"; renderUpdateStatus(); return; }
     scheduleUpdateTimeout(30000);
-    registration?.update().catch(() => { clearUpdateTimer(); updatePhase = "error"; renderUpdateStatus(); });
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-pwa-update]");
+    if (!button) return;
+    if (button.dataset.pwaUpdate === "later") {
+      updateDismissed = true;
+      try { sessionStorage.setItem("qipi:update-dismissed", "true"); } catch {}
+      renderUpdateStatus();
+    } else if (["start", "retry"].includes(button.dataset.pwaUpdate)) {
+      if (registration?.waiting) downloadWaitingUpdate();
+      else registration?.update().catch(() => { updatePhase = "error"; renderUpdateStatus(); });
+    }
   });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data?.type !== "QIPI_UPDATE_PROGRESS" || updatePhase !== "downloading" || !registration?.installing || !navigator.serviceWorker.controller) return;
+      if (event.data?.type !== "QIPI_UPDATE_PROGRESS" || updatePhase !== "downloading" || !navigator.serviceWorker.controller) return;
       updatePercent = Math.max(updatePercent, Math.min(100, Number(event.data.percent) || 0));
+      if (updatePercent >= 100) updatePhase = "installing";
       renderUpdateStatus();
-      scheduleUpdateTimeout(30000);
+      scheduleUpdateTimeout(updatePhase === "installing" ? 15000 : 30000);
     });
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (updatePhase === "idle" || !oldController || navigator.serviceWorker.controller === oldController) return;
+      if (!["downloading", "installing"].includes(updatePhase) || !oldController || navigator.serviceWorker.controller === oldController) return;
       clearUpdateTimer();
       updatePhase = "idle";
       window.location.reload();
@@ -99,6 +119,7 @@ export function createPwaController({ t, toast }) {
   function renderInstallSettings() {
     const content = $("#settings-install-content");
     if (!content) return;
+    renderSettingsReminder();
 
     if (isInstalled()) {
       content.innerHTML = `<p class="settings-install-status">${esc(t("pwaInstalled"))}</p>`;
@@ -136,21 +157,13 @@ export function createPwaController({ t, toast }) {
         const installing = registration.installing;
         if (!installing || !navigator.serviceWorker.controller || installing === trackedWorker) return;
         trackedWorker = installing;
-        oldController = navigator.serviceWorker.controller;
-        updatePhase = "downloading";
-        updatePercent = 0;
-        renderUpdateStatus();
-        scheduleUpdateTimeout(30000);
         const handleStateChange = () => {
           if (installing.state === "installed") {
-            updatePhase = "installing";
-            updatePercent = 100;
+            updatePhase = "available";
             renderUpdateStatus();
-            if (registration.waiting) activateWaitingUpdate();
-            else scheduleUpdateTimeout(15000);
           } else if (installing.state === "redundant") {
             clearUpdateTimer();
-            updatePhase = "error";
+            updatePhase = "idle";
             renderUpdateStatus();
           }
         };
@@ -159,7 +172,7 @@ export function createPwaController({ t, toast }) {
       };
       registration.addEventListener("updatefound", watchInstalling);
       watchInstalling();
-      if (registration.waiting) activateWaitingUpdate();
+      if (registration.waiting) { updatePhase = "available"; renderUpdateStatus(); }
       else registration.update().catch(() => {});
     } catch {
       // The app stays usable when service workers are blocked or unavailable.

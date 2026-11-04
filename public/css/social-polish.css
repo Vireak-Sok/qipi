@@ -31,30 +31,45 @@ body.social-app {
   .social-topbar { padding-top: env(safe-area-inset-top); }
 }
 
-.pwa-update-button {
+.pwa-update-floating {
   position: fixed;
   z-index: 110;
   right: max(16px, env(safe-area-inset-right));
   bottom: max(20px, env(safe-area-inset-bottom));
-  max-width: calc(100vw - 32px);
-  min-height: 44px;
-  padding: 0 16px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
   border: 1px solid var(--border-soft);
   border-radius: 14px;
-  color: var(--action-text);
-  background: var(--action-bg);
+  color: var(--text-primary);
+  background: var(--surface-card);
   box-shadow: 0 10px 28px color-mix(in srgb, var(--text-primary) 18%, transparent);
   font: inherit;
   font-size: 13px;
-  font-weight: 700;
   line-height: 1.3;
-  text-align: center;
 }
-.pwa-update-button[hidden] { display: none; }
-.pwa-update-button:disabled { cursor: progress; opacity: 1; }
-.pwa-update-button[data-phase="error"] { cursor: pointer; }
+.pwa-update-floating[hidden],.settings-update-reminder[hidden] { display: none; }
+.pwa-update-floating > strong { display: block; margin-bottom: 12px; font-size: 14px; }
+.pwa-update-floating > div { display: flex; gap: 8px; }
+.pwa-update-action,.pwa-update-dismiss,.settings-update-reminder button { min-height: 40px; padding: 0 13px; border: 1px solid var(--border-soft); border-radius: 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.pwa-update-action,.settings-update-reminder button { color: var(--action-text); background: var(--action-bg); }
+.pwa-update-dismiss { color: var(--text-primary); background: var(--surface-field); }
+.pwa-update-action:disabled { cursor: progress; opacity: 1; }
+.pwa-update-floating[data-phase="downloading"] .pwa-update-action,.pwa-update-floating[data-phase="installing"] .pwa-update-action { width: 100%; }
+.settings-update-reminder { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: var(--page-section-gap); padding: 14px 16px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--surface-card); }
+.settings-update-reminder span { display: grid; gap: 3px; }
+.settings-update-reminder strong { font-size: 13px; }
+.settings-update-reminder small { color: var(--text-secondary); font-size: 11px; }
+.settings-account-details { border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; }
+.settings-account-details summary { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 14px; cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; }
+.settings-account-details summary::-webkit-details-marker { display: none; }
+.settings-account-details summary span { flex: 1; }
+.settings-account-details summary .heroicon { width: 17px; height: 17px; }
+.settings-account-details[open] summary .heroicon:last-child { transform: rotate(180deg); }
+.settings-account-details-content { padding: 0 14px 12px; border-top: 1px solid var(--border-soft); }
+.settings-account-details-content p { margin: 12px 0; color: var(--text-secondary); font-size: 12px; }
+.settings-account-details-content .settings-signout { display: block; width: 100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; text-align: left; }
 @media (max-width: 700px) {
-  .pwa-update-button { bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .pwa-update-floating { bottom: calc(82px + env(safe-area-inset-bottom)); }
 }
 
 /* Specificity here overrides the legacy 24px shell width on mobile; all
@@ -991,7 +1006,19 @@ body.social-app { font-family: Inter, "Noto Sans Khmer", ui-sans-serif, system-u
 
 /* Placeholders use the same dimensions and structure as loaded content. */
 .skeleton-media { display: block; width: 100%; height: auto; aspect-ratio: 1.04 / 1; }
-.skeleton-post-head { box-sizing: border-box; }
+.skeleton-post-head { box-sizing: border-box; display: flex; align-items: center; gap: 9px; }
+.skeleton-post-head > span { display: grid; gap: 6px; }
+.skeleton-post-head b + b { width: 78px; height: 8px; }
+.skeleton-post-head em { width: 18px; height: 21px; margin-left: auto; border-radius: 4px; }
+.skeleton-post-body { padding: 0; }
+.skeleton-post-body .skeleton-copy { margin: 16px 16px 12px; width: 44%; height: 20px; }
+.skeleton-post-body .skeleton-copy.short { margin: 0 16px 26px; width: 72%; height: 31px; }
+.skeleton-post-body .skeleton-journey { height: 58px; margin: 0 16px 11px; }
+.skeleton-post-actions { margin: 0 16px; padding: 10px 0 13px; }
+.skeleton-post-actions i { width: 24px; height: 24px; }
+.skeleton-post-head b,.skeleton-post-head em { display: block; background: linear-gradient(100deg,var(--skeleton-base,#e9eeea) 20%,var(--skeleton-highlight,#f7faf7) 38%,var(--skeleton-base,#e9eeea) 56%); background-size: 220% 100%; animation: qipi-shimmer 1.35s ease-in-out infinite; }
+.skeleton-settings-actions { margin-top: 17px; }
+.skeleton-settings-actions i { width: 100%; height: 46px; border-radius: 12px; }
 .search-people-skeleton { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
 .search-people-skeleton-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; gap: 11px; min-height: 56px; padding: 7px 9px; }
 .search-people-skeleton-row em { width: 17px; height: 17px; border-radius: 5px; }

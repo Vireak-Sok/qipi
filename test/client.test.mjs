@@ -163,7 +163,7 @@ test("guest choice survives app restarts and upgrades the previous session choic
   }
 });
 
-test("service worker activates automatically after caching the app shell", async () => {
+test("service worker waits for an update choice and reports download progress", async () => {
   const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
   const handlers = new Map();
   let cachedName = "";
@@ -181,20 +181,20 @@ test("service worker activates automatically after caching the app shell", async
 
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
-  await installPromise;
-  assert.equal(cachedName, "qipi-static-v10");
+  assert.equal(installPromise, undefined);
+  assert.equal(skipWaitingCalls, 0);
+
+  let activationMessage;
+  handlers.get("message")({
+    data: { type: "QIPI_DOWNLOAD_UPDATE" },
+    waitUntil: (promise) => { activationMessage = promise; }
+  });
+  await activationMessage;
+  assert.equal(cachedName, "qipi-static-v11");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(progress.at(-1).percent, 100);
   assert.equal(progress.at(-1).completed, cachedAssets.length);
   assert.equal(skipWaitingCalls, 1);
-
-  let activationMessage;
-  handlers.get("message")({
-    data: { type: "QIPI_ACTIVATE_UPDATE" },
-    waitUntil: (promise) => { activationMessage = promise; }
-  });
-  await activationMessage;
-  assert.equal(skipWaitingCalls, 2);
 });
 
 test("public media cache expires old images and reuses a fresh response", async () => {
@@ -227,15 +227,17 @@ test("public media cache expires old images and reuses a fresh response", async 
   assert.equal(fetchCount, 1);
 });
 
-test("PWA update status advances automatically and times out instead of spinning forever", async (context) => {
-  const prior = Object.fromEntries(["window", "document", "navigator", "setTimeout", "clearTimeout"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+test("PWA update offers a choice, reports download, and installs automatically", async (context) => {
+  const prior = Object.fromEntries(["window", "document", "navigator", "sessionStorage", "setTimeout", "clearTimeout"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const documentListeners = new Map();
   const serviceWorkerListeners = new Map();
   const registrationListeners = new Map();
   const timers = [];
   let reloads = 0;
   let button = null;
+  let reminder = null;
   let postedMessage = null;
+  const session = new Map();
   const oldController = { state: "activated" };
   const waitingWorker = { postMessage: (message) => { postedMessage = message; } };
   const registration = {
@@ -252,6 +254,8 @@ test("PWA update status advances automatically and times out instead of spinning
     readyState: "complete",
     body: { append: (node) => { button = node; } },
     createElement: () => ({ hidden: false, disabled: false, dataset: {}, setAttribute() {} }),
+    querySelector: (selector) => selector === "#settings-view" ? { prepend: (node) => { reminder = node; } }
+      : selector === "#settings-update-reminder" ? reminder : null,
     addEventListener: (name, handler) => documentListeners.set(name, handler)
   };
   const mockNavigator = {
@@ -266,7 +270,8 @@ test("PWA update status advances automatically and times out instead of spinning
     timers.push(timer);
     return timer;
   };
-  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator, setTimeout: fakeSetTimeout, clearTimeout: () => {} })) {
+  const sessionStorage = { getItem: key => session.get(key) || null, setItem: (key, value) => session.set(key, value), removeItem: key => session.delete(key) };
+  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator, sessionStorage, setTimeout: fakeSetTimeout, clearTimeout: () => {} })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
   context.after(() => {
@@ -284,25 +289,29 @@ test("PWA update status advances automatically and times out instead of spinning
   const installingWorker = { state: "installing", addEventListener: (name, handler) => installingListeners.set(name, handler) };
   registration.installing = installingWorker;
   registrationListeners.get("updatefound")();
-  assert.equal(button.textContent, "pwaUpdateDownloading 0%");
-  assert.equal(button.disabled, true);
-  serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 43 } });
-  assert.equal(button.textContent, "pwaUpdateDownloading 43%");
-  assert.equal(button.querySelector, undefined); // The status is one button, with no progress bar.
-
+  assert.equal(button, null);
   registration.waiting = waitingWorker;
   installingWorker.state = "installed";
   installingListeners.get("statechange")();
-  assert.equal(button.textContent, "pwaUpdateInstalling");
-  assert.deepEqual(postedMessage, { type: "QIPI_ACTIVATE_UPDATE" });
+  assert.match(button.innerHTML, /pwaUpdateNow/);
+  const click = (action) => documentListeners.get("click")({ target: { closest: () => ({ dataset: { pwaUpdate: action } }) } });
+  click("later");
+  assert.equal(button.hidden, true);
+  assert.equal(session.get("qipi:update-dismissed"), "true");
+  assert.match(reminder.innerHTML, /pwaUpdateNow/);
+  click("start");
+  assert.equal(reminder.hidden, true);
+  assert.deepEqual(postedMessage, { type: "QIPI_DOWNLOAD_UPDATE" });
+  assert.match(button.innerHTML, /pwaUpdateDownloading 0%/);
+  serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 43 } });
+  assert.match(button.innerHTML, /pwaUpdateDownloading 43%/);
+  serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 100 } });
+  assert.match(button.innerHTML, /pwaUpdateInstalling/);
   assert.equal(reloads, 0);
-
-  timers.at(-1).handler();
-  assert.match(button.textContent, /pwaUpdateFailed/);
-  assert.equal(button.disabled, false);
   mockNavigator.serviceWorker.controller = { state: "activated" };
   serviceWorkerListeners.get("controllerchange")();
   assert.equal(reloads, 1);
+  assert.ok(timers.some(timer => timer.delay === 15000));
   assert.ok(documentListeners.has("click"));
 });
 
@@ -390,7 +399,10 @@ test("API reads coalesce in flight, then refetch; different sessions never share
 
 test("public profile directory preserves usernames and omits private Auth fields", async () => {
   const { syncPublicProfile } = await import("../src/server/profiles.mjs");
-  const data = {};
+  const data = {
+    trips: [{ hostUserId: "11111111-1111-4111-8111-111111111111", hostName: "Dara", hostAvatarPath: "" }],
+    comments: [{ userId: "11111111-1111-4111-8111-111111111111", displayName: "Dara", username: "old", avatarPath: "" }]
+  };
   const user = { id: "11111111-1111-4111-8111-111111111111", displayName: "Dara", email: "private@example.test", accessToken: "secret" };
   const first = syncPublicProfile(data, user);
   const username = first.username;
@@ -398,6 +410,9 @@ test("public profile directory preserves usernames and omits private Auth fields
   assert.equal(renamed.username, username);
   assert.equal(data.profiles.length, 1);
   assert.equal(renamed.displayName, "New Name");
+  assert.equal(data.trips[0].hostName, "New Name");
+  assert.equal(data.comments[0].displayName, "New Name");
+  assert.equal(data.comments[0].username, username);
   assert.equal(renamed.email, undefined);
   assert.equal(renamed.accessToken, undefined);
 });

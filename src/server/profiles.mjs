@@ -18,5 +18,16 @@ export function syncPublicProfile(data, user) {
   };
   if (existing) Object.assign(existing, profile);
   else data.profiles.push(profile);
+  for (const trip of data.trips || []) {
+    if (trip.hostUserId !== user.id) continue;
+    trip.hostName = profile.displayName;
+    trip.hostAvatarPath = profile.avatarPath;
+  }
+  for (const comment of data.comments || []) {
+    if (comment.userId !== user.id) continue;
+    comment.displayName = profile.displayName;
+    comment.username = profile.username;
+    comment.avatarPath = profile.avatarPath;
+  }
   return existing || profile;
 }

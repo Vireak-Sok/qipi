@@ -185,6 +185,35 @@ export class QipiAuth {
     this.recovery = false;
   }
 
+  async verifyCurrentPassword(password) {
+    const currentUserId = this.user?.id;
+    const credentials = this.user?.email
+      ? { email: this.user.email, password }
+      : { phone: normalizePhoneNumber(this.user?.phone), password };
+    if (!currentUserId || (!credentials.email && !credentials.phone)) throw new Error("Sign in again to change account details");
+    const previousToken = await this.accessToken();
+    const result = await this.request("/token?grant_type=password", { method: "POST", body: credentials });
+    if (!result.user || result.user.id !== currentUserId || !this.acceptSession(result)) throw new Error("Could not verify your current password");
+    if (previousToken) await this.request("/logout?scope=local", { method: "POST", accessToken: previousToken }).catch(() => {});
+    return this.session.accessToken;
+  }
+
+  async changePassword(currentPassword, newPassword) {
+    const accessToken = await this.verifyCurrentPassword(currentPassword);
+    const user = await this.request("/user", {
+      method: "PUT", body: { current_password: currentPassword, password: newPassword }, accessToken
+    });
+    if (user?.id) this.save({ ...this.session, user });
+  }
+
+  async changeEmail(currentPassword, email) {
+    const accessToken = await this.verifyCurrentPassword(currentPassword);
+    const user = await this.request("/user", {
+      method: "PUT", body: { email: email.trim().toLowerCase(), current_password: currentPassword }, accessToken
+    });
+    if (user?.id) this.save({ ...this.session, user });
+  }
+
   async updateMetadata(data, signInMessage = "Sign in again to update your profile") {
     const accessToken = await this.accessToken();
     if (!accessToken) throw new Error(signInMessage);
@@ -203,9 +232,15 @@ export class QipiAuth {
     return this.updateMetadata({ avatar_path: avatarPath }, "Sign in again to update your profile photo");
   }
 
-  async signOut() {
+  async signOut(scope = "local") {
     const accessToken = await this.accessToken().catch(() => null);
+    if (scope === "global") {
+      if (!accessToken) throw new Error("Sign in again to sign out of every device");
+      await this.request("/logout?scope=global", { method: "POST", accessToken });
+      this.save(null);
+      return;
+    }
     this.save(null);
-    if (accessToken) await this.request("/logout", { method: "POST", accessToken }).catch(() => {});
+    if (accessToken) await this.request("/logout?scope=local", { method: "POST", accessToken }).catch(() => {});
   }
 }

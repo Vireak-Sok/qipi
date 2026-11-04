@@ -388,8 +388,24 @@ function renderSettings() {
   if (!content) return;
   content.setAttribute("aria-busy", "false");
   const name = displayName();
+  const email = auth.user?.email || "";
+  const phone = auth.user?.phone || "";
   content.innerHTML = auth.user
-    ? `<div class="settings-profile"><span class="profile-avatar">${avatarContents(name, auth.user.user_metadata?.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(auth.user.email || auth.user.phone || "")}</small></div></div><details class="settings-account-details"><summary>${icon("settings")}<span>${esc(t("accountSettings"))}</span>${icon("chevron-down")}</summary><div class="settings-account-details-content"><p>${esc(t("accountSettingsHint"))}</p><button class="settings-signout" type="button" data-action="sign-out">${esc(t("signOut"))}</button></div></details>`
+    ? `<div class="settings-profile"><span class="profile-avatar">${avatarContents(name, auth.user.user_metadata?.avatar_path || "")}</span><div><strong>${esc(name)}</strong><small>${esc(email || phone)}</small></div></div>
+      <details class="settings-account-details"><summary>${icon("settings")}<span>${esc(t("accountSettings"))}</span>${icon("chevron-down")}</summary>
+      <div class="settings-account-details-content"><p>${esc(t("accountSettingsHint"))}</p>
+        <div class="settings-account-identities"><div><span>${esc(t("email"))}</span><strong>${esc(email || t("accountNotAdded"))}</strong></div><div><span>${esc(t("phoneNumber"))}</span><strong>${esc(phone || t("accountNotAdded"))}</strong></div></div>
+        <details class="settings-account-option"><summary><span>${esc(t("accountChangePassword"))}</span>${icon("chevron-down")}</summary><form id="account-password-form" class="settings-account-form">
+          <label>${esc(t("accountCurrentPassword"))}<input name="currentPassword" type="password" autocomplete="current-password" required /></label>
+          <label>${esc(t("accountNewPassword"))}<input name="newPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <label>${esc(t("accountConfirmPassword"))}<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("accountSavePassword"))}</button></form></details>
+        <details class="settings-account-option"><summary><span>${esc(t(email ? "accountChangeEmail" : "accountAddEmail"))}</span>${icon("chevron-down")}</summary><form id="account-email-form" class="settings-account-form">
+          <p>${esc(t("accountEmailVerification"))}</p><label>${esc(t("accountNewEmail"))}<input name="email" type="email" autocomplete="email" required /></label>
+          <label>${esc(t("accountCurrentPassword"))}<input name="currentPassword" type="password" autocomplete="current-password" required /></label>
+          <div class="error-message" role="alert"></div><button class="button button-primary" type="submit">${esc(t("accountSendEmailChange"))}</button></form></details>
+        <div class="settings-account-session"><button class="settings-signout" type="button" data-action="sign-out">${esc(t("accountSignOutHere"))}</button><button class="settings-signout settings-signout-all" type="button" data-action="sign-out-all">${esc(t("accountSignOutAll"))}</button><p class="settings-account-session-note">${esc(t("accountSignOutAllHint"))}</p></div>
+      </div></details>`
     : `<p class="settings-guest-copy">${esc(t("guestProfileText"))}</p><button class="button button-primary" type="button" data-action="settings-sign-in">${esc(t("signIn"))}</button>`;
   $("#settings-language").value = state.lang;
   $("#settings-theme").value = state.theme;
@@ -1649,7 +1665,30 @@ document.addEventListener("click", async (eventTarget) => {
     }
     openAuth(mode);
   }
-  if (action === "sign-out") { if (state.messagePoll) clearInterval(state.messagePoll); state.messagePoll = null; state.messageRequestId++; state.conversations = []; state.messages = []; state.conversationId = ""; state.savedRequestId++; state.savedTripRecords = []; state.savedTrips = [...state.guestSavedTrips]; saveLocal("qipi:saved-trips", state.guestSavedTrips); state.profileTab = "posts"; await auth.signOut(); void loadProfileSuggestions(); startChatNotifications(); state.me = null; renderAccount(); renderSettings(); renderTrips(); if (state.view === "profile") renderProfile(); if (state.view === "messages") renderMessagesSignIn(); closeDialogs(); }
+  if (action === "sign-out" || action === "sign-out-all") {
+    try { await auth.signOut(action === "sign-out-all" ? "global" : "local"); }
+    catch (error) { toast(error.message || t("failed")); return; }
+    if (state.messagePoll) clearInterval(state.messagePoll);
+    state.messagePoll = null;
+    state.messageRequestId++;
+    state.conversations = [];
+    state.messages = [];
+    state.conversationId = "";
+    state.savedRequestId++;
+    state.savedTripRecords = [];
+    state.savedTrips = [...state.guestSavedTrips];
+    saveLocal("qipi:saved-trips", state.guestSavedTrips);
+    state.profileTab = "posts";
+    void loadProfileSuggestions();
+    startChatNotifications();
+    state.me = null;
+    renderAccount();
+    renderSettings();
+    renderTrips();
+    if (state.view === "profile") renderProfile();
+    if (state.view === "messages") renderMessagesSignIn();
+    closeDialogs();
+  }
   if (action === "toggle-save") {
     if (auth.user && state.guestSavedTrips.length && !await syncAccountSavedTrips()) return;
     state.pendingSaves ||= new Set();
@@ -1880,6 +1919,32 @@ document.addEventListener("error", (eventTarget) => {
 
 document.addEventListener("submit", async (eventTarget) => {
   const form = eventTarget.target;
+  if (form.id === "account-password-form" || form.id === "account-email-form") {
+    eventTarget.preventDefault();
+    const submit = form.querySelector('button[type="submit"]');
+    const errorBox = form.querySelector(".error-message");
+    if (errorBox) { errorBox.textContent = ""; errorBox.classList.remove("show"); }
+    if (!auth.user) { setError(form, t("accountSignInAgain")); return; }
+    submit.disabled = true;
+    try {
+      const currentPassword = form.elements.currentPassword.value;
+      if (form.id === "account-password-form") {
+        const newPassword = form.elements.newPassword.value;
+        if (newPassword !== form.elements.confirmPassword.value) throw new Error(t("accountPasswordMismatch"));
+        if (currentPassword === newPassword) throw new Error(t("accountPasswordSame"));
+        await auth.changePassword(currentPassword, newPassword);
+        toast(t("passwordUpdated"));
+      } else {
+        const email = form.elements.email.value.trim().toLowerCase();
+        if (email === auth.user.email?.toLowerCase()) throw new Error(t("accountEmailSame"));
+        await auth.changeEmail(currentPassword, email);
+        toast(t("accountEmailSent"));
+      }
+      renderSettings();
+    } catch (error) { setError(form, error.message || t("failed")); }
+    finally { if (submit.isConnected) submit.disabled = false; }
+    return;
+  }
   if (form.id === "comment-form") {
     eventTarget.preventDefault();
     const submit = form.querySelector("button[type=submit]");

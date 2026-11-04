@@ -190,7 +190,7 @@ test("service worker waits for an update choice and reports download progress", 
     waitUntil: (promise) => { activationMessage = promise; }
   });
   await activationMessage;
-  assert.equal(cachedName, "qipi-static-v11");
+  assert.equal(cachedName, "qipi-static-v12");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(progress.at(-1).percent, 100);
   assert.equal(progress.at(-1).completed, cachedAssets.length);
@@ -294,6 +294,8 @@ test("PWA update offers a choice, reports download, and installs automatically",
   installingWorker.state = "installed";
   installingListeners.get("statechange")();
   assert.match(button.innerHTML, /pwaUpdateNow/);
+  assert.match(button.innerHTML, /pwaUpdateAvailable/);
+  assert.match(button.innerHTML, /pwaUpdateLater/);
   const click = (action) => documentListeners.get("click")({ target: { closest: () => ({ dataset: { pwaUpdate: action } }) } });
   click("later");
   assert.equal(button.hidden, true);
@@ -303,6 +305,8 @@ test("PWA update offers a choice, reports download, and installs automatically",
   assert.equal(reminder.hidden, true);
   assert.deepEqual(postedMessage, { type: "QIPI_DOWNLOAD_UPDATE" });
   assert.match(button.innerHTML, /pwaUpdateDownloading 0%/);
+  assert.match(button.innerHTML, /pwaUpdateAvailable/);
+  assert.doesNotMatch(button.innerHTML, /pwaUpdateLater/);
   serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 43 } });
   assert.match(button.innerHTML, /pwaUpdateDownloading 43%/);
   serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 100 } });
@@ -313,6 +317,41 @@ test("PWA update offers a choice, reports download, and installs automatically",
   assert.equal(reloads, 1);
   assert.ok(timers.some(timer => timer.delay === 15000));
   assert.ok(documentListeners.has("click"));
+});
+
+test("account changes verify the current password and distinguish device sign-out scopes", async () => {
+  const auth = new QipiAuth();
+  auth.enabled = true;
+  auth.save = function(session) { this.session = session; this.user = session?.user || null; };
+  const user = { id: "member-1", email: "old@example.test" };
+  auth.save({ accessToken: "old-token", refreshToken: "old-refresh", expiresAt: Date.now() + 3600000, user });
+  const calls = [];
+  auth.request = async (path, options = {}) => {
+    calls.push({ path, ...options });
+    if (path.startsWith("/token")) {
+      if (options.body.password === "wrong") throw new Error("Invalid login credentials");
+      return { access_token: `verified-${calls.length}`, refresh_token: `refresh-${calls.length}`, expires_in: 3600, user };
+    }
+    if (path === "/user") return { ...user, ...options.body };
+    return {};
+  };
+  await assert.rejects(() => auth.changePassword("wrong", "new-password"), /Invalid login credentials/);
+  assert.equal(calls.filter(call => call.path === "/user").length, 0);
+  await auth.changePassword("old-password", "new-password");
+  const changedPassword = calls.find(call => call.path === "/user");
+  assert.deepEqual(changedPassword.body, { current_password: "old-password", password: "new-password" });
+  assert.ok(calls.some(call => call.path === "/logout?scope=local" && call.accessToken === "old-token"));
+  await auth.changeEmail("new-password", "new@example.test");
+  assert.deepEqual(calls.filter(call => call.path === "/user").at(-1).body, { email: "new@example.test", current_password: "new-password" });
+  await auth.signOut();
+  assert.equal(calls.at(-1).path, "/logout?scope=local");
+  auth.save({ accessToken: "another-token", refreshToken: "another-refresh", expiresAt: Date.now() + 3600000, user });
+  await auth.signOut("global");
+  assert.equal(calls.at(-1).path, "/logout?scope=global");
+  auth.save({ accessToken: "still-signed-in", refreshToken: "still-refresh", expiresAt: Date.now() + 3600000, user });
+  auth.request = async (path) => { if (path === "/logout?scope=global") throw new Error("Network unavailable"); };
+  await assert.rejects(() => auth.signOut("global"), /Network unavailable/);
+  assert.equal(auth.user.id, user.id);
 });
 
 test("Supabase profile updates retain metadata and refresh tokens rotate once for concurrent requests", async () => {

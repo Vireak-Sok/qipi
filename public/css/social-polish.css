@@ -34,9 +34,15 @@ body.social-app {
 .pwa-update-floating {
   position: fixed;
   z-index: 110;
+  left: max(16px, env(safe-area-inset-left));
   right: max(16px, env(safe-area-inset-right));
   bottom: max(20px, env(safe-area-inset-bottom));
-  width: min(320px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: auto;
   padding: 14px;
   border: 1px solid var(--border-soft);
   border-radius: 14px;
@@ -48,13 +54,13 @@ body.social-app {
   line-height: 1.3;
 }
 .pwa-update-floating[hidden],.settings-update-reminder[hidden] { display: none; }
-.pwa-update-floating > strong { display: block; margin-bottom: 12px; font-size: 14px; }
-.pwa-update-floating > div { display: flex; gap: 8px; }
+.pwa-update-floating > strong { display: block; min-width: 0; margin: 0; font-size: 14px; }
+.pwa-update-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: clamp(180px, 24vw, 260px); }
 .pwa-update-action,.pwa-update-dismiss,.settings-update-reminder button { min-height: 40px; padding: 0 13px; border: 1px solid var(--border-soft); border-radius: 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 .pwa-update-action,.settings-update-reminder button { color: var(--action-text); background: var(--action-bg); }
 .pwa-update-dismiss { color: var(--text-primary); background: var(--surface-field); }
 .pwa-update-action:disabled { cursor: progress; opacity: 1; }
-.pwa-update-floating[data-phase="downloading"] .pwa-update-action,.pwa-update-floating[data-phase="installing"] .pwa-update-action { width: 100%; }
+.pwa-update-floating[data-phase]:not([data-phase="available"]) .pwa-update-action { grid-column: 1 / -1; width: 100%; }
 .settings-update-reminder { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: var(--page-section-gap); padding: 14px 16px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--surface-card); }
 .settings-update-reminder span { display: grid; gap: 3px; }
 .settings-update-reminder strong { font-size: 13px; }
@@ -68,8 +74,33 @@ body.social-app {
 .settings-account-details-content { padding: 0 14px 12px; border-top: 1px solid var(--border-soft); }
 .settings-account-details-content p { margin: 12px 0; color: var(--text-secondary); font-size: 12px; }
 .settings-account-details-content .settings-signout { display: block; width: 100%; padding: 12px; border: 1px solid var(--border-soft); border-radius: 10px; text-align: left; }
+.settings-account-identities { display: grid; gap: 9px; margin: 14px 0; }
+.settings-account-identities > div { display: grid; grid-template-columns: 78px minmax(0,1fr); align-items: start; gap: 10px; font-size: 12px; }
+.settings-account-identities span { color: var(--text-secondary); }
+.settings-account-identities strong { min-width: 0; overflow-wrap: anywhere; font-weight: 650; }
+.settings-account-option { margin-top: 8px; border: 1px solid var(--border-soft); border-radius: 10px; }
+.settings-account-option > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 12px; cursor: pointer; list-style: none; font-size: 12px; font-weight: 680; }
+.settings-account-option > summary::-webkit-details-marker { display: none; }
+.settings-account-option > summary .heroicon { width: 16px; height: 16px; }
+.settings-account-option[open] > summary .heroicon { transform: rotate(180deg); }
+.settings-account-form { display: grid; gap: 11px; max-width: 440px; padding: 12px; border-top: 1px solid var(--border-soft); }
+.settings-account-form label { display: grid; gap: 6px; font-size: 12px; font-weight: 650; }
+.settings-account-form input { box-sizing: border-box; width: 100%; min-height: 42px; padding: 9px 11px; border: 1px solid var(--border-soft); border-radius: var(--control-radius,10px); color: var(--text-primary); background: var(--surface-field); font: inherit; }
+.settings-account-form input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.settings-account-form .button { justify-self: start; min-height: 40px; }
+.settings-account-form .error-message { margin: 0; }
+.settings-account-form p { margin: 0; line-height: 1.45; }
+.settings-account-session { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--border-soft); }
+.settings-account-details-content .settings-signout { min-height: 42px; text-align: center; }
+.settings-account-details-content .settings-signout-all { color: #a3443c; }
+.settings-account-details-content .settings-account-session-note { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.4; }
 @media (max-width: 700px) {
   .pwa-update-floating { bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .pwa-update-actions { width: clamp(156px, 47vw, 190px); }
+  .pwa-update-action,.pwa-update-dismiss { padding-inline: 7px; }
+}
+@media (max-width: 380px) {
+  .settings-account-session { grid-template-columns: minmax(0,1fr); }
 }
 
 /* Specificity here overrides the legacy 24px shell width on mobile; all

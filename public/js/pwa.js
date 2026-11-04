@@ -38,9 +38,9 @@ export function createPwaController({ t, toast }) {
     if (updateButton) {
       updateButton.hidden = !showFloating;
       updateButton.dataset.phase = updatePhase;
-      if (showFloating) updateButton.innerHTML = updatePhase === "available"
-        ? `<strong>${esc(t("pwaUpdateAvailable"))}</strong><div><button type="button" class="pwa-update-action" data-pwa-update="start">${esc(t("pwaUpdateNow"))}</button><button type="button" class="pwa-update-dismiss" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>`
-        : `<button type="button" class="pwa-update-action" data-pwa-update="${updatePhase === "error" ? "retry" : "status"}" ${updatePhase === "error" ? "" : "disabled"}>${esc(updatePhase === "downloading" ? `${t("pwaUpdateDownloading")} ${updatePercent}%` : updatePhase === "installing" ? t("pwaUpdateInstalling") : `${t("pwaUpdateFailed")} ${t("retry")}`)}</button>`;
+      if (showFloating) updateButton.innerHTML = `<strong>${esc(t("pwaUpdateAvailable"))}</strong><div class="pwa-update-actions">${updatePhase === "available"
+        ? `<button type="button" class="pwa-update-action" data-pwa-update="start">${esc(t("pwaUpdateNow"))}</button><button type="button" class="pwa-update-dismiss" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button>`
+        : `<button type="button" class="pwa-update-action" data-pwa-update="${updatePhase === "error" ? "retry" : "status"}" ${updatePhase === "error" ? "" : "disabled"}>${esc(updatePhase === "downloading" ? `${t("pwaUpdateDownloading")} ${updatePercent}%` : updatePhase === "installing" ? t("pwaUpdateInstalling") : `${t("pwaUpdateFailed")} ${t("retry")}`)}</button>`}</div>`;
     }
     renderSettingsReminder();
   }

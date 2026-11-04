@@ -294,7 +294,7 @@ export default {
   "displayLanguage": "ភាសាបង្ហាញ",
   "profileName": "ឈ្មោះប្រវត្តិរូប",
   "username": "ឈ្មោះអ្នកប្រើ",
-  "usernameHint": "ប្រើអក្សរ ឬលេខ ៣–៦៤ តួ។ អាចដាក់ចំណុច សញ្ញាគូសក្រោម និងសហសញ្ញានៅកណ្ដាល។",
+  "usernameHint": "៣–៦៤ តួ៖ អក្សរ លេខ . _ -",
   "usernameAvailable": "អាចប្រើបាន៖",
   "usernameChecking": "កំពុងពិនិត្យឈ្មោះ…",
   "usernameCheckUnavailable": "មិនអាចពិនិត្យឥឡូវនេះបាន។ អ្នកអាចសាករក្សាទុក។",

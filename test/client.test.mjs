@@ -182,7 +182,7 @@ test("service worker activates automatically after caching the app shell", async
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v8");
+  assert.equal(cachedName, "qipi-static-v9");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(progress.at(-1).percent, 100);
   assert.equal(progress.at(-1).completed, cachedAssets.length);
@@ -195,6 +195,36 @@ test("service worker activates automatically after caching the app shell", async
   });
   await activationMessage;
   assert.equal(skipWaitingCalls, 2);
+});
+
+test("public media cache expires old images and reuses a fresh response", async () => {
+  const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  const handlers = new Map();
+  const entries = new Map();
+  const key = (request) => typeof request === "string" ? request : request.url;
+  const cache = {
+    match: async (request) => entries.get(key(request)) || null,
+    put: async (request, response) => entries.set(key(request), response),
+    delete: async (request) => entries.delete(key(request)),
+    keys: async () => [...entries.keys()]
+  };
+  let fetchCount = 0;
+  const worker = { location: new URL("https://qipi.example"), addEventListener: (name, handler) => handlers.set(name, handler) };
+  runInNewContext(source, {
+    self: worker, caches: { open: async () => cache }, URL, Request, Response, Headers, Promise,
+    fetch: async () => { fetchCount++; return new Response("fresh", { headers: { "content-type": "image/png", "cache-control": "public, max-age=3600" } }); }
+  });
+  const request = new Request("https://qipi.example/media/photo");
+  entries.set(request.url, new Response("expired", { headers: { "x-qipi-cached-at": String(Date.now() - 8 * 24 * 60 * 60 * 1000) } }));
+  const read = async () => {
+    let responsePromise;
+    handlers.get("fetch")({ request, respondWith: (promise) => { responsePromise = promise; } });
+    return (await responsePromise).text();
+  };
+  assert.equal(await read(), "fresh");
+  assert.equal(fetchCount, 1);
+  assert.equal(await read(), "fresh");
+  assert.equal(fetchCount, 1);
 });
 
 test("PWA update status advances automatically and times out instead of spinning forever", async (context) => {
@@ -409,4 +439,8 @@ test("profile card identity shows the name without the username or private profi
     assert.doesNotMatch(markup, /@dara/);
     assert.doesNotMatch(markup, /demoProfile|Kampot|km · en|profile-demo-label/);
   }
+  const editing = profileCardMarkup({ profile: base, trips: [], isOwnProfile: true, isFollowing: false, isEditing: true, t: key => key, avatarContents: () => "DD" });
+  assert.match(editing, /id="profile-edit-username" name="username" type="text"/);
+  assert.match(editing, /profile-username-status/);
+  assert.doesNotMatch(editing, /autocomplete="username"/);
 });

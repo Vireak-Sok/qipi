@@ -1332,6 +1332,7 @@ document.addEventListener("click", async (eventTarget) => {
       else if (action === "safety-choose-destination") await safety.chooseDestination(Number(button.dataset.index));
       else if (action === "safety-select-destination") safety.selectDestination(Number(button.dataset.index));
       else if (action === "safety-select-recent") safety.selectRecentDestination(Number(button.dataset.index));
+      else if (action === "safety-clear-recent") safety.clearRecentDestinations();
       else if (action === "safety-clear-destination") safety.clearDestinationSearch();
       else if (action === "safety-current-share") await safety.shareCurrent();
       else if (action === "safety-refresh-live") await safety.updateViewer();
@@ -2014,6 +2015,26 @@ document.addEventListener("submit", async (eventTarget) => {
 
 enhanceSelects();
 bindSearchEvents();
+// The first outside tap dismisses an open search without activating what is underneath.
+let suppressOutsideSearchClick = false;
+document.addEventListener("pointerdown", (event) => {
+  const active = document.activeElement;
+  const searchRoot = active?.id === "home-search-input" ? "#home-search"
+    : active?.id === "safety-destination" ? ".map-search-wrap"
+      : active?.id === "message-search" ? ".message-search-field" : "";
+  if (!searchRoot || event.target.closest?.(searchRoot)) return;
+  suppressOutsideSearchClick = true;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  active.blur();
+  setTimeout(() => { suppressOutsideSearchClick = false; }, 500);
+}, true);
+document.addEventListener("click", (event) => {
+  if (!suppressOutsideSearchClick) return;
+  suppressOutsideSearchClick = false;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}, true);
 let messageSearchTimer = null;
 let messageSearchRequestId = 0;
 let usernameCheckTimer = null;
@@ -2022,20 +2043,25 @@ let usernameCheckId = 0;
 function checkUsernameInput(input) {
   const status = $("#profile-edit-username-status");
   if (!status) return;
+  const showStatus = (kind = "", label = "") => {
+    status.className = `profile-username-status${kind ? ` is-${kind}` : ""}`;
+    status.setAttribute("aria-label", label);
+    status.title = label;
+    status.innerHTML = kind === "checking" ? '<span class="profile-username-spinner" aria-hidden="true"></span>' : kind ? icon(kind === "available" ? "check" : "close") : "";
+  };
   clearTimeout(usernameCheckTimer);
   usernameCheckController?.abort();
   const checkId = ++usernameCheckId;
   const username = normalizeUsername(input.value);
   input.setCustomValidity("");
-  status.className = "profile-username-status";
-  if (!username || username === state.profile?.username) { status.textContent = ""; return; }
+  showStatus();
+  if (!username || username === state.profile?.username) return;
   if (!isValidUsername(username)) {
-    status.textContent = t("usernameHint");
-    status.classList.add("is-unavailable");
+    showStatus("unavailable", t("usernameHint"));
     input.setCustomValidity(t("usernameHint"));
     return;
   }
-  status.textContent = t("usernameChecking");
+  showStatus("checking", t("usernameChecking"));
   usernameCheckTimer = setTimeout(async () => {
     const controller = new AbortController();
     usernameCheckController = controller;
@@ -2043,12 +2069,11 @@ function checkUsernameInput(input) {
       const result = await api(`/api/me/username/availability?username=${encodeURIComponent(username)}`, { signal: controller.signal });
       if (checkId !== usernameCheckId || !input.isConnected || normalizeUsername(input.value) !== username) return;
       const key = result.reason === "reserved" ? "usernameReserved" : result.available ? "usernameAvailable" : "usernameTaken";
-      status.textContent = result.available ? `${t(key)} @${result.username}` : t(key);
-      status.classList.add(result.available ? "is-available" : "is-unavailable");
+      showStatus(result.available ? "available" : "unavailable", t(key));
       input.setCustomValidity(result.available ? "" : t(key));
     } catch (error) {
       if (controller.signal.aborted || checkId !== usernameCheckId) return;
-      status.textContent = t("usernameCheckUnavailable");
+      showStatus("unavailable", t("usernameCheckUnavailable"));
     }
   }, 300);
 }

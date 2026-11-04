@@ -294,7 +294,7 @@ export default {
   "displayLanguage": "Display language",
   "profileName": "Profile name",
   "username": "Username",
-  "usernameHint": "3–64 letters or numbers. Dots, underscores and hyphens can go between characters.",
+  "usernameHint": "3–64 characters: letters, numbers, . _ -",
   "usernameAvailable": "Available:",
   "usernameChecking": "Checking handle…",
   "usernameCheckUnavailable": "Could not check now. You can still save to try.",

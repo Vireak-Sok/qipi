@@ -1,5 +1,7 @@
-const CACHE_NAME = "qipi-static-v8";
-const MEDIA_CACHE_NAME = "qipi-public-media-v1";
+const CACHE_NAME = "qipi-static-v9";
+const MEDIA_CACHE_NAME = "qipi-public-media-v2";
+const MEDIA_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const FAST_ASSETS = ["/favicon.svg", "/icons.svg", "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png"];
 const APP_SHELL = [
   "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
   "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png",
@@ -56,11 +58,17 @@ self.addEventListener("fetch", (event) => {
     event.respondWith((async () => {
       const cache = await caches.open(MEDIA_CACHE_NAME);
       const cached = await cache.match(request);
-      if (cached) return cached;
+      if (cached) {
+        const cachedAt = Number(cached.headers.get("x-qipi-cached-at"));
+        if (cachedAt && Date.now() - cachedAt < MEDIA_CACHE_MAX_AGE_MS) return cached;
+        await cache.delete(request);
+      }
       const response = await fetch(request);
       const cacheControl = response.headers.get("cache-control") || "";
       if (response.ok && response.headers.get("content-type")?.startsWith("image/") && /\bpublic\b/i.test(cacheControl)) {
-        await cache.put(request, response.clone());
+        const headers = new Headers(response.headers);
+        headers.set("x-qipi-cached-at", String(Date.now()));
+        await cache.put(request, new Response(response.clone().body, { status: response.status, statusText: response.statusText, headers }));
         const keys = await cache.keys();
         await Promise.all(keys.slice(0, Math.max(0, keys.length - 120)).map((key) => cache.delete(key)));
       }
@@ -79,10 +87,15 @@ self.addEventListener("fetch", (event) => {
 
   const cacheKey = new Request(url.origin + url.pathname, { method: "GET" });
   event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    // Immutable Next assets and app icons load instantly on repeat visits. App code stays network-first.
+    if (FAST_ASSETS.includes(url.pathname) || url.pathname.startsWith("/_next/static/")) {
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
+    }
     try {
       const response = await fetch(request);
       if (response.ok && response.type === "basic") {
-        const cache = await caches.open(CACHE_NAME);
         await cache.put(cacheKey, response.clone());
       }
       return response;

@@ -1024,8 +1024,39 @@ body.social-app { font-family: Inter, "Noto Sans Khmer", ui-sans-serif, system-u
 .message-search-clear:hover { background: var(--surface-selected); color: var(--text-primary); }
 .message-search-clear .heroicon { width: 17px; height: 17px; }
 .profile-username-hint { font-size: 12px; }
-.profile-username-status { display: block; min-height: 18px; margin-top: 4px; color: var(--text-secondary); font-size: 12px; line-height: 1.4; }
+.profile-username-control { position: relative; display: block; min-width: 0; }
+.profile-card .profile-edit-form .field .profile-username-control input { padding-right: 43px; }
+.profile-username-status { position: absolute; top: 50%; right: 12px; display: grid; width: 22px; height: 22px; place-items: center; transform: translateY(-50%); color: var(--text-secondary); }
 .profile-username-status:empty { display: none; }
+.profile-username-status .heroicon { width: 19px; height: 19px; stroke-width: 2.5; }
 .profile-username-status.is-available { color: #167453; }
 .profile-username-status.is-unavailable { color: var(--danger-text, #b93d43); }
-.map-recent-places > strong { display: block; padding: 3px 4px 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.profile-username-spinner { width: 16px; height: 16px; border: 2px solid var(--border-control); border-top-color: var(--brand-strong); border-radius: 50%; animation: profile-username-spin .7s linear infinite; }
+@keyframes profile-username-spin { to { transform: rotate(360deg); } }
+.map-recent-places-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 3px 4px 8px; }
+.map-recent-places-head strong { color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.map-recent-places-head button { padding: 4px 6px; border: 0; background: transparent; color: var(--brand-strong); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .profile-username-spinner { animation-duration: 2s; } }
+
+/* Feed and Explore use the same search field; only their result panels differ. */
+.home-search-form { min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.home-search-field,
+.map-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--search-control-height);
+  padding: 0 6px 0 13px;
+  border: 1px solid var(--border-soft);
+  border-radius: 14px;
+  background: var(--surface-card);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+.home-search-field:focus-within,
+.map-search-bar:focus-within { border-color: var(--brand-strong); box-shadow: 0 0 0 3px var(--focus-ring-soft); }
+.home-search-field > .heroicon,
+.map-search-bar > .heroicon { color: var(--text-secondary); }
+.home-search-field input,
+.map-search-bar input { min-height: calc(var(--search-control-height) - 2px); font: inherit; font-size: 14px; }
+.home-search-clear,
+.map-search-bar .map-clear-destination { width: 38px; min-width: 38px; height: 38px; min-height: 38px; border-radius: 11px; }

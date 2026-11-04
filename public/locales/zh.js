@@ -66,7 +66,7 @@ export default {
   "displayLanguage": "显示语言",
   "profileName": "个人资料名称",
   "username": "用户名",
-  "usernameHint": "使用 3–64 个字母或数字；中间可使用句点、下划线或连字符。",
+  "usernameHint": "3–64 个字符：字母、数字、. _ -",
   "usernameAvailable": "可使用：",
   "usernameChecking": "正在检查用户名…",
   "usernameCheckUnavailable": "暂时无法检查，仍可尝试保存。",

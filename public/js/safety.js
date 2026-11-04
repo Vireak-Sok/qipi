@@ -183,7 +183,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
 
   function searchResultsMarkup() {
     if (!searchQuery) return recentPlaces.length
-      ? `<div class="map-recent-places"><strong>Recent places</strong><div class="safety-destinations">${recentPlaces.map((item, index) => `<button type="button" data-action="safety-select-recent" data-index="${index}"><span>${mapIcon("clock")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div></div>`
+      ? `<div class="map-recent-places"><div class="map-recent-places-head"><strong>Recent places</strong><button type="button" data-action="safety-clear-recent">Clear recent</button></div><div class="safety-destinations">${recentPlaces.map((item, index) => `<button type="button" data-action="safety-select-recent" data-index="${index}"><span>${mapIcon("clock")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div></div>`
       : `<p class="safety-small">Start typing to find places in Cambodia.</p>`;
     if (!destinations.length) return `<p class="safety-small">No places found yet. Keep typing to search Cambodia.</p>`;
     return `<div class="safety-destinations">${destinations.map((item, index) => `<button type="button" class="${selectedPlace?.name === item.name ? "is-selected" : ""}" data-action="safety-select-destination" data-index="${index}"><span>${mapIcon("map-pin")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div>${selectedPlace ? `<button type="button" class="map-directions-button" data-action="safety-choose-destination" data-index="${destinations.indexOf(selectedPlace)}">${mapIcon("arrow-up-right")} Get directions to ${esc(selectedPlace.name)}</button><div id="safety-route-result" class="safety-route-result"></div>` : ""}`;
@@ -525,6 +525,12 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     destinations = [selected];
     selectPlace(selected);
   }
+  function clearRecentDestinations() {
+    recentPlaces = [];
+    localStorage.removeItem("qipi:recent-places");
+    const results = $("#safety-destination-results");
+    if (results && !searchQuery) results.innerHTML = searchResultsMarkup();
+  }
   function selectPlace(selected) {
     mapSelectionRevision += 1;
     selectedPlace = selected;
@@ -765,5 +771,5 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   document.addEventListener("visibilitychange", onVisibility);
   document.addEventListener("keydown", handleEmergencyKeys);
   document.addEventListener("change", event => { if (event.target?.id === "map-ai-photo") void attachAiPhoto(event); });
-  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, selectRecentDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth, openAi, closeAi, removeAiPhoto, submitAi, viewAiPlace, promptAi: value => { const input = $("#map-ai-input"); if (input) { input.value = value; input.focus(); } } };
+  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, selectRecentDestination, clearRecentDestinations, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth, openAi, closeAi, removeAiPhoto, submitAi, viewAiPlace, promptAi: value => { const input = $("#map-ai-input"); if (input) { input.value = value; input.focus(); } } };
 }

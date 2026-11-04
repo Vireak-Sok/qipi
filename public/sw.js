@@ -1,4 +1,4 @@
-const CACHE_NAME = "qipi-static-v9";
+const CACHE_NAME = "qipi-static-v10";
 const MEDIA_CACHE_NAME = "qipi-public-media-v2";
 const MEDIA_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAST_ASSETS = ["/favicon.svg", "/icons.svg", "/icons/pwa-180.png", "/icons/pwa-192.png", "/icons/pwa-512.png", "/icons/pwa-maskable-512.png"];

@@ -66,22 +66,53 @@ export function createProfileController({ state, auth, t, label, displayName, us
     heading.setAttribute("aria-label", `${t("profilePageTitle")}: ${name}`);
   }
 
+  function activeTab() {
+    return auth.user?.id === state.profile?.id ? state.profileTab : "posts";
+  }
+
+  function profileTabMarkup(tab = activeTab()) {
+    const isOwnProfile = auth.user?.id === state.profile.id;
+    const trips = state.profile.trips || [];
+    const joinedTrips = isOwnProfile ? (state.me?.requests || []) : [];
+    if (tab === "posts") return `<section class="profile-posts profile-post-list ${isOwnProfile ? "is-own-posts" : "is-public-posts"}" aria-label="${esc(t("profilePosts"))}"><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div>${trips.length ? `<p class="list-end-note">${esc(t("endOfFeed"))}</p>` : ""}</section>`;
+    if (tab === "joining") return `<section class="profile-posts profile-joined-trips"><div class="feed-section-head"><h2>${esc(t("joining"))}</h2></div><div class="my-list">${joinedTrips.length ? joinedTrips.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<div class="empty-trips"><h3>${esc(t("noJoined"))}</h3></div>`}</div>${joinedTrips.length ? `<p class="list-end-note">${esc(t("endOfFeed"))}</p>` : ""}</section>`;
+    return savedCollectionMarkup();
+  }
+
   function renderProfile() {
     const content = $("#profile-content");
-    if (!content) return;
-    if (!state.profile) return;
-    const { profile, trips } = { profile: state.profile, trips: state.profile.trips || [] };
-    syncProfileHeading(profile);
-    const isFollowing = Boolean(profile.followedByViewer);
+    if (!content || !state.profile) return;
+    const profile = state.profile;
     const isOwnProfile = auth.user?.id === profile.id;
-    const activeTab = isOwnProfile ? state.profileTab : "posts";
-    const joinedTrips = isOwnProfile ? (state.me?.requests || []) : [];
+    const tab = activeTab();
+    syncProfileHeading(profile);
     content.setAttribute("aria-busy", "false");
-    content.innerHTML = `${profileCardMarkup({ profile, trips, isOwnProfile, isFollowing, isEditing: state.profileEditing, t, avatarContents })}
-    ${isOwnProfile ? profileTabs({ active: activeTab, t, tabs: PROFILE_TABS }) : ""}
-    <div id="profile-tab-panel" role="region" aria-label="${esc(t(activeTab === 'saved' ? 'saved' : activeTab === 'joining' ? 'joining' : 'profilePosts'))}">
-    ${activeTab === "posts" ? `<section class="profile-posts profile-post-list ${isOwnProfile ? "is-own-posts" : "is-public-posts"}" aria-label="${esc(t("profilePosts"))}"><div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("noPosts"))}</h3></div>`}</div></section>` : activeTab === "joining" ? `<section class="profile-posts profile-joined-trips"><div class="feed-section-head"><h2>${esc(t("joining"))}</h2></div><div class="my-list">${joinedTrips.length ? joinedTrips.map(({ trip, status }) => `<div class="my-card"><div><strong>${esc(trip.title)}</strong><p>${esc(dateLabel(trip.date))} · ${esc(status === "approved" ? t("requestApproved") : status === "declined" ? t("requestDeclined") : t("requestPending"))}</p></div><button type="button" data-action="open-trip" data-id="${esc(trip.id)}">${esc(t("open"))} ${icon("arrow-up-right")}</button></div>`).join("") : `<div class="empty-trips"><h3>${esc(t("noJoined"))}</h3></div>`}</div>${joinedTrips.length ? `<p class="list-end-note">${esc(t("endOfJoining"))}</p>` : ""}</section>` : savedCollectionMarkup()}
-    </div>`;
+    content.innerHTML = `${profileCardMarkup({ profile, trips: profile.trips || [], isOwnProfile, isFollowing: Boolean(profile.followedByViewer), isEditing: state.profileEditing, t, avatarContents })}
+    ${isOwnProfile ? profileTabs({ active: tab, t, tabs: PROFILE_TABS }) : ""}
+    <div id="profile-tab-panel" role="region" aria-label="${esc(t(tab === "saved" ? "saved" : tab === "joining" ? "joining" : "profilePosts"))}">${profileTabMarkup(tab)}</div>`;
+  }
+
+  function renderProfileCard() {
+    if (!state.profile) return;
+    const card = $("#profile-content .profile-card");
+    if (!card) { renderProfile(); return; }
+    const profile = state.profile;
+    syncProfileHeading(profile);
+    card.outerHTML = profileCardMarkup({ profile, trips: profile.trips || [], isOwnProfile: auth.user?.id === profile.id, isFollowing: Boolean(profile.followedByViewer), isEditing: state.profileEditing, t, avatarContents });
+  }
+
+  function renderProfileTabPanel() {
+    if (!state.profile) return;
+    const panel = $("#profile-tab-panel");
+    if (!panel) return;
+    const tab = activeTab();
+    panel.setAttribute("aria-label", t(tab === "saved" ? "saved" : tab === "joining" ? "joining" : "profilePosts"));
+    panel.innerHTML = profileTabMarkup(tab);
+    (document.querySelectorAll?.(".profile-tab") || []).forEach((button) => {
+      const selected = button.dataset.id === tab;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
   }
 
   function savedCollectionMarkup() {
@@ -89,7 +120,7 @@ export function createProfileController({ state, auth, t, label, displayName, us
     if (state.savedError) return `<div class="feed-load-error" role="alert"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-saved">${esc(t("retry"))}</button></div>`;
     const tripsById = new Map(state.savedTripRecords.map((trip) => [trip.id, trip]));
     const trips = state.savedTrips.map((id) => tripsById.get(id)).filter(Boolean);
-    return `<div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("savedEmptyTitle"))}</h3><p>${esc(t("savedEmptyBody"))}</p><button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button></div>`}</div>${trips.length ? `<p class="list-end-note">${esc(t("endOfSaved"))}</p>` : ""}`;
+    return `<div class="trip-list">${trips.length ? trips.map(tripCardMarkup).join("") : `<div class="empty-trips"><h3>${esc(t("savedEmptyTitle"))}</h3><p>${esc(t("savedEmptyBody"))}</p><button class="button button-primary" type="button" data-action="back-to-feed">${esc(t("home"))}</button></div>`}</div>${trips.length ? `<p class="list-end-note">${esc(t("endOfFeed"))}</p>` : ""}`;
   }
   async function selectProfileTab(tab) {
     if (!state.profile || !["posts", "joining", "saved"].includes(tab)) return;
@@ -97,8 +128,10 @@ export function createProfileController({ state, auth, t, label, displayName, us
     state.profileTab = tab;
     state.profileEditing = false;
     setLink("profile", state.profileUsername);
-    if (tab === "saved") await loadSavedTrips();
-    renderProfile();
+    const needsSavedLoad = tab === "saved" && !state.savedTrips.every((id) => state.savedTripRecords.some((trip) => trip.id === id));
+    if (needsSavedLoad) state.savedLoading = true;
+    renderProfileTabPanel();
+    if (needsSavedLoad) await loadSavedTrips();
   }
-  return { openProfile, renderProfileLoading, renderProfile, selectProfileTab };
+  return { openProfile, renderProfileLoading, renderProfile, renderProfileCard, renderProfileTabPanel, selectProfileTab };
 }

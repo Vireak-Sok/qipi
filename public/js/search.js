@@ -39,6 +39,8 @@ export function createSearchController({ state, t, api, renderTrips, syncSearchF
     const query = state.search.trim();
     state.searchTrips = [];
     state.searchTripsLoading = true;
+    const endNote = $("#search-results-end");
+    if (endNote) endNote.hidden = true;
     renderTripListLoading("#search-results-list", 2);
     const people = $("#user-search-results");
     if (!people) return;

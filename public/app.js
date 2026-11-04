@@ -53,7 +53,7 @@ const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadT
 const { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, clearFeedDraft, bindSearchEvents } = createSearchController({
   state, t, api, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
 });
-const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = createProfileController({
+const { openProfile, renderProfileLoading, renderProfile, renderProfileCard, renderProfileTabPanel, selectProfileTab } = createProfileController({
   state, auth, t, label, displayName, usernameFromPath, setLink, setPageView, api, renderFilter, renderRoutes, refreshMe, renderLoadingError, toast,
   dateParts, dateLabel, routeFor, avatarContents, appMediaUrl, skeletonPostsMarkup, tripCardMarkup, loadSavedTrips
 });
@@ -548,12 +548,12 @@ async function syncAccountSavedTrips() {
     }
     const result = await api("/api/me/saved");
     if (auth.user?.id !== userId) return false;
+    const previousSaved = new Set(state.savedTrips);
     state.savedTrips = result.tripIds || [];
     state.guestSavedTrips = [];
     try { localStorage.removeItem("qipi:saved-trips"); } catch {}
     if (state.view === "profile" && state.profileTab === "saved") await loadSavedTrips();
-    renderTrips();
-    if (state.view === "profile") renderProfile();
+    for (const id of new Set([...previousSaved, ...state.savedTrips])) patchPostControls(id);
     return true;
   } catch (error) {
     toast(error.message || t("failed"));
@@ -752,7 +752,12 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
 }
 
 function renderConversation({ loading = false } = {}) {
-  renderMessageInbox({ loading });
+  const history = $("#message-history");
+  if (loading || !history) { renderMessageInbox({ loading }); return; }
+  const atBottom = history.scrollHeight - history.scrollTop - history.clientHeight < 80;
+  history.innerHTML = state.messages.map(messageBubbleMarkup).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`;
+  if (atBottom || state.messages.at(-1)?.sender_id === auth.user?.id) history.scrollTop = history.scrollHeight;
+  renderMessageSidebarList();
 }
 
 function updateConversationPreview(message) {
@@ -781,14 +786,16 @@ function messageBodyMarkup(body) {
   return html + esc(value.slice(offset));
 }
 
+function messageBubbleMarkup(item) {
+  const isMine = item.sender_id === auth.user?.id;
+  return `<div class="message-bubble ${isMine ? "is-mine" : ""}" data-message-id="${esc(item.id)}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}${isMine ? `<span class="message-read-state" aria-label="${esc(t(item.read_at ? "messageRead" : "messageSent"))}">${esc(t(item.read_at ? "messageRead" : "messageSent"))}</span>` : ""}</time></div>`;
+}
+
 function renderMessageThreadMarkup() {
   const profile = state.conversationProfile;
   if (!profile) return `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("startConversation"))}</p></section>`;
   const messages = state.messages;
-  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a class="message-thread-profile" href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}"><span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map((item) => {
-    const isMine = item.sender_id === auth.user?.id;
-    return `<div class="message-bubble ${isMine ? "is-mine" : ""}"><p>${messageBodyMarkup(item.body)}</p><time>${esc(new Intl.DateTimeFormat(state.lang, { hour: "numeric", minute: "2-digit" }).format(new Date(item.created_at)))}${isMine ? `<span class="message-read-state" aria-label="${esc(t(item.read_at ? "messageRead" : "messageSent"))}">${esc(t(item.read_at ? "messageRead" : "messageSent"))}</span>` : ""}</time></div>`;
-  }).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
+  return `<section class="message-thread"><header class="message-thread-head"><button type="button" class="message-thread-back" data-action="messages-back" aria-label="${esc(t("messages"))}">${icon("arrow-left")}</button><a class="message-thread-profile" href="/${encodeURIComponent(profile.username || profile.id)}" data-action="open-profile" data-id="${esc(profile.id)}"><span><strong>${esc(profile.displayName || profile.username)}</strong><small>@${esc(profile.username || "")}</small></span></a></header><div class="message-history" id="message-history" aria-live="polite">${messages.map(messageBubbleMarkup).join("") || `<p class="message-empty-thread">${esc(t("startConversation"))}</p>`}</div><form class="message-composer" id="message-form"><label class="visually-hidden" for="message-input">${esc(t("messagePlaceholder"))}</label><textarea id="message-input" name="body" rows="1" maxlength="2000" required placeholder="${esc(t("messagePlaceholder"))}"></textarea><button class="button button-primary" type="submit" aria-label="${esc(t("sendMessage"))}">${icon("arrow-up-right")}</button></form></section>`;
 }
 
 async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
@@ -1040,8 +1047,68 @@ function updateCommentCount(tripId, count) {
   state.searchTrips = state.searchTrips.map(update);
   state.savedTripRecords = state.savedTripRecords.map(update);
   if (state.profile) state.profile = { ...state.profile, trips: (state.profile.trips || []).map(update) };
-  renderTrips();
-  if (state.view === "profile") renderProfile();
+  patchPostControls(tripId);
+}
+
+// Keep existing post cards and decoded images mounted while their small controls change.
+function patchPostControls(tripId) {
+  const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(state.profile?.trips || [])].find((item) => item.id === tripId);
+  if (!trip) return;
+  const liked = Boolean(trip.likedByViewer);
+  const saved = state.savedTrips.includes(tripId);
+  const pending = state.pendingLikes.has(tripId);
+  document.querySelectorAll(".trip-card[data-trip-id]").forEach((card) => {
+    if (card.dataset.tripId !== tripId) return;
+    const like = card.querySelector(".post-like");
+    if (like) {
+      like.classList.toggle("liked", liked);
+      like.setAttribute("aria-pressed", String(liked));
+      like.setAttribute("aria-busy", String(pending));
+      like.setAttribute("aria-label", t(liked ? "unlike" : "like"));
+      like.disabled = pending;
+      const count = like.querySelector(".like-count");
+      if (count) count.textContent = String(Number(trip.likesCount) || 0);
+    }
+    const save = card.querySelector(".post-save");
+    if (save) {
+      save.classList.toggle("saved", saved);
+      save.setAttribute("aria-pressed", String(saved));
+      save.setAttribute("aria-label", t(saved ? "unsave" : "save"));
+    }
+    const comments = card.querySelector(".comment-count");
+    if (comments) comments.textContent = String(Number(trip.commentsCount) || 0);
+  });
+}
+
+function patchPostJoinAction(tripId) {
+  const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(state.profile?.trips || [])].find((item) => item.id === tripId);
+  if (!trip) return;
+  const template = document.createElement("template");
+  template.innerHTML = tripCardMarkup(trip);
+  const fresh = template.content.querySelector(".post-join-action");
+  document.querySelectorAll(".trip-card[data-trip-id]").forEach((card) => {
+    if (card.dataset.tripId !== tripId) return;
+    const current = card.querySelector(".post-join-action");
+    if (current && fresh) current.replaceWith(fresh.cloneNode(true));
+    else if (current) current.remove();
+    else if (fresh) card.querySelector(".post-actions")?.append(fresh.cloneNode(true));
+  });
+}
+
+function patchProfileFollow() {
+  const profile = state.profile;
+  if (!profile || state.view !== "profile") return;
+  const button = $("#profile-content .profile-follow");
+  if (button) {
+    const following = Boolean(profile.followedByViewer);
+    button.classList.toggle("is-following", following);
+    button.setAttribute("aria-pressed", String(following));
+    button.setAttribute("aria-label", t(following ? "following" : "follow"));
+    button.querySelector("span")?.replaceChildren(document.createTextNode(t(following ? "following" : "follow")));
+    button.querySelector("use")?.setAttribute("href", `/icons.svg#${following ? "check" : "plus"}`);
+  }
+  const followerCount = $("#profile-content .profile-stats > div:nth-child(2) strong");
+  if (followerCount) followerCount.textContent = String(Number(profile.followerCount) || 0);
 }
 
 async function createComment(tripId, body, parentCommentId = "") {
@@ -1103,7 +1170,7 @@ async function loadSavedTrips() {
   const requestId = ++state.savedRequestId;
   state.savedLoading = true;
   state.savedError = false;
-  if (state.view === "profile") renderProfile();
+  if (state.view === "profile" && state.profileTab === "saved") renderProfileTabPanel();
   try {
     // Fetch only saved IDs. This boundary can use indexed SQL without changing UI.
     const trips = [];
@@ -1122,7 +1189,7 @@ async function loadSavedTrips() {
   } finally {
     if (requestId === state.savedRequestId) {
       state.savedLoading = false;
-      if (state.view === "profile") renderProfile();
+      if (state.view === "profile" && state.profileTab === "saved") renderProfileTabPanel();
     }
   }
 }
@@ -1508,8 +1575,8 @@ document.addEventListener("click", async (eventTarget) => {
   if (action === "retry-profile") { await openProfile(id); return; }
   if (action === "retry-route") { await openRoute(id); return; }
   if (action === "retry-trip") { await openTrip(id); return; }
-  if (action === "edit-profile") { state.profileEditing = true; renderProfile(); return; }
-  if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfile(); return; }
+  if (action === "edit-profile") { state.profileEditing = true; renderProfileCard(); return; }
+  if (action === "cancel-profile-edit") { state.profileEditing = false; renderProfileCard(); return; }
   if (action === "close-dialog") { closeAppDialog(button.closest("dialog")); return; }
   if (action === "open-comments") { await openComments(id); return; }
   if (action === "reply-comment") {
@@ -1582,8 +1649,9 @@ document.addEventListener("click", async (eventTarget) => {
       saveLocal("qipi:saved-trips", state.guestSavedTrips);
     }
     // Update the bookmark immediately; the signed-in change is persisted in the background.
-    renderTrips();
-    if (state.view === "profile") renderProfile();
+    patchPostControls(id);
+    if (state.view === "profile" && state.profileTab === "saved") renderProfileTabPanel();
+    const optimisticSavedTrips = [...state.savedTrips];
     if (auth.user) {
       try {
         const result = await api("/api/me/saved", { method: "PUT", data: { tripId: id, saved: !wasSaved } });
@@ -1595,12 +1663,13 @@ document.addEventListener("click", async (eventTarget) => {
         state.pendingSaves.delete(id);
       }
     } else state.pendingSaves.delete(id);
-    renderTrips();
-    if (state.view === "profile") renderProfile();
+    patchPostControls(id);
+    if (state.view === "profile" && state.profileTab === "saved" && JSON.stringify(state.savedTrips) !== JSON.stringify(optimisticSavedTrips)) renderProfileTabPanel();
   }
   if (action === "toggle-like") {
     if (state.pendingLikes.has(id)) return;
     const sourceTrip = state.trips.find((trip) => trip.id === id)
+      || state.searchTrips.find((trip) => trip.id === id)
       || state.savedTripRecords.find((trip) => trip.id === id)
       || state.profile?.trips.find((trip) => trip.id === id);
     if (!sourceTrip) return;
@@ -1616,16 +1685,13 @@ document.addEventListener("click", async (eventTarget) => {
     const updateTrip = (trip, values) => trip.id === id ? { ...trip, ...values } : trip;
     const updateLikeState = (values) => {
       state.trips = state.trips.map((trip) => updateTrip(trip, values));
+      state.searchTrips = state.searchTrips.map((trip) => updateTrip(trip, values));
       state.savedTripRecords = state.savedTripRecords.map((trip) => updateTrip(trip, values));
       if (state.profile) state.profile = { ...state.profile, trips: state.profile.trips.map((trip) => updateTrip(trip, values)) };
     };
-    const renderLikeState = () => {
-      renderTrips();
-      if (state.view === "profile") renderProfile();
-    };
     updateLikeState(optimistic);
     state.pendingLikes.add(id);
-    renderLikeState();
+    patchPostControls(id);
     try {
       const result = await api(`/api/trips/${encodeURIComponent(id)}/like`, { method: "POST", data: { liked } });
       updateLikeState(result);
@@ -1634,7 +1700,7 @@ document.addEventListener("click", async (eventTarget) => {
       toast(error.message || t("failed"));
     } finally {
       state.pendingLikes.delete(id);
-      renderLikeState();
+      patchPostControls(id);
     }
     return;
   }
@@ -1655,7 +1721,7 @@ document.addEventListener("click", async (eventTarget) => {
       state.profile = { ...state.profile, followedByViewer: following, followerCount: Math.max(0, (Number(state.profile.followerCount) || 0) + (following ? 1 : -1)) };
     }
     renderProfileSuggestions();
-    if (isCurrentProfile) renderProfile();
+    if (isCurrentProfile) patchProfileFollow();
     try {
       const result = await api(`/api/profiles/${encodeURIComponent(id)}/follow`, { method: "POST", data: { following } });
       if (state.profile?.id === id) state.profile = { ...state.profile, ...result };
@@ -1667,7 +1733,7 @@ document.addEventListener("click", async (eventTarget) => {
     } finally {
       state.pendingFollows.delete(id);
       renderProfileSuggestions();
-      if (state.profile?.id === id) renderProfile();
+      if (state.profile?.id === id) patchProfileFollow();
     }
     return;
   }
@@ -1858,9 +1924,25 @@ document.addEventListener("submit", async (eventTarget) => {
         }
         throw error;
       }
-      renderAccount();
+      await refreshMe();
+      const { profile, trips } = await api(`/api/profiles/${encodeURIComponent(auth.user.id)}`);
+      state.profile = { ...profile, trips: trips || [] };
+      state.profileUsername = profile.username;
       state.profileEditing = false;
-      await openProfile(auth.user.id, false);
+      const updateAuthor = (trip) => trip.profileId === profile.id ? { ...trip, hostName: profile.displayName } : trip;
+      state.trips = state.trips.map(updateAuthor);
+      state.searchTrips = state.searchTrips.map(updateAuthor);
+      state.savedTripRecords = state.savedTripRecords.map(updateAuthor);
+      document.querySelectorAll(".trip-card[data-trip-id]").forEach((card) => {
+        const trip = [...state.trips, ...state.searchTrips, ...state.savedTripRecords, ...(trips || [])].find((item) => item.id === card.dataset.tripId);
+        if (trip?.profileId === profile.id) {
+          const name = card.querySelector(".post-byline strong");
+          if (name) name.textContent = profile.displayName;
+        }
+      });
+      renderAccount();
+      renderProfileCard();
+      setLink("profile", state.profileUsername);
       toast(t("profileSaved"));
     } catch (error) {
       const serverMessage = error.message || "";
@@ -1998,7 +2080,7 @@ document.addEventListener("submit", async (eventTarget) => {
       const { request, requestToken } = await api(`/api/trips/${encodeURIComponent(id)}/requests`, { method: "POST", data: values });
       if (requestToken) { state.requestKeys[id] = { id: request.id, token: requestToken }; saveLocal("qipi:request-keys", state.requestKeys); }
       localStorage.setItem("qipi:nickname", values.travelerName);
-      toast(t("requestSuccess")); await refreshMe(); renderTrips(); await openTrip(id);
+      toast(t("requestSuccess")); await refreshMe(); patchPostJoinAction(id); await openTrip(id);
     }
     if (form.id === "update-form") {
       await api(`/api/routes/${encodeURIComponent(form.dataset.routeId)}/updates`, { method: "POST", data: values });

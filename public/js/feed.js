@@ -39,7 +39,13 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
       (!isSearchResults || !state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${trip.destination || ""} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
       (!isSearchResults || (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || ((trip.kind || "trip") === "trip" && trip.date >= dateToday()))));
     tripList.setAttribute("aria-busy", "false");
-    const endNote = !isSearchResults ? $("#feed-list-end") : null;
+    let endNote = isSearchResults ? $("#search-results-end") : $("#feed-list-end");
+    if (isSearchResults && !endNote) {
+      endNote = document.createElement("p");
+      endNote.id = "search-results-end";
+      endNote.className = "list-end-note";
+      tripList.after(endNote);
+    }
     if (endNote) { endNote.hidden = !filtered.length; endNote.textContent = t("endOfFeed"); }
     if (isSearchResults) {
       const countLabel = state.lang === "en" && filtered.length === 1 ? t("searchTripFound") : t("searchResultCount");

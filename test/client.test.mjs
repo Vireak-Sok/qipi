@@ -182,7 +182,7 @@ test("service worker activates automatically after caching the app shell", async
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v9");
+  assert.equal(cachedName, "qipi-static-v10");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(progress.at(-1).percent, 100);
   assert.equal(progress.at(-1).completed, cachedAssets.length);
@@ -405,16 +405,22 @@ test("public profile directory preserves usernames and omits private Auth fields
 test("Saved belongs to the owner's profile and never appears on another profile", async (context) => {
   const { createProfileController } = await import("../public/js/profile.js");
   const content = { innerHTML: "", setAttribute() {} };
+  const panel = { innerHTML: "", setAttribute() {} };
+  const heading = { textContent: "", setAttribute() {} };
   const previousDocument = globalThis.document, previousLocation = globalThis.location;
-  globalThis.document = { querySelector: () => content };
+  globalThis.document = { querySelector: (selector) => selector === "#profile-content" ? content : selector === "#profile-tab-panel" ? panel : selector === "#profile-page-title" ? heading : null, querySelectorAll: () => [] };
   globalThis.location = new URL("https://qipi.example/owner");
   context.after(() => { if (previousDocument) globalThis.document = previousDocument; else delete globalThis.document; if (previousLocation) globalThis.location = previousLocation; else delete globalThis.location; });
   let loaded = 0;
   const state = { profile: { id: "owner", displayName: "Owner", trips: [] }, profileTab: "posts", savedTrips: ["saved-id"], savedTripRecords: [{ id: "saved-id" }], me: { requests: [] } };
   const controller = createProfileController({ state, auth: { user: { id: "owner" } }, t: key => key, avatarContents: () => "avatar", tripCardMarkup: trip => `<article>${trip.id}</article>`, skeletonPostsMarkup: () => "skeleton", setLink() {}, loadSavedTrips: async () => { loaded++; } });
+  controller.renderProfile();
+  const originalProfileMarkup = content.innerHTML;
   await controller.selectProfileTab("saved");
-  assert.equal(loaded, 1);
-  assert.match(content.innerHTML, /<article>saved-id<\/article>/);
+  assert.equal(loaded, 0);
+  assert.equal(content.innerHTML, originalProfileMarkup);
+  assert.match(panel.innerHTML, /<article>saved-id<\/article>/);
+  assert.match(panel.innerHTML, /endOfFeed/);
   assert.match(content.innerHTML, /data-action="edit-profile"/);
   const sharedSections = ["profile-card-main", "profile-overview", "profile-stats", "profile-tab-panel"];
   for (const section of sharedSections) assert.match(content.innerHTML, new RegExp(section));
@@ -427,7 +433,7 @@ test("Saved belongs to the owner's profile and never appears on another profile"
   assert.match(content.innerHTML, />Motorbike<\/span>/);
   assert.doesNotMatch(content.innerHTML, /saved-id|data-id="saved"|data-id="joining"|data-action="edit-profile"/);
   await controller.selectProfileTab("saved");
-  assert.equal(loaded, 1);
+  assert.equal(loaded, 0);
 });
 
 test("profile card identity shows the name without the username or private profile details", async () => {

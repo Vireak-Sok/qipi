@@ -169,19 +169,23 @@ test("service worker waits for user approval before replacing an active version"
   let cachedName = "";
   let cachedAssets = [];
   let skipWaitingCalls = 0;
+  const progress = [];
   const worker = {
     registration: { active: { state: "activated" } },
     addEventListener: (name, handler) => handlers.set(name, handler),
-    skipWaiting: async () => { skipWaitingCalls++; }
+    skipWaiting: async () => { skipWaitingCalls++; },
+    clients: { matchAll: async () => [{ postMessage: (message) => progress.push(message) }] }
   };
-  const cachesApi = { open: async (name) => { cachedName = name; return { addAll: async (assets) => { cachedAssets = assets; } }; } };
+  const cachesApi = { open: async (name) => { cachedName = name; return { add: async (asset) => { cachedAssets.push(asset); } }; } };
   runInNewContext(source, { self: worker, caches: cachesApi, URL, Request, Response, fetch, Promise });
 
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v6");
+  assert.equal(cachedName, "qipi-static-v7");
   assert.ok(cachedAssets.includes("/offline.js"));
+  assert.equal(progress.at(-1).percent, 100);
+  assert.equal(progress.at(-1).completed, cachedAssets.length);
   assert.equal(skipWaitingCalls, 0);
 
   let activationMessage;
@@ -226,7 +230,7 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
     getElementById: (id) => id === "main" ? {} : null,
     querySelector: (selector) => selector.startsWith("#main.") ? (criticalView ? {} : null) : selector === "dialog[open]" ? (hasOpenDialog ? {} : null) : null,
     querySelectorAll: () => [],
-    createElement: () => ({ className: "", hidden: false, setAttribute() {}, querySelectorAll: () => [] }),
+    createElement: () => ({ className: "", hidden: false, dataset: {}, setAttribute() {}, querySelectorAll: () => [] }),
     addEventListener: (name, handler) => documentListeners.set(name, handler)
   };
   const mockNavigator = {
@@ -256,6 +260,19 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
   assert.equal(renderedNotice.hidden, false);
   assert.equal(reloads, 0);
 
+  const installingListeners = new Map();
+  const installingWorker = { state: "installing", addEventListener: (name, handler) => installingListeners.set(name, handler) };
+  registration.waiting = null;
+  registration.installing = installingWorker;
+  registrationListeners.get("updatefound")();
+  serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 43 } });
+  assert.match(renderedNotice.innerHTML, /pwaUpdateDownloading.*43%/);
+  assert.match(renderedNotice.innerHTML, /aria-valuenow="43"/);
+  registration.waiting = waitingWorker;
+  installingWorker.state = "installed";
+  installingListeners.get("statechange")();
+  assert.match(renderedNotice.innerHTML, /pwaUpdateAction/);
+
   criticalView = true;
   observedMutations[0].callback();
   assert.equal(renderedNotice.hidden, true);
@@ -274,6 +291,7 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
   mockWindow.confirm = () => { confirmations++; return true; };
   documentListeners.get("click")({ target: updateButton });
   assert.deepEqual(postedMessage, { type: "QIPI_ACTIVATE_UPDATE" });
+  assert.match(renderedNotice.innerHTML, /pwaUpdateInstalling/);
   assert.equal(reloads, 0);
 
   serviceWorkerListeners.get("controllerchange")();

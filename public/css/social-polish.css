@@ -51,16 +51,22 @@ body.social-app {
   box-shadow: 0 10px 32px color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 .pwa-update-notice[hidden] { display: none; }
-.pwa-update-notice > span { font-size: 13px; font-weight: 700; line-height: 1.4; }
-.pwa-update-notice > div { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.pwa-update-copy { display: grid; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.pwa-update-copy > span { font-size: 13px; font-weight: 700; line-height: 1.4; }
+.pwa-update-copy > small { color: var(--text-secondary); font-size: 11px; line-height: 1.3; }
+.pwa-update-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .pwa-update-notice button { min-height: 40px; padding: 0 13px; border: 0; border-radius: 11px; color: var(--action-text); background: var(--action-bg); font: inherit; font-size: 12px; font-weight: 750; }
 .pwa-update-notice .pwa-update-later { color: var(--text-secondary); background: var(--surface-selected); }
-.pwa-update-notice button:disabled { cursor: wait; opacity: .65; }
+.pwa-update-track,.pwa-update-installing { width: 100%; height: 5px; overflow: hidden; border-radius: 10px; background: var(--surface-selected); }
+.pwa-update-track i { display: block; height: 100%; border-radius: inherit; background: var(--brand-strong); transition: width .18s ease; }
+.pwa-update-installing i { display: block; width: 35%; height: 100%; border-radius: inherit; background: var(--brand-strong); animation: qipi-update-installing 1.2s ease-in-out infinite alternate; }
+@keyframes qipi-update-installing { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
 @media (max-width: 420px) {
   .pwa-update-notice { align-items: flex-start; flex-direction: column; gap: 9px; }
-  .pwa-update-notice > div { width: 100%; }
-  .pwa-update-notice button { flex: 1; }
+  .pwa-update-copy,.pwa-update-actions { width: 100%; }
+  .pwa-update-actions button { flex: 1; }
 }
+@media (prefers-reduced-motion: reduce) { .pwa-update-track i { transition: none; } .pwa-update-installing i { animation: none; width: 100%; } }
 
 /* Specificity here overrides the legacy 24px shell width on mobile; all
    regular pages share the feed's 16px gutters while map/chat remain edge to edge. */

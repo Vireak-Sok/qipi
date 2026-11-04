@@ -1,4 +1,4 @@
-const CACHE_NAME = "qipi-static-v6";
+const CACHE_NAME = "qipi-static-v7";
 const MEDIA_CACHE_NAME = "qipi-public-media-v1";
 const APP_SHELL = [
   "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
@@ -16,7 +16,18 @@ const APP_SHELL = [
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(APP_SHELL);
+    let completed = 0;
+    const total = APP_SHELL.length;
+    const reportProgress = async () => {
+      const clients = await self.clients?.matchAll({ type: "window", includeUncontrolled: true }) || [];
+      for (const client of clients) client.postMessage({ type: "QIPI_UPDATE_PROGRESS", cacheName: CACHE_NAME, completed, total, percent: Math.round(completed / total * 100) });
+    };
+    await reportProgress().catch(() => {});
+    await Promise.all(APP_SHELL.map(async (path) => {
+      await cache.add(path);
+      completed += 1;
+      await reportProgress().catch(() => {});
+    }));
     // Take control on first install. Later versions wait until the user accepts
     // the in-app update prompt so an active form or post is not interrupted.
     if (!self.registration.active) await self.skipWaiting();

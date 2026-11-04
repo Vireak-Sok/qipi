@@ -15,13 +15,20 @@ export function createPwaController({ t, toast }) {
   let updateRequested = false;
   let updateDismissed = false;
   let reloadAfterUpdate = false;
+  let updatePhase = "idle";
+  let updatePercent = 0;
 
   function updateMustWait() {
     return Boolean(document.querySelector("#main.explore-open, #main.messages-thread-open, #main.signup-open, #main.entry-open, dialog[open]"));
   }
 
   function renderUpdateNotice() {
-    if (!registration?.waiting || !navigator.serviceWorker?.controller || updateDismissed) return;
+    if (!navigator.serviceWorker?.controller || updateDismissed) return;
+    const phase = updateRequested ? "installing" : registration?.waiting ? "ready" : updatePhase;
+    if (!["downloading", "ready", "installing", "error"].includes(phase)) {
+      if (updateNotice) updateNotice.hidden = true;
+      return;
+    }
     if (updateMustWait()) {
       if (updateNotice) updateNotice.hidden = true;
       return;
@@ -31,9 +38,13 @@ export function createPwaController({ t, toast }) {
       updateNotice.className = "pwa-update-notice";
       updateNotice.setAttribute("role", "status");
       updateNotice.setAttribute("aria-live", "polite");
-      updateNotice.innerHTML = `<span>${esc(t("pwaUpdateReady"))}</span><div><button type="button" data-pwa-update="apply">${esc(t("pwaUpdateAction"))}</button><button type="button" class="pwa-update-later" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>`;
       document.body.append(updateNotice);
     }
+    updateNotice.dataset.phase = phase;
+    const status = phase === "downloading" ? `${t("pwaUpdateDownloading")} ${updatePercent}%`
+      : phase === "installing" ? t("pwaUpdateInstalling")
+        : phase === "error" ? t("pwaUpdateFailed") : t("pwaUpdateReady");
+    updateNotice.innerHTML = `<div class="pwa-update-copy"><span>${esc(status)}</span>${phase === "downloading" ? `<div class="pwa-update-track" role="progressbar" aria-label="${esc(t("pwaUpdateDownloading"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${updatePercent}"><i style="width:${updatePercent}%"></i></div>` : phase === "installing" ? `<small>${esc(t("pwaUpdateDownloaded"))} · 100%</small><div class="pwa-update-installing" aria-hidden="true"><i></i></div>` : ""}</div>${phase === "ready" ? `<div class="pwa-update-actions"><button type="button" data-pwa-update="apply">${esc(t("pwaUpdateAction"))}</button><button type="button" class="pwa-update-later" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>` : phase === "error" ? `<div class="pwa-update-actions"><button type="button" data-pwa-update="retry">${esc(t("retry"))}</button></div>` : ""}`;
     updateNotice.hidden = false;
   }
 
@@ -58,7 +69,8 @@ export function createPwaController({ t, toast }) {
     if ((hasOpenDialog || hasUnsentText || hasPendingUpload) && !window.confirm(t("pwaUpdateUnsavedConfirm"))) return;
     updateRequested = true;
     reloadAfterUpdate = true;
-    updateNotice?.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+    updatePhase = "installing";
+    renderUpdateNotice();
     waiting.postMessage({ type: "QIPI_ACTIVATE_UPDATE" });
   }
 
@@ -70,9 +82,21 @@ export function createPwaController({ t, toast }) {
       updateDismissed = true;
       if (updateNotice) updateNotice.hidden = true;
     }
+    if (button.dataset.pwaUpdate === "retry") {
+      updatePhase = "downloading";
+      updatePercent = 0;
+      renderUpdateNotice();
+      registration?.update().catch(() => { updatePhase = "error"; renderUpdateNotice(); });
+    }
   });
 
   if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data?.type !== "QIPI_UPDATE_PROGRESS" || !registration?.installing || !navigator.serviceWorker.controller) return;
+      updatePhase = "downloading";
+      updatePercent = Math.max(updatePercent, Math.min(100, Number(event.data.percent) || 0));
+      renderUpdateNotice();
+    });
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!reloadAfterUpdate) return;
       reloadAfterUpdate = false;
@@ -116,13 +140,20 @@ export function createPwaController({ t, toast }) {
     if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
     try {
       registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
-      registration.addEventListener("updatefound", () => {
+      const watchInstalling = () => {
         const installing = registration.installing;
-        if (!installing) return;
+        if (!installing || !navigator.serviceWorker.controller) return;
+        updatePhase = "downloading";
+        updatePercent = 0;
+        renderUpdateNotice();
         installing.addEventListener("statechange", () => {
-          if (installing.state === "installed") renderUpdateNotice();
+          if (installing.state === "installed") { updatePhase = "ready"; updatePercent = 100; }
+          else if (installing.state === "redundant") updatePhase = "error";
+          renderUpdateNotice();
         });
-      });
+      };
+      registration.addEventListener("updatefound", watchInstalling);
+      watchInstalling();
       watchCriticalViews();
       renderUpdateNotice();
       registration.update().catch(() => {});

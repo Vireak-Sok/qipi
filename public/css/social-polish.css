@@ -982,3 +982,44 @@ body.social-app {
   #main.signup-open .signup-action-row .signup-switch { margin: 0; text-align: center; white-space: normal; }
   #main.signup-open .signup-otp-actions { flex-wrap: wrap; }
 }
+
+/* Keep text roles and repeated controls consistent across the app. */
+body.social-app { font-family: Inter, "Noto Sans Khmer", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.top-actions .account-button.is-profile-only { box-sizing: border-box; width: 42px; min-width: 42px; max-width: 42px; height: 42px; padding: 4px; display: grid; place-items: center; border-radius: 50%; }
+.top-actions .account-button.is-profile-only .account-avatar { display: grid; place-items: center; margin: 0; }
+.list-end-note { margin: 16px 0 0; padding: 0 0 4px; color: var(--text-secondary); text-align: center; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.list-end-note[hidden] { display: none; }
+.profile-posts .list-end-note { margin-top: 16px; }
+@media (min-width: 701px) {
+  #main.app-layout:has(#trip-list), #main.profile-open.app-layout { padding-bottom: 32px; }
+}
+
+/* Placeholders use the same dimensions and structure as loaded content. */
+.skeleton-media { display: block; width: 100%; height: auto; aspect-ratio: 1.04 / 1; }
+.skeleton-post-head { box-sizing: border-box; }
+.search-people-skeleton { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+.search-people-skeleton-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; gap: 11px; min-height: 56px; padding: 7px 9px; }
+.search-people-skeleton-row em { width: 17px; height: 17px; border-radius: 5px; }
+.message-conversation-skeleton { display: grid; grid-template-columns: 44px minmax(0, 1fr) 33px; align-items: center; gap: 12px; min-height: 70px; padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 14px; }
+.message-conversation-skeleton > i { width: 44px; height: 44px; border: 0; border-radius: 50%; }
+.message-conversation-skeleton > span { display: grid; gap: 8px; }
+.message-conversation-skeleton b:first-child { width: 58%; height: 11px; }
+.message-conversation-skeleton b:last-child { width: 78%; height: 9px; }
+.message-conversation-skeleton em { width: 30px; height: 9px; align-self: start; margin-top: 3px; }
+.message-conversation-skeleton > i, .message-conversation-skeleton b, .message-conversation-skeleton em, .search-people-skeleton-row em, .skeleton-joining-list i { display: block; background: linear-gradient(100deg,var(--skeleton-base,#e9eeea) 20%,var(--skeleton-highlight,#f7faf7) 38%,var(--skeleton-base,#e9eeea) 56%); background-size: 220% 100%; animation: qipi-shimmer 1.35s ease-in-out infinite; border-radius: 8px; }
+.message-conversation-skeleton > i { border-radius: 50%; }
+.skeleton-joining-list { display: grid; gap: 10px; }
+.skeleton-joining-list i { height: 72px; border-radius: 14px; }
+
+@media (max-width: 700px) {
+  .skeleton-media { height: auto; aspect-ratio: 1 / 1; }
+  .mobile-nav small { font-size: 11px; font-weight: 650; }
+  .post-byline small, .post-actions .post-join-action, .like-count { font-size: 11px; }
+  .post-date small { font-size: 10px; }
+  .profile-card .profile-stats span { font-size: 11px; }
+  .profile-card .profile-actions .button { font-size: 12px; }
+  .map-quick-actions .map-control-button, .map-quick-actions .map-live-toggle, .map-quick-actions .map-checkin-button, .map-live-copy strong { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-conversation-skeleton > i, .message-conversation-skeleton b, .message-conversation-skeleton em, .search-people-skeleton-row em, .skeleton-joining-list i { animation: none; }
+}

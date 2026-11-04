@@ -141,7 +141,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
       <div class="explore-map-frame${safetyMap(mapPoint.latitude, mapPoint.longitude) ? " is-loading" : ""}" id="safety-map-frame" aria-label="Map">${mapFrameMarkup()}</div>
       <div class="explore-map-overlay">
         <div class="map-control-row">
-          <div class="map-search-wrap"><form id="safety-destination-form" class="map-search-bar" role="search"><label class="visually-hidden" for="safety-destination">Search destinations</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or destinations" autocomplete="off" maxlength="120" aria-controls="safety-destination-results" aria-expanded="${String(mapPanel === "search")}" required /><button class="map-clear-destination" type="button" data-action="safety-clear-destination" aria-label="Clear destination" ${searchQuery ? "" : "hidden"}>${mapIcon("close")}</button></form><section class="map-overlay-panel map-search-panel" aria-label="Suggested places" ${mapPanel === "search" ? "" : "hidden"}><div class="map-overlay-head"><strong>Suggested places</strong><button type="button" data-action="safety-close-panel" aria-label="Close suggestions">${mapIcon("close")}</button></div><div id="safety-destination-results" class="map-search-results" aria-live="polite">${searchResultsMarkup()}</div></section></div>
+          <div class="map-search-wrap"><form id="safety-destination-form" class="map-search-bar" role="search"><label class="visually-hidden" for="safety-destination">Search destinations</label>${mapIcon("search")}<input id="safety-destination" name="destination" value="${esc(searchQuery)}" placeholder="Search places or destinations" autocomplete="off" maxlength="120" aria-controls="safety-destination-results" aria-expanded="${String(mapPanel === "search")}" required /><button class="map-clear-destination" type="button" data-action="safety-clear-destination" aria-label="Clear destination" ${searchQuery ? "" : "hidden"}>${mapIcon("close")}</button></form><section class="map-overlay-panel map-search-panel" aria-label="Suggested places" ${mapPanel === "search" ? "" : "hidden"}><div class="map-overlay-head"><strong>Suggested places</strong></div><div id="safety-destination-results" class="map-search-results" aria-live="polite">${searchResultsMarkup()}</div></section></div>
           <div class="map-quick-actions"><button class="map-control-button" type="button" data-action="safety-open-panel" data-panel="contacts">${mapIcon("users")}<span>Contacts</span></button>
             <button class="map-live-toggle${isLive ? " is-on" : ""}" type="button" role="switch" aria-checked="${String(isLive)}" data-action="safety-toggle-live"><span class="map-toggle-track"><i></i></span><span class="map-live-copy"><strong>Live location</strong></span></button>
             <button class="map-control-button map-checkin-button" type="button" data-action="safety-check-in-panel">${mapIcon("check")}<span>Check in</span></button>
@@ -261,6 +261,11 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
 
   function handleSearchOutside(event) {
     if (mapPanel === "search" && !event.target.closest?.(".map-search-wrap")) hideSearchPanel();
+  }
+
+  function handleSearchFocusOut(event) {
+    if (event.target?.id !== "safety-destination") return;
+    if (!event.relatedTarget?.closest?.(".map-search-wrap")) hideSearchPanel();
   }
 
   function renderSettingsContacts() {
@@ -481,7 +486,8 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     selectedPlace = selected;
     mapPoint = { ...selected, label: selected.name };
     renderMapFrame(mapPoint);
-    $("#safety-destination-results").innerHTML = searchResultsMarkup();
+    hideSearchPanel();
+    $("#safety-destination")?.blur();
   }
 
   function clearDestinationSearch() {
@@ -665,6 +671,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
 
   document.addEventListener("focusin", handleDestinationFocus);
+  document.addEventListener("focusout", handleSearchFocusOut);
   document.addEventListener("input", handleDestinationInput);
   document.addEventListener("pointerdown", handleSearchOutside);
 

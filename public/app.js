@@ -716,7 +716,7 @@ function messageListMarkup({ inboxLoading = false, inboxError = false } = {}) {
     return results.length ? `<div class="message-search-results">${results.join("")}</div>` : `<p class="message-search-empty">${esc(t("messageSearchEmpty"))}</p>`;
   }
   return inboxLoading
-    ? `<div class="message-inbox-skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></div>`
+    ? `<div class="message-inbox-skeleton" aria-hidden="true">${Array.from({ length: 3 }, () => `<div class="message-conversation-skeleton"><i></i><span><b></b><b></b></span><em></em></div>`).join("")}</div>`
     : inboxError
       ? `<div class="message-inbox-error"><p>${esc(t("feedLoadError"))}</p><button class="button button-ghost" type="button" data-action="retry-messages">${esc(t("retry"))}</button></div>`
     : conversations.length

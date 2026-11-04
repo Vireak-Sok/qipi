@@ -50,7 +50,7 @@ export function createSearchController({ state, t, api, renderTrips, syncSearchF
     }
     people.hidden = false;
     people.setAttribute("aria-busy", "true");
-    people.innerHTML = `<div class="user-search-results-head"><h2>${esc(t("searchPeopleHeading"))}</h2></div><div class="search-people-skeleton" aria-hidden="true"><i></i><span><b></b><b></b></span><i></i><span><b></b><b></b></span></div>`;
+    people.innerHTML = `<div class="user-search-results-head"><h2>${esc(t("searchPeopleHeading"))}</h2></div><div class="search-people-skeleton" aria-hidden="true">${Array.from({ length: 2 }, () => `<div class="search-people-skeleton-row"><i></i><span><b></b><b></b></span><em></em></div>`).join("")}</div>`;
   }
 
   function submitSearch(value) {

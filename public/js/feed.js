@@ -39,6 +39,8 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
       (!isSearchResults || !state.search || `${trip.title} ${trip.notes} ${trip.hostName} ${trip.destination || ""} ${label(routeFor(trip.routeId)?.title)}`.toLowerCase().includes(state.search)) &&
       (!isSearchResults || (!state.searchFilters.transport || trip.transport === state.searchFilters.transport) && (!state.searchFilters.upcoming || ((trip.kind || "trip") === "trip" && trip.date >= dateToday()))));
     tripList.setAttribute("aria-busy", "false");
+    const endNote = !isSearchResults ? $("#feed-list-end") : null;
+    if (endNote) { endNote.hidden = !filtered.length; endNote.textContent = t("endOfFeed"); }
     if (isSearchResults) {
       const countLabel = state.lang === "en" && filtered.length === 1 ? t("searchTripFound") : t("searchResultCount");
       $("#search-results-trips-title").textContent = `${t("searchResults")} · ${filtered.length} ${countLabel}`;
@@ -75,11 +77,15 @@ export function createFeedController({ state, t, label, routeFor, syncEnhancedSe
   }
 
   function renderFeedLoading() {
+    const endNote = $("#feed-list-end");
+    if (endNote) endNote.hidden = true;
     $("#trip-list").setAttribute("aria-busy", "true");
     renderTripListLoading("#trip-list", 2);
   }
 
   function renderFeedError() {
+    const endNote = $("#feed-list-end");
+    if (endNote) endNote.hidden = true;
     const routeGrid = $("#route-grid");
     if (routeGrid) { routeGrid.setAttribute("aria-busy", "false"); routeGrid.replaceChildren(); }
     $("#trip-list").setAttribute("aria-busy", "false");

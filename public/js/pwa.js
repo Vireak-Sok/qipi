@@ -11,95 +11,87 @@ function isIosSafari() {
 export function createPwaController({ t, toast }) {
   let installPrompt = null;
   let registration = null;
-  let updateNotice = null;
-  let updateRequested = false;
-  let updateDismissed = false;
-  let reloadAfterUpdate = false;
+  let updateButton = null;
   let updatePhase = "idle";
   let updatePercent = 0;
+  let oldController = navigator.serviceWorker?.controller || null;
+  let trackedWorker = null;
+  let updateTimer = null;
 
-  function updateMustWait() {
-    return Boolean(document.querySelector("#main.explore-open, #main.messages-thread-open, #main.signup-open, #main.entry-open, dialog[open]"));
+  function clearUpdateTimer() {
+    if (updateTimer) clearTimeout(updateTimer);
+    updateTimer = null;
   }
 
-  function renderUpdateNotice() {
-    if (!navigator.serviceWorker?.controller || updateDismissed) return;
-    const phase = updateRequested ? "installing" : registration?.waiting ? "ready" : updatePhase;
-    if (!["downloading", "ready", "installing", "error"].includes(phase)) {
-      if (updateNotice) updateNotice.hidden = true;
+  function renderUpdateStatus() {
+    if (!navigator.serviceWorker?.controller || updatePhase === "idle") {
+      if (updateButton) updateButton.hidden = true;
       return;
     }
-    if (updateMustWait()) {
-      if (updateNotice) updateNotice.hidden = true;
-      return;
+    if (!updateButton) {
+      updateButton = document.createElement("button");
+      updateButton.type = "button";
+      updateButton.className = "pwa-update-button";
+      updateButton.setAttribute("aria-live", "polite");
+      document.body.append(updateButton);
     }
-    if (!updateNotice) {
-      updateNotice = document.createElement("aside");
-      updateNotice.className = "pwa-update-notice";
-      updateNotice.setAttribute("role", "status");
-      updateNotice.setAttribute("aria-live", "polite");
-      document.body.append(updateNotice);
-    }
-    updateNotice.dataset.phase = phase;
-    const status = phase === "downloading" ? `${t("pwaUpdateDownloading")} ${updatePercent}%`
-      : phase === "installing" ? t("pwaUpdateInstalling")
-        : phase === "error" ? t("pwaUpdateFailed") : t("pwaUpdateReady");
-    updateNotice.innerHTML = `<div class="pwa-update-copy"><span>${esc(status)}</span>${phase === "downloading" ? `<div class="pwa-update-track" role="progressbar" aria-label="${esc(t("pwaUpdateDownloading"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${updatePercent}"><i style="width:${updatePercent}%"></i></div>` : phase === "installing" ? `<small>${esc(t("pwaUpdateDownloaded"))} · 100%</small><div class="pwa-update-installing" aria-hidden="true"><i></i></div>` : ""}</div>${phase === "ready" ? `<div class="pwa-update-actions"><button type="button" data-pwa-update="apply">${esc(t("pwaUpdateAction"))}</button><button type="button" class="pwa-update-later" data-pwa-update="later">${esc(t("pwaUpdateLater"))}</button></div>` : phase === "error" ? `<div class="pwa-update-actions"><button type="button" data-pwa-update="retry">${esc(t("retry"))}</button></div>` : ""}`;
-    updateNotice.hidden = false;
+    updateButton.hidden = false;
+    updateButton.dataset.phase = updatePhase;
+    updateButton.dataset.pwaUpdate = updatePhase === "error" ? "retry" : "status";
+    updateButton.disabled = updatePhase !== "error";
+    updateButton.textContent = updatePhase === "downloading"
+      ? `${t("pwaUpdateDownloading")} ${updatePercent}%`
+      : updatePhase === "installing" ? t("pwaUpdateInstalling")
+        : `${t("pwaUpdateFailed")} ${t("retry")}`;
   }
 
-  function watchCriticalViews() {
-    if (typeof MutationObserver === "undefined") return;
-    const observer = new MutationObserver(renderUpdateNotice);
-    const app = document.getElementById("main");
-    if (app) observer.observe(app, { attributes: true, attributeFilter: ["class"] });
-    observer.observe(document.body, { attributes: true, attributeFilter: ["open"], subtree: true });
+  function scheduleUpdateTimeout(duration) {
+    clearUpdateTimer();
+    updateTimer = setTimeout(() => {
+      if (updatePhase === "idle" || updatePhase === "error") return;
+      if (navigator.serviceWorker.controller && navigator.serviceWorker.controller !== oldController) {
+        window.location.reload();
+        return;
+      }
+      updatePhase = "error";
+      renderUpdateStatus();
+    }, duration);
+    updateTimer.unref?.();
   }
 
-  function applyUpdate() {
-    const waiting = registration?.waiting;
-    if (!waiting || updateRequested) return;
-    const hasOpenDialog = Boolean(document.querySelector("dialog[open]"));
-    const hasUnsentText = [...document.querySelectorAll("input, textarea")].some((field) => {
-      if (field.disabled || field.type === "hidden" || field.type === "button" || field.type === "submit" || field.type === "reset") return false;
-      if (field.form?.getAttribute("role") === "search" || field.type === "search") return false;
-      return field.value !== field.defaultValue;
-    });
-    const hasPendingUpload = [...document.querySelectorAll('input[type="file"]')].some((field) => field.files?.length);
-    if ((hasOpenDialog || hasUnsentText || hasPendingUpload) && !window.confirm(t("pwaUpdateUnsavedConfirm"))) return;
-    updateRequested = true;
-    reloadAfterUpdate = true;
+  function activateWaitingUpdate() {
+    if (!registration?.waiting || !navigator.serviceWorker?.controller) return;
+    oldController = navigator.serviceWorker.controller;
     updatePhase = "installing";
-    renderUpdateNotice();
-    waiting.postMessage({ type: "QIPI_ACTIVATE_UPDATE" });
+    updatePercent = 100;
+    renderUpdateStatus();
+    try { registration.waiting.postMessage({ type: "QIPI_ACTIVATE_UPDATE" }); }
+    catch { /* The worker may already be activating automatically. */ }
+    scheduleUpdateTimeout(15000);
   }
 
   document.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-pwa-update]");
+    const button = event.target.closest("[data-pwa-update='retry']");
     if (!button) return;
-    if (button.dataset.pwaUpdate === "apply") applyUpdate();
-    if (button.dataset.pwaUpdate === "later") {
-      updateDismissed = true;
-      if (updateNotice) updateNotice.hidden = true;
-    }
-    if (button.dataset.pwaUpdate === "retry") {
-      updatePhase = "downloading";
-      updatePercent = 0;
-      renderUpdateNotice();
-      registration?.update().catch(() => { updatePhase = "error"; renderUpdateNotice(); });
-    }
+    if (registration?.waiting) { activateWaitingUpdate(); return; }
+    updatePhase = "downloading";
+    updatePercent = 0;
+    renderUpdateStatus();
+    scheduleUpdateTimeout(30000);
+    registration?.update().catch(() => { clearUpdateTimer(); updatePhase = "error"; renderUpdateStatus(); });
   });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data?.type !== "QIPI_UPDATE_PROGRESS" || !registration?.installing || !navigator.serviceWorker.controller) return;
-      updatePhase = "downloading";
+      if (event.data?.type !== "QIPI_UPDATE_PROGRESS" || updatePhase !== "downloading" || !registration?.installing || !navigator.serviceWorker.controller) return;
       updatePercent = Math.max(updatePercent, Math.min(100, Number(event.data.percent) || 0));
-      renderUpdateNotice();
+      renderUpdateStatus();
+      scheduleUpdateTimeout(30000);
     });
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (!reloadAfterUpdate) return;
-      reloadAfterUpdate = false;
+      if (updatePhase === "idle" || !oldController || navigator.serviceWorker.controller === oldController) return;
+      clearUpdateTimer();
+      updatePhase = "idle";
       window.location.reload();
     });
   }
@@ -142,21 +134,33 @@ export function createPwaController({ t, toast }) {
       registration = await navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" });
       const watchInstalling = () => {
         const installing = registration.installing;
-        if (!installing || !navigator.serviceWorker.controller) return;
+        if (!installing || !navigator.serviceWorker.controller || installing === trackedWorker) return;
+        trackedWorker = installing;
+        oldController = navigator.serviceWorker.controller;
         updatePhase = "downloading";
         updatePercent = 0;
-        renderUpdateNotice();
-        installing.addEventListener("statechange", () => {
-          if (installing.state === "installed") { updatePhase = "ready"; updatePercent = 100; }
-          else if (installing.state === "redundant") updatePhase = "error";
-          renderUpdateNotice();
-        });
+        renderUpdateStatus();
+        scheduleUpdateTimeout(30000);
+        const handleStateChange = () => {
+          if (installing.state === "installed") {
+            updatePhase = "installing";
+            updatePercent = 100;
+            renderUpdateStatus();
+            if (registration.waiting) activateWaitingUpdate();
+            else scheduleUpdateTimeout(15000);
+          } else if (installing.state === "redundant") {
+            clearUpdateTimer();
+            updatePhase = "error";
+            renderUpdateStatus();
+          }
+        };
+        installing.addEventListener("statechange", handleStateChange);
+        handleStateChange();
       };
       registration.addEventListener("updatefound", watchInstalling);
       watchInstalling();
-      watchCriticalViews();
-      renderUpdateNotice();
-      registration.update().catch(() => {});
+      if (registration.waiting) activateWaitingUpdate();
+      else registration.update().catch(() => {});
     } catch {
       // The app stays usable when service workers are blocked or unavailable.
     }

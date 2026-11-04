@@ -163,7 +163,7 @@ test("guest choice survives app restarts and upgrades the previous session choic
   }
 });
 
-test("service worker waits for user approval before replacing an active version", async () => {
+test("service worker activates automatically after caching the app shell", async () => {
   const source = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
   const handlers = new Map();
   let cachedName = "";
@@ -182,11 +182,11 @@ test("service worker waits for user approval before replacing an active version"
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v7");
+  assert.equal(cachedName, "qipi-static-v8");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(progress.at(-1).percent, 100);
   assert.equal(progress.at(-1).completed, cachedAssets.length);
-  assert.equal(skipWaitingCalls, 0);
+  assert.equal(skipWaitingCalls, 1);
 
   let activationMessage;
   handlers.get("message")({
@@ -194,57 +194,49 @@ test("service worker waits for user approval before replacing an active version"
     waitUntil: (promise) => { activationMessage = promise; }
   });
   await activationMessage;
-  assert.equal(skipWaitingCalls, 1);
+  assert.equal(skipWaitingCalls, 2);
 });
 
-test("the PWA update prompt reloads only after the user chooses Update now", async (context) => {
-  const prior = Object.fromEntries(["window", "document", "navigator", "MutationObserver"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
-  const windowListeners = new Map();
+test("PWA update status advances automatically and times out instead of spinning forever", async (context) => {
+  const prior = Object.fromEntries(["window", "document", "navigator", "setTimeout", "clearTimeout"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const documentListeners = new Map();
   const serviceWorkerListeners = new Map();
-  const observedMutations = [];
-  let reloads = 0;
-  let postedMessage = null;
-  let renderedNotice = null;
-  let hasOpenDialog = false;
-  let criticalView = false;
-  let confirmations = 0;
-  const waitingWorker = { postMessage: (message) => { postedMessage = message; } };
   const registrationListeners = new Map();
+  const timers = [];
+  let reloads = 0;
+  let button = null;
+  let postedMessage = null;
+  const oldController = { state: "activated" };
+  const waitingWorker = { postMessage: (message) => { postedMessage = message; } };
   const registration = {
-    waiting: waitingWorker,
-    installing: null,
+    waiting: null, installing: null,
     addEventListener: (name, handler) => registrationListeners.set(name, handler),
     update: async () => {}
   };
   const mockWindow = {
     isSecureContext: true,
-    navigator: {},
     location: { reload: () => { reloads++; } },
-    confirm: () => { confirmations++; return false; },
-    addEventListener: (name, handler) => windowListeners.set(name, handler)
+    addEventListener() {}
   };
   const mockDocument = {
     readyState: "complete",
-    body: { append: (node) => { renderedNotice = node; } },
-    getElementById: (id) => id === "main" ? {} : null,
-    querySelector: (selector) => selector.startsWith("#main.") ? (criticalView ? {} : null) : selector === "dialog[open]" ? (hasOpenDialog ? {} : null) : null,
-    querySelectorAll: () => [],
-    createElement: () => ({ className: "", hidden: false, dataset: {}, setAttribute() {}, querySelectorAll: () => [] }),
+    body: { append: (node) => { button = node; } },
+    createElement: () => ({ hidden: false, disabled: false, dataset: {}, setAttribute() {} }),
     addEventListener: (name, handler) => documentListeners.set(name, handler)
   };
   const mockNavigator = {
     serviceWorker: {
-      controller: { state: "activated" },
+      controller: oldController,
       register: async () => registration,
       addEventListener: (name, handler) => serviceWorkerListeners.set(name, handler)
     }
   };
-  class MockMutationObserver {
-    constructor(callback) { this.callback = callback; }
-    observe(target, options) { observedMutations.push({ callback: this.callback, target, options }); }
-  }
-  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator, MutationObserver: MockMutationObserver })) {
+  const fakeSetTimeout = (handler, delay) => {
+    const timer = { handler, delay, unref() {} };
+    timers.push(timer);
+    return timer;
+  };
+  for (const [key, value] of Object.entries({ window: mockWindow, document: mockDocument, navigator: mockNavigator, setTimeout: fakeSetTimeout, clearTimeout: () => {} })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
   context.after(() => {
@@ -256,48 +248,32 @@ test("the PWA update prompt reloads only after the user chooses Update now", asy
 
   createPwaController({ t: (key) => key, toast: () => {} });
   await new Promise((resolve) => setImmediate(resolve));
-  assert.ok(renderedNotice);
-  assert.equal(renderedNotice.hidden, false);
-  assert.equal(reloads, 0);
+  assert.equal(button, null);
 
   const installingListeners = new Map();
   const installingWorker = { state: "installing", addEventListener: (name, handler) => installingListeners.set(name, handler) };
-  registration.waiting = null;
   registration.installing = installingWorker;
   registrationListeners.get("updatefound")();
+  assert.equal(button.textContent, "pwaUpdateDownloading 0%");
+  assert.equal(button.disabled, true);
   serviceWorkerListeners.get("message")({ data: { type: "QIPI_UPDATE_PROGRESS", percent: 43 } });
-  assert.match(renderedNotice.innerHTML, /pwaUpdateDownloading.*43%/);
-  assert.match(renderedNotice.innerHTML, /aria-valuenow="43"/);
+  assert.equal(button.textContent, "pwaUpdateDownloading 43%");
+  assert.equal(button.querySelector, undefined); // The status is one button, with no progress bar.
+
   registration.waiting = waitingWorker;
   installingWorker.state = "installed";
   installingListeners.get("statechange")();
-  assert.match(renderedNotice.innerHTML, /pwaUpdateAction/);
-
-  criticalView = true;
-  observedMutations[0].callback();
-  assert.equal(renderedNotice.hidden, true);
-  criticalView = false;
-  observedMutations[0].callback();
-  assert.equal(renderedNotice.hidden, false);
-
-  const updateButton = { dataset: { pwaUpdate: "apply" }, closest: () => updateButton };
-  hasOpenDialog = true;
-  documentListeners.get("click")({ target: updateButton });
-  assert.equal(confirmations, 1);
-  assert.equal(postedMessage, null);
-  assert.equal(reloads, 0);
-
-  hasOpenDialog = false;
-  mockWindow.confirm = () => { confirmations++; return true; };
-  documentListeners.get("click")({ target: updateButton });
+  assert.equal(button.textContent, "pwaUpdateInstalling");
   assert.deepEqual(postedMessage, { type: "QIPI_ACTIVATE_UPDATE" });
-  assert.match(renderedNotice.innerHTML, /pwaUpdateInstalling/);
   assert.equal(reloads, 0);
 
+  timers.at(-1).handler();
+  assert.match(button.textContent, /pwaUpdateFailed/);
+  assert.equal(button.disabled, false);
+  mockNavigator.serviceWorker.controller = { state: "activated" };
   serviceWorkerListeners.get("controllerchange")();
   assert.equal(reloads, 1);
-  assert.ok(windowListeners.has("online"));
-  assert.ok(windowListeners.has("offline"));
+  assert.ok(documentListeners.has("click"));
 });
 
 test("Supabase profile updates retain metadata and refresh tokens rotate once for concurrent requests", async () => {

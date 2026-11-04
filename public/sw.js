@@ -1,4 +1,4 @@
-const CACHE_NAME = "qipi-static-v7";
+const CACHE_NAME = "qipi-static-v8";
 const MEDIA_CACHE_NAME = "qipi-public-media-v1";
 const APP_SHELL = [
   "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",
@@ -28,9 +28,8 @@ self.addEventListener("install", (event) => {
       completed += 1;
       await reportProgress().catch(() => {});
     }));
-    // Take control on first install. Later versions wait until the user accepts
-    // the in-app update prompt so an active form or post is not interrupted.
-    if (!self.registration.active) await self.skipWaiting();
+    // Activate automatically once every app-shell file is cached.
+    await self.skipWaiting();
   })());
 });
 

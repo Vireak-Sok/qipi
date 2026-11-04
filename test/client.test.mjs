@@ -180,7 +180,7 @@ test("service worker waits for user approval before replacing an active version"
   let installPromise;
   handlers.get("install")({ waitUntil: (promise) => { installPromise = promise; } });
   await installPromise;
-  assert.equal(cachedName, "qipi-static-v5");
+  assert.equal(cachedName, "qipi-static-v6");
   assert.ok(cachedAssets.includes("/offline.js"));
   assert.equal(skipWaitingCalls, 0);
 
@@ -313,7 +313,7 @@ test("Supabase profile updates retain metadata and refresh tokens rotate once fo
 });
 
 test("profile tab links survive refresh and malformed page paths are rejected", async () => {
-  const { isSupportedPage } = await import("../public/js/route-config.js");
+  const { isSupportedPage, isValidUsername, normalizeUsername } = await import("../public/js/route-config.js");
   const { router, location, state } = routerFor("/feed");
   state.profileUsername = "dara-member";
   state.profileTab = "saved";
@@ -325,6 +325,12 @@ test("profile tab links survive refresh and malformed page paths are rejected", 
   assert.equal(isSupportedPage(["settings", "anything"]), false);
   assert.equal(isSupportedPage(["post", "x", "y"]), false);
   assert.equal(isSupportedPage(["bad%2Fslug"]), false);
+  assert.equal(isSupportedPage(["traveler.name_1"]), true);
+  assert.equal(isSupportedPage(["វីរៈ_2026"]), true);
+  assert.equal(isSupportedPage([encodeURIComponent("វីរៈ_2026")]), true);
+  assert.equal(isValidUsername("@Traveler.Name_1"), true);
+  assert.equal(normalizeUsername("@Traveler.Name_1"), "traveler.name_1");
+  assert.equal(isValidUsername("bad/name"), false);
 });
 
 test("shared shell components preserve unique IDs and omit Saved from both navigations", async () => {

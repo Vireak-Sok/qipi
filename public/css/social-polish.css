@@ -1023,3 +1023,14 @@ body.social-app { font-family: Inter, "Noto Sans Khmer", ui-sans-serif, system-u
 @media (prefers-reduced-motion: reduce) {
   .message-conversation-skeleton > i, .message-conversation-skeleton b, .message-conversation-skeleton em, .search-people-skeleton-row em, .skeleton-joining-list i { animation: none; }
 }
+
+.message-search-clear { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; margin-right: -6px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.message-search-clear[hidden] { display: none; }
+.message-search-clear:hover { background: var(--surface-selected); color: var(--text-primary); }
+.message-search-clear .heroicon { width: 17px; height: 17px; }
+.profile-username-hint { font-size: 12px; }
+.profile-username-status { display: block; min-height: 18px; margin-top: 4px; color: var(--text-secondary); font-size: 12px; line-height: 1.4; }
+.profile-username-status:empty { display: none; }
+.profile-username-status.is-available { color: #167453; }
+.profile-username-status.is-unavailable { color: var(--danger-text, #b93d43); }
+.map-recent-places > strong { display: block; padding: 3px 4px 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }

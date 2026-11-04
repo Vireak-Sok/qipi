@@ -18,5 +18,5 @@ export function syncPublicProfile(data, user) {
   };
   if (existing) Object.assign(existing, profile);
   else data.profiles.push(profile);
-  return profile;
+  return existing || profile;
 }

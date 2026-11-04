@@ -15,6 +15,7 @@ import { createTripCard } from "./js/trip-card.js";
 import { createAppState } from "./js/state.js";
 import { createSafetyController } from "./js/safety.js";
 import { createPwaController } from "./js/pwa.js";
+import { isValidUsername, normalizeUsername } from "./js/route-config.js";
 
 // Application state and shared helpers.
 const auth = new QipiAuth();
@@ -49,7 +50,7 @@ const { renderRoutes, renderFilter, syncSearchFilterControls, renderTrips, loadT
   state, t, label, routeFor, syncEnhancedSelect, api, setPageView, renderRoutesLoading, renderTripListLoading, renderLoadingError, toast, applyLanguage, safety,
   tripCardMarkup: (trip) => tripCardMarkup(trip)
 });
-const { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, bindSearchEvents } = createSearchController({
+const { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, clearFeedDraft, bindSearchEvents } = createSearchController({
   state, t, api, renderTrips, syncSearchFilterControls, setPageView, renderTripListLoading, renderLoadingError, toast
 });
 const { openProfile, renderProfileLoading, renderProfile, selectProfileTab } = createProfileController({
@@ -439,6 +440,7 @@ async function loadProfileSuggestions() {
 
 function setPageView(view, { preserveUrl = false } = {}) {
   if (view === "saved") view = "feed"; // Legacy URL resolves through openSavedTrips after authentication.
+  const previousView = state.view;
   state.view = view;
   const main = $("#main");
   const settings = $("#settings-view");
@@ -467,6 +469,13 @@ function setPageView(view, { preserveUrl = false } = {}) {
   $("#search-filter-panel").hidden = !isSearchResults;
   const searchQuery = $("#search-results-query");
   if (searchQuery) searchQuery.textContent = state.search ? `“${$("#home-search-input")?.value.trim() || state.search}”` : "";
+  if (previousView !== view || view !== "feed") clearFeedDraft();
+  if (previousView === "messages" && view !== "messages") {
+    state.messageSearch = "";
+    state.messagePeople = [];
+    state.messageHistoryMatches = [];
+    state.messageSearchLoading = false;
+  }
   if (isSearchResults) syncSearchFilterControls();
   document.querySelectorAll('.rail-nav [data-page-view="feed"], .mobile-nav [data-page-view="feed"]').forEach((item) => item.classList.toggle("active", view === "feed"));
   document.querySelectorAll('.rail-nav [data-page-view="explore"], .mobile-nav [data-page-view="explore"]').forEach((item) => item.classList.toggle("active", isExplore));
@@ -645,7 +654,6 @@ async function restoreBrowserLocation() {
       await openMessages(conversationId);
     } else if (view === "search-results") {
       state.search = (query.get("q") || "").trim().toLocaleLowerCase();
-      if ($("#home-search-input")) $("#home-search-input").value = query.get("q") || "";
       setPageView("search-results", { preserveUrl: true });
       renderSearchResultsLoading();
       await loadSearchResults();
@@ -738,7 +746,7 @@ function renderMessageInbox({ loading = false, inboxLoading = loading, threadLoa
   content.setAttribute("aria-busy", String(loading));
   const list = messageListMarkup({ inboxLoading, inboxError });
   const messageSearchLabel = t("messageSearchPlaceholder");
-  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><header class="message-thread-skeleton-head"><span class="message-thread-skeleton-back"></span><span class="message-thread-skeleton-profile"><i></i><i></i></span></header><div class="message-thread-skeleton-history"><i></i><i class="is-mine"></i><i></i><i class="is-mine"></i></div><div class="message-thread-skeleton-composer"><i></i><b></b></div></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
+  content.innerHTML = `<div class="messages-layout ${state.conversationId ? "has-active-conversation" : ""}"><aside class="message-sidebar"><header class="message-sidebar-head"><label class="message-search-field"><svg class="heroicon" aria-hidden="true"><use href="/icons.svg#search"></use></svg><input id="message-search" type="text" inputmode="search" autocomplete="off" placeholder="${esc(messageSearchLabel)}" aria-label="${esc(messageSearchLabel)}" value="${esc(state.messageSearch)}" /><button class="message-search-clear" type="button" data-action="clear-message-search" aria-label="${esc(t("clearSearch"))}" ${state.messageSearch ? "" : "hidden"}>${icon("close")}</button></label></header><div id="message-inbox-list" class="message-inbox-list">${list}</div></aside>${state.conversationId ? `<div class="message-thread-pane">${threadLoading ? `<div class="message-thread-skeleton" aria-hidden="true"><header class="message-thread-skeleton-head"><span class="message-thread-skeleton-back"></span><span class="message-thread-skeleton-profile"><i></i><i></i></span></header><div class="message-thread-skeleton-history"><i></i><i class="is-mine"></i><i></i><i class="is-mine"></i></div><div class="message-thread-skeleton-composer"><i></i><b></b></div></div>` : renderMessageThreadMarkup()}</div>` : `<section class="message-welcome"><span>${icon("chat")}</span><p>${esc(t("selectConversation"))}</p></section>`}</div>`;
   const history = $("#message-history");
   if (history) history.scrollTop = history.scrollHeight;
 }
@@ -786,6 +794,12 @@ function renderMessageThreadMarkup() {
 async function openMessages(conversationId = "", { useCachedInbox = false } = {}) {
   if (state.messagePoll) { clearInterval(state.messagePoll); state.messagePoll = null; }
   const cachedConversationId = state.conversationId;
+  if (conversationId !== cachedConversationId) {
+    state.messageSearch = "";
+    state.messagePeople = [];
+    state.messageHistoryMatches = [];
+    state.messageSearchLoading = false;
+  }
   const hasCachedThread = Boolean(conversationId && cachedConversationId === conversationId && state.conversationProfile);
   state.conversationId = conversationId;
   const requestId = ++state.messageRequestId;
@@ -1317,6 +1331,7 @@ document.addEventListener("click", async (eventTarget) => {
       else if (action === "safety-ai-view-place") safety.viewAiPlace(Number(button.dataset.index));
       else if (action === "safety-choose-destination") await safety.chooseDestination(Number(button.dataset.index));
       else if (action === "safety-select-destination") safety.selectDestination(Number(button.dataset.index));
+      else if (action === "safety-select-recent") safety.selectRecentDestination(Number(button.dataset.index));
       else if (action === "safety-clear-destination") safety.clearDestinationSearch();
       else if (action === "safety-current-share") await safety.shareCurrent();
       else if (action === "safety-refresh-live") await safety.updateViewer();
@@ -1341,7 +1356,12 @@ document.addEventListener("click", async (eventTarget) => {
     input.focus({ preventScroll: true });
     return;
   }
-  if (action === "clear-home-search") { $("#home-search-input").value = ""; $(".home-search-clear").hidden = true; renderSearchRecents(); $("#home-search-input")?.focus(); return; }
+  if (action === "clear-home-search") { clearFeedDraft(); $("#home-search-input")?.blur(); return; }
+  if (action === "clear-message-search") {
+    const input = $("#message-search");
+    if (input) { input.value = ""; input.dispatchEvent(new Event("input", { bubbles: true })); input.blur(); }
+    return;
+  }
   if (action === "select-recent-search") { submitSearch(button.dataset.query || ""); return; }
   if (action === "explore-destination") { submitSearch(button.dataset.destination || ""); return; }
   if (action === "remove-recent-search") {
@@ -1825,7 +1845,8 @@ document.addEventListener("submit", async (eventTarget) => {
       const travelStyles = [...form.querySelectorAll('input[name="travelStyle"]:checked')].map((input) => input.value);
       if (travelStyles.length > 3) throw new Error(t("signupStyleLimit"));
       const previousUsername = state.profile?.username || state.me?.profile?.username || "";
-      const username = String(values.username || "").trim().toLowerCase();
+      const username = normalizeUsername(values.username);
+      if (!isValidUsername(username)) throw new Error(t("usernameHint"));
       const usernameChanged = username !== previousUsername;
       if (usernameChanged) await api("/api/me/username", { method: "PUT", data: { username } });
       try {
@@ -1844,7 +1865,7 @@ document.addEventListener("submit", async (eventTarget) => {
       const serverMessage = error.message || "";
       const message = serverMessage === "That username is already in use" ? t("usernameTaken")
         : serverMessage === "That username is reserved" ? t("usernameReserved")
-          : serverMessage.startsWith("Use 3–64 lowercase letters") ? t("usernameHint")
+          : serverMessage.startsWith("Use 3–64 letters") ? t("usernameHint")
             : serverMessage || t("profileSaveError");
       setError(form, message);
     }
@@ -1995,8 +2016,45 @@ enhanceSelects();
 bindSearchEvents();
 let messageSearchTimer = null;
 let messageSearchRequestId = 0;
+let usernameCheckTimer = null;
+let usernameCheckController = null;
+let usernameCheckId = 0;
+function checkUsernameInput(input) {
+  const status = $("#profile-edit-username-status");
+  if (!status) return;
+  clearTimeout(usernameCheckTimer);
+  usernameCheckController?.abort();
+  const checkId = ++usernameCheckId;
+  const username = normalizeUsername(input.value);
+  input.setCustomValidity("");
+  status.className = "profile-username-status";
+  if (!username || username === state.profile?.username) { status.textContent = ""; return; }
+  if (!isValidUsername(username)) {
+    status.textContent = t("usernameHint");
+    status.classList.add("is-unavailable");
+    input.setCustomValidity(t("usernameHint"));
+    return;
+  }
+  status.textContent = t("usernameChecking");
+  usernameCheckTimer = setTimeout(async () => {
+    const controller = new AbortController();
+    usernameCheckController = controller;
+    try {
+      const result = await api(`/api/me/username/availability?username=${encodeURIComponent(username)}`, { signal: controller.signal });
+      if (checkId !== usernameCheckId || !input.isConnected || normalizeUsername(input.value) !== username) return;
+      const key = result.reason === "reserved" ? "usernameReserved" : result.available ? "usernameAvailable" : "usernameTaken";
+      status.textContent = result.available ? `${t(key)} @${result.username}` : t(key);
+      status.classList.add(result.available ? "is-available" : "is-unavailable");
+      input.setCustomValidity(result.available ? "" : t(key));
+    } catch (error) {
+      if (controller.signal.aborted || checkId !== usernameCheckId) return;
+      status.textContent = t("usernameCheckUnavailable");
+    }
+  }, 300);
+}
 document.addEventListener("input", (eventTarget) => {
   const input = eventTarget.target;
+  if (input.id === "profile-edit-username") { checkUsernameInput(input); return; }
   if (input.id === "auth-identifier") {
     const recovery = $("#auth-forgot-button");
     if (recovery) {
@@ -2006,6 +2064,8 @@ document.addEventListener("input", (eventTarget) => {
     return;
   }
   if (input.id !== "message-search") return;
+  const clearButton = $(".message-search-clear");
+  if (clearButton) clearButton.hidden = !input.value;
   const query = input.value.trim();
   state.messageSearch = query;
   state.messagePeople = [];
@@ -2212,7 +2272,6 @@ async function initialize() {
   }
   if (entryReturnView === "search-results") {
     state.search = (startupQuery.get("q") || "").trim().toLocaleLowerCase();
-    if ($("#home-search-input")) $("#home-search-input").value = startupQuery.get("q") || "";
   }
   const legacyHash = ["#feed", "#routes", "#trips", "#saved", "#settings", "#search", "#entry", "#signup", "#profile"].includes(location.hash);
   if (currentPath === "/index.html" || (currentPath === "/" && legacyHash)) {

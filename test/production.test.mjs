@@ -76,6 +76,15 @@ test("Next request adapter preserves authenticated posting, profile, likes, and 
   assert.equal(publicProfile.profile.id, user.id);
   assert.equal(publicProfile.trips.length, 0);
   assert.ok(!JSON.stringify(publicProfile).includes(user.email));
+  const availability = await (await call("/api/me/username/availability?username=Traveler.Name_1", { authenticated: true })).json();
+  assert.deepEqual(availability, { username: "traveler.name_1", available: true, reason: "available" });
+  const changedHandle = await call("/api/me/username", { method: "PUT", data: { username: "Traveler.Name_1" }, authenticated: true });
+  assert.equal(changedHandle.status, 200);
+  assert.equal((await changedHandle.json()).username, "traveler.name_1");
+  const renamedResponse = await call("/api/profiles/traveler.name_1");
+  assert.equal((await renamedResponse.json()).profile.id, user.id);
+  assert.equal((await (await call("/api/me/username/availability?username=traveler.name_1", { authenticated: true })).json()).reason, "current");
+  assert.equal((await (await call("/api/me/username/availability?username=settings", { authenticated: true })).json()).reason, "reserved");
   const input = {
     routeId: "kampot-kep", title: "Production adapter trip",
     date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),

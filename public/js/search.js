@@ -126,6 +126,14 @@ export function createSearchController({ state, t, api, renderTrips, syncSearchF
     $("#home-search-input")?.setAttribute("aria-expanded", "false");
   }
 
+  function clearFeedDraft() {
+    const input = $("#home-search-input");
+    if (input) input.value = "";
+    const clear = $(".home-search-clear");
+    if (clear) clear.hidden = true;
+    closeDesktopSearch();
+  }
+
   function bindSearchEvents() {
     const form = $("#home-search-form");
     const input = $("#home-search-input");
@@ -135,22 +143,25 @@ export function createSearchController({ state, t, api, renderTrips, syncSearchF
       $(".home-search-clear").hidden = !input.value;
       renderSearchRecents();
     });
+    input.addEventListener("blur", (eventTarget) => {
+      if (!eventTarget.relatedTarget?.closest?.("#home-search")) clearFeedDraft();
+    });
     form.addEventListener("submit", (eventTarget) => {
       eventTarget.preventDefault();
       submitSearch(input.value);
       input.blur();
     });
     document.addEventListener("click", (eventTarget) => {
-      if (!$("#home-search")?.contains(eventTarget.target)) closeDesktopSearch();
+      if (!$("#home-search")?.contains(eventTarget.target)) clearFeedDraft();
     });
     document.addEventListener("keydown", (eventTarget) => {
       const panel = $("#home-search-recents-panel");
       if (eventTarget.key === "Escape" && panel && !panel.hidden) {
-        closeDesktopSearch();
+        clearFeedDraft();
         input.blur();
       }
     });
   }
 
-  return { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, bindSearchEvents };
+  return { setSearch, submitSearch, loadSearchResults, renderSearchResultsLoading, renderSearchRecents, closeDesktopSearch, clearFeedDraft, bindSearchEvents };
 }

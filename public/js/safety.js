@@ -20,6 +20,17 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   let contacts = [], checkins = [], session = null, shareToken = "", watchId = null, viewerTimer = null, lastPositionAt = 0;
   let mapConfig = null, destinations = [], currentPoint = null, selectedPlace = null, mapPanel = "", searchQuery = "", emergencyRecipients = [], suggestionTimer = null, suggestionController = null, suggestionRevision = 0, mapSelectionRevision = 0, suppressSearchFocus = false;
   let aiOpen = false, aiBusy = false, aiImage = null, aiMessages = [], aiPlaces = [];
+  const readRecentPlaces = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("qipi:recent-places") || "[]");
+      return Array.isArray(saved) ? saved.filter(place => place && typeof place.name === "string" && Number.isFinite(place.latitude) && Number.isFinite(place.longitude)).slice(0, 5) : [];
+    } catch { return []; }
+  };
+  let recentPlaces = readRecentPlaces();
+  function saveRecentPlace(place) {
+    recentPlaces = [{ name: place.name, latitude: place.latitude, longitude: place.longitude }, ...recentPlaces.filter(item => item.name !== place.name)].slice(0, 5);
+    localStorage.setItem("qipi:recent-places", JSON.stringify(recentPlaces));
+  }
   const fallbackPoint = { latitude: 11.5564, longitude: 104.9282, label: "Phnom Penh, Cambodia" };
   let mapPoint = fallbackPoint;
   const content = () => $("#safety-content");
@@ -42,7 +53,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     const configNote = mapConfig?.exploreAiEnabled
       ? mapConfig.maptilerPublicKey ? "Photos are sent to Google AI for place recognition." : "AI can identify places, but map pins need a map key."
       : mapConfig?.maptilerPublicKey ? "Photo recognition needs a Google AI key. Text place lookup is available." : "AI and place search need Google AI and map keys on the host.";
-    return `<dialog id="map-ai-dialog" class="map-ai-dialog" aria-labelledby="map-ai-title"><button class="map-ai-backdrop" type="button" data-action="safety-ai-close" aria-label="Close AI guide"></button><section class="map-ai-panel"><header class="map-ai-header"><span class="map-ai-mark">${mapIcon("sparkles")}</span><div><h2 id="map-ai-title">Ask Qipi</h2><small>Find a place from words or a photo</small></div><button type="button" class="map-ai-close" data-action="safety-ai-close" aria-label="Close AI guide">${mapIcon("close")}</button></header><div id="map-ai-messages" class="map-ai-messages" role="log" aria-live="polite">${aiMessagesMarkup()}</div><div class="map-ai-bottom"><p class="map-ai-config-note">${configNote}</p><p id="map-ai-error" class="map-ai-error" role="alert" hidden></p><div id="map-ai-photo-preview" class="map-ai-photo-preview" hidden></div><form id="map-ai-form" class="map-ai-form"><label class="map-ai-attach" for="map-ai-photo" title="Attach a photo" aria-label="Attach a photo">${mapIcon("plus")}</label><input id="map-ai-photo" type="file" accept="image/jpeg,image/png,image/webp" hidden /><input id="map-ai-input" name="message" maxlength="500" autocomplete="off" placeholder="Describe a place…" aria-label="Ask about a destination" /><button class="map-ai-send" type="submit" aria-label="Send message">${mapIcon("send")}</button></form></div></section></dialog>`;
+    return `<dialog id="map-ai-dialog" class="map-ai-dialog" aria-labelledby="map-ai-title"><button class="map-ai-backdrop" type="button" data-action="safety-ai-close" aria-label="Close AI guide"></button><section class="map-ai-panel"><header class="map-ai-header"><span class="map-ai-mark">${mapIcon("sparkles")}</span><div><h2 id="map-ai-title" tabindex="-1">Ask Qipi</h2><small>Find a place from words or a photo</small></div><button type="button" class="map-ai-close" data-action="safety-ai-close" aria-label="Close AI guide">${mapIcon("close")}</button></header><div id="map-ai-messages" class="map-ai-messages" role="log" aria-live="polite">${aiMessagesMarkup()}</div><div class="map-ai-bottom"><p class="map-ai-config-note">${configNote}</p><p id="map-ai-error" class="map-ai-error" role="alert" hidden></p><div id="map-ai-photo-preview" class="map-ai-photo-preview" hidden></div><form id="map-ai-form" class="map-ai-form"><label class="map-ai-attach" for="map-ai-photo" title="Attach a photo" aria-label="Attach a photo">${mapIcon("plus")}</label><input id="map-ai-photo" type="file" accept="image/jpeg,image/png,image/webp" hidden /><input id="map-ai-input" name="message" maxlength="500" autocomplete="off" placeholder="Describe a place…" aria-label="Ask about a destination" /><button class="map-ai-send" type="submit" aria-label="Send message">${mapIcon("send")}</button></form></div></section></dialog>`;
   }
 
   function updateAiMessages() {
@@ -171,7 +182,10 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
 
   function searchResultsMarkup() {
-    if (!destinations.length) return searchQuery ? `<p class="safety-small">No places found yet. Keep typing to search Cambodia.</p>` : `<p class="safety-small">Start typing to find places in Cambodia.</p>`;
+    if (!searchQuery) return recentPlaces.length
+      ? `<div class="map-recent-places"><strong>Recent places</strong><div class="safety-destinations">${recentPlaces.map((item, index) => `<button type="button" data-action="safety-select-recent" data-index="${index}"><span>${mapIcon("clock")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div></div>`
+      : `<p class="safety-small">Start typing to find places in Cambodia.</p>`;
+    if (!destinations.length) return `<p class="safety-small">No places found yet. Keep typing to search Cambodia.</p>`;
     return `<div class="safety-destinations">${destinations.map((item, index) => `<button type="button" class="${selectedPlace?.name === item.name ? "is-selected" : ""}" data-action="safety-select-destination" data-index="${index}"><span>${mapIcon("map-pin")}</span><strong>${esc(item.name)}</strong></button>`).join("")}</div>${selectedPlace ? `<button type="button" class="map-directions-button" data-action="safety-choose-destination" data-index="${destinations.indexOf(selectedPlace)}">${mapIcon("arrow-up-right")} Get directions to ${esc(selectedPlace.name)}</button><div id="safety-route-result" class="safety-route-result"></div>` : ""}`;
   }
 
@@ -260,12 +274,26 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   }
 
   function handleSearchOutside(event) {
-    if (mapPanel === "search" && !event.target.closest?.(".map-search-wrap")) hideSearchPanel();
+    if (mapPanel === "search" && !event.target.closest?.(".map-search-wrap")) closeDestinationDraft();
   }
 
   function handleSearchFocusOut(event) {
     if (event.target?.id !== "safety-destination") return;
-    if (!event.relatedTarget?.closest?.(".map-search-wrap")) hideSearchPanel();
+    if (!event.relatedTarget?.closest?.(".map-search-wrap")) closeDestinationDraft();
+  }
+
+  function closeDestinationDraft() {
+    hideSearchPanel();
+    if (selectedPlace) return;
+    clearTimeout(suggestionTimer);
+    suggestionController?.abort();
+    suggestionRevision += 1;
+    searchQuery = "";
+    destinations = [];
+    const input = $("#safety-destination");
+    if (input) input.value = "";
+    const clear = $(".map-clear-destination");
+    if (clear) clear.hidden = true;
   }
 
   function renderSettingsContacts() {
@@ -294,6 +322,10 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (aiDialog?.open) aiDialog.close();
     aiOpen = false;
     mapPanel = "";
+    searchQuery = "";
+    destinations = [];
+    selectedPlace = null;
+    mapPoint = currentPoint || fallbackPoint;
     document.documentElement.classList.remove("qipi-emergency-open");
   }
 
@@ -318,8 +350,11 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     clearTimeout(suggestionTimer);
     suggestionController?.abort();
     mapPanel = "";
+    searchQuery = "";
+    destinations = [];
+    selectedPlace = null;
     setPageView("explore");
-    mapPoint = selectedPlace || currentPoint || fallbackPoint;
+    mapPoint = currentPoint || fallbackPoint;
     renderMapView();
     try { mapConfig = await api("/api/config"); } catch { mapConfig = null; }
     await loadPrivate();
@@ -482,12 +517,27 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   function selectDestination(index) {
     const selected = destinations[index];
     if (!selected) return;
+    selectPlace(selected);
+  }
+  function selectRecentDestination(index) {
+    const selected = recentPlaces[index];
+    if (!selected) return;
+    destinations = [selected];
+    selectPlace(selected);
+  }
+  function selectPlace(selected) {
     mapSelectionRevision += 1;
     selectedPlace = selected;
     mapPoint = { ...selected, label: selected.name };
+    searchQuery = selected.name;
+    saveRecentPlace(selected);
+    const input = $("#safety-destination");
+    if (input) input.value = selected.name;
+    const clear = $(".map-clear-destination");
+    if (clear) clear.hidden = false;
     renderMapFrame(mapPoint);
     hideSearchPanel();
-    $("#safety-destination")?.blur();
+    input?.blur();
   }
 
   function clearDestinationSearch() {
@@ -501,7 +551,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     mapPoint = currentPoint || fallbackPoint;
     mapPanel = "";
     renderMapView();
-    $("#safety-destination")?.focus({ preventScroll: true });
+    if (!currentPoint) void currentLocation();
   }
   async function chooseDestination(index) {
     const chosen = destinations[index];
@@ -567,7 +617,7 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
     if (mapPanel === "search") hideSearchPanel();
     aiOpen = true;
     renderMapView();
-    $("#map-ai-input")?.focus({ preventScroll: true });
+    $("#map-ai-title")?.focus({ preventScroll: true });
   }
 
   function closeAi() {
@@ -715,5 +765,5 @@ export function createSafetyController({ api, auth, setPageView, toast, openAuth
   document.addEventListener("visibilitychange", onVisibility);
   document.addEventListener("keydown", handleEmergencyKeys);
   document.addEventListener("change", event => { if (event.target?.id === "map-ai-photo") void attachAiPhoto(event); });
-  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth, openAi, closeAi, removeAiPhoto, submitAi, viewAiPlace, promptAi: value => { const input = $("#map-ai-input"); if (input) { input.value = value; input.focus(); } } };
+  return { openExploreMap, openLive, leave, submitContact, deleteContact, loadContactsForSettings, renderSettingsContacts, checkIn, startShare, stopShare, toggleLiveLocation, copyLink, listShareRecipients, sendShareToConversation, currentLocation, shareCurrent, destination, selectDestination, selectRecentDestination, clearDestinationSearch, chooseDestination, emergency, openMapPanel, closeMapPanel, shareEmergency, updateViewer, openAuth, openAi, closeAi, removeAiPhoto, submitAi, viewAiPlace, promptAi: value => { const input = $("#map-ai-input"); if (input) { input.value = value; input.focus(); } } };
 }

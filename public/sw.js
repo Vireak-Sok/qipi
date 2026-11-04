@@ -1,4 +1,4 @@
-const CACHE_NAME = "qipi-static-v5";
+const CACHE_NAME = "qipi-static-v6";
 const MEDIA_CACHE_NAME = "qipi-public-media-v1";
 const APP_SHELL = [
   "/offline.html", "/offline.css", "/offline.js", "/manifest.webmanifest", "/favicon.svg", "/icons.svg",

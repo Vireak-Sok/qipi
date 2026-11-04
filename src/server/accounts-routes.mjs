@@ -3,11 +3,27 @@ import { profileUsername } from "../../public/js/shared.js";
 import { HttpError, body, createResponder } from "./http.mjs";
 import { text } from "./validation.mjs";
 import { publicTrip } from "./trips.mjs";
-import { RESERVED_SEGMENTS } from "../../public/js/route-config.js";
+import { RESERVED_SEGMENTS, isValidUsername, normalizeUsername } from "../../public/js/route-config.js";
 import { addActivityNotification, notificationActor } from "./activity-notifications.mjs";
 
 export async function handleAccountsRoutes({ req, res, path, method, store, userFor }) {
   const respond = createResponder(res);
+  const usernameOccupied = (data, username, userId) =>
+    (data.profiles || []).some(profile => profile.id !== userId && (profile.username?.toLocaleLowerCase() === username || profile.id?.toLocaleLowerCase() === username)) ||
+    (data.demoUsers || []).some(profile => profile.id?.toLocaleLowerCase() === username || profileUsername(profile.displayName, profile.id) === username) ||
+    (data.trips || []).some(trip => !trip.hidden && trip.hostUserId && trip.hostUserId !== userId && (trip.hostUserId.toLocaleLowerCase() === username || profileUsername(trip.hostName, trip.hostUserId) === username));
+  if (path === "/api/me/username/availability" && method === "GET") {
+    const user = await userFor(req, { required: true });
+    if (!user) throw new HttpError(503, "Authentication is not configured");
+    const username = normalizeUsername(new URL(req.url || "/", "http://localhost").searchParams.get("username"));
+    if (!isValidUsername(username)) return respond(200, { username, available: false, reason: "invalid" });
+    if (RESERVED_SEGMENTS.has(username)) return respond(200, { username, available: false, reason: "reserved" });
+    const data = await store.read();
+    const current = data.profiles?.find(profile => profile.id === user.id)?.username;
+    if (current === username) return respond(200, { username, available: true, reason: "current" });
+    const occupied = usernameOccupied(data, username, user.id);
+    return respond(200, { username, available: !occupied, reason: occupied ? "taken" : "available" });
+  }
   if (path === "/api/profiles/search" && method === "GET") {
     const query = new URL(req.url || "/", "http://localhost").searchParams.get("q")?.trim().slice(0, 80) || "";
     if (query.length < 2) return respond(200, { profiles: [] });
@@ -76,17 +92,12 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     const user = await userFor(req, { required: true });
     if (!user) throw new HttpError(503, "Authentication is not configured");
     const input = await body(req);
-    const username = text(input.username, "Username", 3, 64).toLowerCase();
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(username)) {
-      throw new HttpError(400, "Use 3–64 lowercase letters or numbers, with single hyphens between words");
-    }
+    const username = normalizeUsername(input.username);
+    if (!isValidUsername(username)) throw new HttpError(400, "Use 3–64 letters or numbers; dots, underscores and hyphens can appear inside the handle");
     if (RESERVED_SEGMENTS.has(username)) throw new HttpError(400, "That username is reserved");
     const result = await store.mutate((data) => {
       data.profiles ||= [];
-      const occupied = data.profiles.some((profile) => profile.id !== user.id && (profile.username?.toLowerCase() === username || profile.id?.toLowerCase() === username)) ||
-        (data.demoUsers || []).some((profile) => profile.id?.toLowerCase() === username || profileUsername(profile.displayName, profile.id) === username) ||
-        (data.trips || []).some((trip) => !trip.hidden && trip.hostUserId && trip.hostUserId !== user.id && (trip.hostUserId.toLowerCase() === username || profileUsername(trip.hostName, trip.hostUserId) === username));
-      if (occupied) throw new HttpError(409, "That username is already in use");
+      if (usernameOccupied(data, username, user.id)) throw new HttpError(409, "That username is already in use");
       const profile = syncPublicProfile(data, user);
       profile.username = username;
       return { username };
@@ -205,12 +216,16 @@ export async function handleAccountsRoutes({ req, res, path, method, store, user
     });
     return respond(200, result);
   }
-  const profileMatch = /^\/api\/profiles\/([a-z0-9-]{1,64})$/i.exec(path);
+  const profileMatch = /^\/api\/profiles\/([^/]{1,256})$/i.exec(path);
   if (profileMatch && method === "GET") {
     const user = await userFor(req);
     const data = await store.read();
     const actorId = req.headers["x-qipi-actor"] || "";
-    const identifier = profileMatch[1];
+    let identifier;
+    try { identifier = decodeURIComponent(profileMatch[1]); }
+    catch { throw new HttpError(400, "Invalid profile handle"); }
+    if (identifier.startsWith("@") || !(isValidUsername(identifier) || /^[a-z0-9-]{1,64}$/i.test(identifier))) throw new HttpError(400, "Invalid profile handle");
+    identifier = normalizeUsername(identifier);
     const storedProfile = (data.profiles || []).find(profile => profile.id === identifier || profile.username === identifier);
     const demoProfile = (data.demoUsers || []).find((item) =>
       item.id === identifier || profileUsername(item.displayName, item.id) === identifier

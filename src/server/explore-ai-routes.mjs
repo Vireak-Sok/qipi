@@ -63,14 +63,14 @@ async function askGemini({ message, image, history }, config) {
   };
 }
 
-async function findPlaces(queries, maptilerPublicKey) {
+async function findPlaces(queries, maptilerPublicKey, origin) {
   if (!maptilerPublicKey) return [];
   const results = await Promise.allSettled(queries.map(async query => {
     const url = new URL(`https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json`);
     url.searchParams.set("key", maptilerPublicKey);
     url.searchParams.set("country", "kh");
     url.searchParams.set("limit", "1");
-    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const response = await fetch(url, { headers: origin ? { Origin: origin } : {}, signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
     const feature = (await response.json()).features?.[0];
     const longitude = Number(feature?.center?.[0]), latitude = Number(feature?.center?.[1]);
@@ -96,7 +96,9 @@ export async function handleExploreAiRoutes({ req, res, path, method, config }) 
   const answer = config.geminiApiKey
     ? await askGemini(input, config)
     : { reply: "AI guidance is not configured yet. Here is the closest place match from map search.", queries: [input.message] };
-  const places = await findPlaces(answer.queries, config.maptilerPublicKey);
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  const origin = host && /^[a-z0-9.-]+(?::\d+)?$/i.test(host) ? `${host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https"}://${host}` : "";
+  const places = await findPlaces(answer.queries, config.maptilerPublicKey, origin);
   return createResponder(res)(200, {
     reply: answer.reply,
     places,

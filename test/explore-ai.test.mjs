@@ -15,7 +15,7 @@ test("Explore AI resolves a photo suggestion through map geocoding", async () =>
   const response = { writeHead(status) { this.status = status; return this; }, end(value) { this.value = JSON.parse(value); } };
   try {
     const handled = await handleExploreAiRoutes({
-      req: { headers: { "content-type": "application/json", "x-real-ip": "test-photo" }, body: { message: "Where is this?", image: { mimeType: "image/jpeg", data: "YWJj" } } },
+      req: { headers: { "content-type": "application/json", "x-real-ip": "test-photo", host: "qipi.vercel.app" }, body: { message: "Where is this?", image: { mimeType: "image/jpeg", data: "YWJj" } } },
       res: response, path: "/api/explore/ai", method: "POST",
       config: { geminiApiKey: "test-secret", geminiModel: "gemini-test", maptilerPublicKey: "test-map-key" }
     });
@@ -25,5 +25,6 @@ test("Explore AI resolves a photo suggestion through map geocoding", async () =>
     assert.equal(calls.length, 2);
     assert.match(calls[0].options.body, /inlineData/);
     assert.match(calls[1].url, /Royal%20Palace%20Phnom%20Penh/);
+    assert.equal(calls[1].options.headers.Origin, "https://qipi.vercel.app");
   } finally { globalThis.fetch = originalFetch; }
 });
